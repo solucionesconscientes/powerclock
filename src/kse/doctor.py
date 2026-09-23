@@ -7,9 +7,15 @@ from kse.platform.base import Capability, PlatformBackend
 from kse.sensors import system
 
 
+async def capabilities(backend: PlatformBackend) -> list[Capability]:
+    """The full report; the backend stays open (the daemon keeps using it)."""
+    return [*await backend.capabilities(), *generic()]
+
+
 async def collect(backend: PlatformBackend) -> list[Capability]:
+    """The full report for a one-off command: closes the backend afterwards."""
     try:
-        return [*await backend.capabilities(), *generic()]
+        return await capabilities(backend)
     finally:
         await backend.close()
 

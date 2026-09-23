@@ -1,17 +1,30 @@
-"""`kse` command line. Quick actions and rule management arrive in M4."""
+"""`kse` command line: quick actions, rules, status and the daemon service.
+
+Everything except `doctor` and `service` talks to the daemon's local API.
+"""
 
 import asyncio
+import contextlib
+import getpass
 import json
-from typing import Annotated
+from collections.abc import Callable, Iterator
+from pathlib import Path
+from types import ModuleType
+from typing import Annotated, Any, NoReturn
 
+import click
 import typer
 from rich.console import Console
 from rich.table import Table
 
 from kse import __version__
+from kse.cli import client as api
+from kse.cli.format import local, relative, span, trigger
 from kse.doctor import collect
-from kse.i18n import _
+from kse.i18n import _, power_action_label
+from kse.install.service import service_module
 from kse.platform import dry_run_requested, get_backend
+from kse.platform.base import NotSupported, PowerAction
 
 app = typer.Typer(
     name="kse",
@@ -19,6 +32,22 @@ app = typer.Typer(
     no_args_is_help=True,
     add_completion=False,
 )
+rules_app = typer.Typer(help="Manage rules.", no_args_is_help=True)
+service_app = typer.Typer(help="Run the daemon as a service of your user.", no_args_is_help=True)
+app.add_typer(rules_app, name="rules")
+app.add_typer(service_app, name="service")
+
+console = Console()
+errors = Console(stderr=True)
+
+STATE_STYLES = {
+    "done": "green",
+    "failed": "red",
+    "cancelled": "yellow",
+    "skipped": "dim",
+    "warning": "bold yellow",
+    "postponed": "yellow",
+}
 
 
 def _show_version(value: bool) -> None:
@@ -29,14 +58,409 @@ def _show_version(value: bool) -> None:
 
 @app.callback()
 def main(
+    ctx: typer.Context,
     version: Annotated[
         bool,
         typer.Option(
             "--version", callback=_show_version, is_eager=True, help="Show the version and exit."
         ),
     ] = False,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="Quick actions only log their power actions.")
+    ] = False,
 ) -> None:
     """KShutdown Evolution: power and task automation driven by persistent rules."""
+    ctx.obj = {"dry_run": dry_run}
+
+
+@contextlib.contextmanager
+def _daemon() -> Iterator[api.Client]:
+    """A client of the daemon; its errors become a message and exit code 1."""
+    try:
+        yield api.connect()
+    except api.DaemonUnavailable as exc:
+        errors.print(f"[red]✘[/] {exc}")
+        errors.print(_("Start it with: kse service install   (or run: kse-daemon)"))
+        raise typer.Exit(1) from None
+    except api.ApiError as exc:
+        errors.print(f"[red]✘[/] {exc}")
+        raise typer.Exit(1) from None
+
+
+def _fail(message: str) -> NoReturn:
+    errors.print(f"[red]✘[/] {message}")
+    raise typer.Exit(1)
+
+
+def _styled(state: str) -> str:
+    style = STATE_STYLES.get(state)
+    return f"[{style}]{state}[/]" if style else state
+
+
+# ── Quick actions ──────────────────────────────────────────────────────────────
+
+InOption = Annotated[str | None, typer.Option("--in", help="After a delay: 30s, 5m, 2h, 1h30m.")]
+AtOption = Annotated[
+    str | None, typer.Option("--at", help="At a time: 23:30 or '2026-09-24 07:30'.")
+]
+
+
+def _quick(ctx: typer.Context, payload: dict[str, Any]) -> None:
+    payload["dry_run"] = bool(ctx.obj and ctx.obj.get("dry_run"))
+    with _daemon() as client:
+        rule = client.post("/quick", json=payload)
+        pending = client.get("/pending")
+    when = next((p["at"] for p in pending["next"] if p["rule_id"] == rule["id"]), None)
+    line = f"[green]✔[/] {rule['name']}"
+    if when:
+        line += f" — {local(when)} ({relative(when)})"
+    console.print(line)
+    console.print(_("  cancel: kse cancel · postpone: kse postpone 10m"), style="dim")
+
+
+def _power_command(action: PowerAction) -> Callable[..., None]:
+    def command(
+        ctx: typer.Context,
+        in_: InOption = None,
+        at: AtOption = None,
+        force: Annotated[
+            bool, typer.Option("--force", help="Do not let applications ask to save.")
+        ] = False,
+        warning: Annotated[
+            str, typer.Option("--warning", help="Cancellable countdown before acting.")
+        ] = "60s",
+    ) -> None:
+        payload: dict[str, Any] = {
+            "action": action.value,
+            "mode": "force" if force else "graceful",
+            "warning": warning,
+        }
+        if in_:
+            payload["in"] = in_
+        if at:
+            payload["at"] = at
+        _quick(ctx, payload)
+
+    return command
+
+
+for _action in PowerAction:
+    app.command(
+        name=_action.value.replace("_", "-"),
+        help=f"{power_action_label(_action)}: now, after a delay (--in) or at a time (--at).",
+    )(_power_command(_action))
+
+
+@app.command("run")
+def run_command(
+    ctx: typer.Context,
+    command: Annotated[list[str], typer.Argument(help="The program and its arguments, after --.")],
+    in_: InOption = None,
+    at: AtOption = None,
+) -> None:
+    """Run a program now, after a delay or at a time: kse run --at 03:00 -- backup.sh"""
+    payload: dict[str, Any] = {"command": command}
+    if in_:
+        payload["in"] = in_
+    if at:
+        payload["at"] = at
+    _quick(ctx, payload)
+
+
+# ── Status, cancel, postpone, history ──────────────────────────────────────────
+
+
+@app.command()
+def status() -> None:
+    """What the daemon is doing and what comes next."""
+    with _daemon() as client:
+        health = client.get("/health")
+        pending = client.get("/pending")
+    console.print(
+        f"[bold]kse {health['version']}[/] · {health['backend']} · {health['timezone']}"
+        f" · {_('up')} {span(health['uptime'])}"
+    )
+    if health["dry_run"]:
+        console.print(_("[yellow]Dry run:[/] power actions and wake alarms are only logged."))
+    for problem in health["rules_errors"]:
+        console.print(f"[red]✘ rules.json:[/] {problem}")
+    active, upcoming = pending["active"], pending["next"]
+    if active:
+        table = Table(title=_("Running"), title_justify="left", header_style="bold")
+        for column in (_("Rule"), _("State"), _("Detail"), _("Run")):
+            table.add_column(column)
+        for run in active:
+            detail = (
+                _("acts {when}").format(when=relative(run["deadline"]))
+                if run.get("deadline")
+                else run.get("reason") or ""
+            )
+            table.add_row(run["rule_name"], _styled(run["state"]), detail, run["id"])
+        console.print(table)
+    if upcoming:
+        table = Table(title=_("Next"), title_justify="left", header_style="bold")
+        for column in (_("When"), _("In"), _("Rule"), _("Id")):
+            table.add_column(column)
+        for item in upcoming:
+            table.add_row(local(item["at"]), relative(item["at"]), item["name"], item["rule_id"])
+        console.print(table)
+    if not active and not upcoming:
+        console.print(_("Nothing scheduled."))
+
+
+@app.command()
+def cancel(
+    run_id: Annotated[
+        str | None,
+        typer.Argument(help="A run id (see kse status); default: the countdown or quick action."),
+    ] = None,
+) -> None:
+    """Cancel the countdown in progress or the next quick action."""
+    with _daemon() as client:
+        result = client.post(f"/runs/{run_id}/cancel") if run_id else client.post("/cancel")
+    console.print(f"[green]✔[/] {_('Cancelled')}: {result.get('name') or result['rule_id']}")
+
+
+@app.command()
+def postpone(
+    delay: Annotated[str, typer.Argument(help="How long: 10m, 1h…")] = "10m",
+    run_id: Annotated[str | None, typer.Option("--run", help="A specific run.")] = None,
+) -> None:
+    """Postpone the countdown in progress or the next quick action."""
+    with _daemon() as client:
+        path = f"/runs/{run_id}/postpone" if run_id else "/postpone"
+        result = client.post(path, json={"delay": delay})
+    console.print(
+        f"[green]✔[/] {_('Postponed')}: {result.get('name')} → "
+        f"{local(result.get('at'))} ({relative(result.get('at'))})"
+    )
+
+
+@app.command()
+def history(
+    limit: Annotated[int, typer.Option("--limit", "-n", help="How many runs.")] = 20,
+    rule_id: Annotated[str | None, typer.Option("--rule", help="Only this rule.")] = None,
+) -> None:
+    """Past runs: done, failed, cancelled, skipped… and why."""
+    params: dict[str, Any] = {"limit": limit}
+    if rule_id:
+        params["rule_id"] = rule_id
+    with _daemon() as client:
+        data = client.get("/history", params=params)
+    if not data["runs"]:
+        console.print(_("No runs yet."))
+        return
+    table = Table(header_style="bold")
+    for column in (_("Finished"), _("Rule"), _("State"), _("Reason")):
+        table.add_column(column)
+    for run in data["runs"]:
+        table.add_row(
+            local(run["finished_at"]), run["rule_name"], _styled(run["state"]), run["reason"] or ""
+        )
+    console.print(table)
+    console.print(
+        _("{shown} of {total} runs").format(shown=len(data["runs"]), total=data["total"]),
+        style="dim",
+    )
+
+
+# ── Rules ──────────────────────────────────────────────────────────────────────
+
+
+def _read_rules(file: Path) -> list[dict[str, Any]]:
+    try:
+        data = json.loads(file.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        _fail(f"{file}: {exc}")
+    if isinstance(data, dict) and isinstance(data.get("rules"), list):
+        return list(data["rules"])
+    if isinstance(data, list):
+        return data
+    return [data]
+
+
+@rules_app.command("list")
+def rules_list() -> None:
+    """All rules and when they fire next."""
+    with _daemon() as client:
+        rules = client.get("/rules")
+        upcoming = {item["rule_id"]: item["at"] for item in client.get("/pending")["next"]}
+    if not rules:
+        console.print(_("No rules yet: kse rules add FILE.json (see examples/)."))
+        return
+    table = Table(header_style="bold")
+    for column in (_("Id"), _("Name"), _("Trigger"), _("On"), _("Next")):
+        table.add_column(column)
+    for rule in rules:
+        when = upcoming.get(rule["id"])
+        table.add_row(
+            rule["id"],
+            rule["name"],
+            trigger(rule),
+            "[green]✔[/]" if rule["enabled"] else "[dim]✘[/]",
+            f"{local(when)} ({relative(when)})" if when else "",
+        )
+    console.print(table)
+
+
+@rules_app.command("show")
+def rules_show(rule_id: str) -> None:
+    """A rule as JSON."""
+    with _daemon() as client:
+        rule = client.get(f"/rules/{rule_id}")
+    typer.echo(json.dumps(rule, indent=2, ensure_ascii=False))
+
+
+@rules_app.command("add")
+def rules_add(file: Annotated[Path, typer.Argument(help="JSON with one rule or a list.")]) -> None:
+    """Add the rules in a JSON file."""
+    with _daemon() as client:
+        for data in _read_rules(file):
+            rule = client.post("/rules", json=data)
+            console.print(f"[green]✔[/] {_('Added')}: {rule['id']} — {rule['name']}")
+
+
+@rules_app.command("edit")
+def rules_edit(rule_id: str) -> None:
+    """Edit a rule in your $EDITOR."""
+    with _daemon() as client:
+        rule = client.get(f"/rules/{rule_id}")
+        text = click.edit(json.dumps(rule, indent=2, ensure_ascii=False), extension=".json")
+        if text is None:
+            console.print(_("No changes."))
+            return
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as exc:
+            _fail(_("invalid JSON: {error}").format(error=exc))
+        rule = client.put(f"/rules/{rule_id}", json=data)
+    console.print(f"[green]✔[/] {_('Saved')}: {rule['id']} — {rule['name']}")
+
+
+@rules_app.command("enable")
+def rules_enable(rule_id: str) -> None:
+    """Enable a rule."""
+    with _daemon() as client:
+        rule = client.post(f"/rules/{rule_id}/enable")
+    console.print(f"[green]✔[/] {_('Enabled')}: {rule['id']} — {rule['name']}")
+
+
+@rules_app.command("disable")
+def rules_disable(rule_id: str) -> None:
+    """Disable a rule (it stays saved)."""
+    with _daemon() as client:
+        rule = client.post(f"/rules/{rule_id}/disable")
+    console.print(f"[green]✔[/] {_('Disabled')}: {rule['id']} — {rule['name']}")
+
+
+@rules_app.command("rm")
+def rules_rm(rule_id: str) -> None:
+    """Delete a rule."""
+    with _daemon() as client:
+        client.delete(f"/rules/{rule_id}")
+    console.print(f"[green]✔[/] {_('Deleted')}: {rule_id}")
+
+
+@rules_app.command("run")
+def rules_run(rule_id: str) -> None:
+    """Run a rule now (its conditions, guards and countdown still apply)."""
+    with _daemon() as client:
+        run = client.post(f"/rules/{rule_id}/run")
+    console.print(f"[green]✔[/] {_('Started')}: {run['rule_name']} ({run['id']})")
+
+
+@rules_app.command("export")
+def rules_export(
+    file: Annotated[Path | None, typer.Argument(help="Where to write; default: stdout.")] = None,
+) -> None:
+    """Export every rule as JSON."""
+    with _daemon() as client:
+        rules = client.get("/rules")
+    text = json.dumps({"version": 1, "rules": rules}, indent=2, ensure_ascii=False) + "\n"
+    if file is None:
+        typer.echo(text, nl=False)
+    else:
+        file.write_text(text, encoding="utf-8")
+        message = _("Exported {count} rule(s) to {file}").format(count=len(rules), file=file)
+        console.print(f"[green]✔[/] {message}")
+
+
+@rules_app.command("import")
+def rules_import(
+    file: Path,
+    replace: Annotated[
+        bool, typer.Option("--replace", help="Overwrite rules with the same id.")
+    ] = False,
+) -> None:
+    """Import rules from a JSON file (an export or a list)."""
+    with _daemon() as client:
+        existing = {rule["id"] for rule in client.get("/rules")}
+        for data in _read_rules(file):
+            rule_id = data.get("id")
+            if rule_id in existing and not replace:
+                console.print(f"[yellow]•[/] {_('Skipped (already exists)')}: {rule_id}")
+                continue
+            if rule_id in existing:
+                rule = client.put(f"/rules/{rule_id}", json=data)
+            else:
+                rule = client.post("/rules", json=data)
+            console.print(f"[green]✔[/] {_('Imported')}: {rule['id']} — {rule['name']}")
+
+
+# ── Service ────────────────────────────────────────────────────────────────────
+
+
+def _service() -> ModuleType:
+    try:
+        return service_module()
+    except NotSupported as exc:
+        _fail(str(exc))
+
+
+@service_app.command("install")
+def service_install(
+    linger: Annotated[
+        bool,
+        typer.Option(
+            "--linger", help="Keep the daemon running without a login (unattended wake-ups)."
+        ),
+    ] = False,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="The service only logs power actions (testing).")
+    ] = False,
+) -> None:
+    """Install the daemon as a user service, start it now and at every login."""
+    module = _service()
+    try:
+        done = module.install(dry_run=dry_run, linger_user=getpass.getuser() if linger else None)
+    except module.ServiceError as exc:
+        _fail(str(exc))
+    for line in done:
+        console.print(f"[green]✔[/] {line}")
+
+
+@service_app.command("uninstall")
+def service_uninstall() -> None:
+    """Stop and remove the service (rules and history are kept)."""
+    module = _service()
+    try:
+        done = module.uninstall()
+    except module.ServiceError as exc:
+        _fail(str(exc))
+    for line in done:
+        console.print(f"[green]✔[/] {line}")
+
+
+@service_app.command("status")
+def service_status() -> None:
+    """Whether the service is installed, enabled and running."""
+    state = _service().status()
+    mark = "[green]✔[/]" if state.installed else "[red]✘[/]"
+    console.print(f"{mark} {_('unit')}: {state.unit}")
+    console.print(f"  {_('active')}: {state.active} · {_('enabled')}: {state.enabled}")
+
+
+# ── Doctor ─────────────────────────────────────────────────────────────────────
 
 
 @app.command()
@@ -50,7 +474,6 @@ def doctor(
     if as_json:
         typer.echo(json.dumps([c.model_dump() for c in capabilities], indent=2, ensure_ascii=False))
         return
-    console = Console()
     console.print(f"[bold]kse {__version__}[/] · backend [bold]{name}[/]")
     if dry_run_requested():
         console.print(_("[yellow]Dry run:[/] power actions and wake alarms are only logged."))

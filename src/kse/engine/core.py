@@ -114,19 +114,24 @@ class Engine:
 
     def _on_due(self, rule: Rule, scheduled_for: datetime, missed: bool) -> None:
         tz = self._tz_for(rule)
+        if rule.one_shot:  # before running: listeners may remove the rule once the run ends
+            finished = rule.model_copy(update={"enabled": False})
+            self._rules[rule.id] = finished
+            self.scheduler.schedule(finished, tz)
+            self._rule_changed(finished)
         if missed and rule.on_missed == "skip":
-            self.executor.skip(
-                rule, MISSED_REASON, cause="schedule", scheduled_for=scheduled_for, missed=True
+            self.executor.record(
+                rule,
+                "skipped",
+                MISSED_REASON,
+                cause="schedule",
+                scheduled_for=scheduled_for,
+                missed=True,
             )
         else:
             self.executor.start(
                 rule, tz, cause="schedule", scheduled_for=scheduled_for, missed=missed
             )
-        if rule.one_shot:
-            finished = rule.model_copy(update={"enabled": False})
-            self._rules[rule.id] = finished
-            self.scheduler.schedule(finished, tz)
-            self._rule_changed(finished)
 
     async def _on_power_event(self, event: PowerEvent) -> None:
         if event is PowerEvent.AFTER_RESUME:

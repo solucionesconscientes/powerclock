@@ -123,18 +123,20 @@ class Executor:
         self._active[run.id] = _Active(run, task)
         return run
 
-    def skip(
+    def record(
         self,
         rule: Rule,
+        state: RunState,
         reason: str,
         *,
         cause: RunCause,
         scheduled_for: datetime | None = None,
         missed: bool = False,
     ) -> Run:
-        """Record a firing that does not run (e.g. missed with on_missed: skip)."""
+        """Record a firing that does not run: missed with on_missed: skip, or cancelled
+        before it fired."""
         run = self._new_run(rule, cause, scheduled_for, missed)
-        self._finish(run, "skipped", reason)
+        self._finish(run, state, reason)
         return run
 
     async def wait(self, run_id: str) -> Run:

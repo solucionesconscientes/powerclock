@@ -36,12 +36,12 @@ Marca `[x]` al completar. Cada hito termina con ruff + pytest en verde y un comm
 **DoD:** `KSE_DRY_RUN=1 uv run kse doctor` da un informe correcto en Kubuntu/KDE Wayland.
 
 ### M4 — Demonio, API, almacenamiento, CLI
-- [ ] Store: rules.json (validación, escritura atómica, recarga en caliente), history.sqlite, token 0600
-- [ ] Demonio asyncio + FastAPI/uvicorn en 127.0.0.1, auth por token, WS `/events`
-- [ ] Todos los endpoints de ARCHITECTURE §8
-- [ ] CLI typer completo (comandos rápidos, rules, status, cancel, postpone, doctor)
-- [ ] `kse service install/uninstall/status` (systemd --user) con `--linger` opcional
-- [ ] Tests de API (TestClient + FakePlatform)
+- [x] Store: rules.json (validación, escritura atómica, recarga en caliente), history.sqlite, token 0600
+- [x] Demonio asyncio + FastAPI/uvicorn en 127.0.0.1, auth por token, WS `/events`
+- [x] Todos los endpoints de ARCHITECTURE §8
+- [x] CLI typer completo (comandos rápidos, rules, status, cancel, postpone, doctor)
+- [x] `kse service install/uninstall/status` (systemd --user) con `--linger` opcional
+- [x] Tests de API (TestClient + FakePlatform)
 **DoD:** con el servicio en dry-run: `kse shutdown --in 2m` crea la regla, `kse status` la muestra, `kse cancel` la cancela y el historial lo registra.
 
 ### M5 — Encendido/despertar ⚠ requiere sudo del usuario

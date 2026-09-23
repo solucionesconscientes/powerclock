@@ -114,7 +114,8 @@ Los disparadores de estado llevan `for` (condición sostenida N tiempo), p. ej. 
 - `startup`: `on` (`daemon_start`, `resume`) y `delay`. `time_window`: `start`/`end` como `"22:00"`, cruza medianoche si start > end. `weekday.days`: `mon…sun`.
 - `run` con `shell: true` → `cmd` es una única línea de comando; `timeout` solo con `wait: true`.
 
-**Almacenamiento** (`platformdirs`): `rules.json` en user_config_dir (editable a mano, validado al cargar, escritura atómica, recarga en caliente) · `history.sqlite` en user_data_dir · `daemon.json` (puerto y ajustes) · `api.token` (permisos 0600).
+**Almacenamiento** (`platformdirs`; `KSE_HOME` lo concentra todo en un directorio, útil para tests y pruebas aisladas): `rules.json` en user_config_dir (`{"version": 1, "rules": [...]}`, editable a mano, validado al cargar, escritura atómica 0600, recarga en caliente cada 2 s) · `history.sqlite` en user_data_dir (0600; también guarda la última marca de vida del demonio, cada 60 s, para detectar disparos perdidos mientras estuvo parado) · `daemon.json` (`port`, `dry_run`, `log_level`) · `api.token` (0600).
+- Si `rules.json` tiene **cualquier** error (JSON roto, regla inválida, id duplicado): al arrancar se cargan las reglas válidas; en una recarga siguen funcionando las anteriores; en ambos casos el demonio **no escribe** el archivo hasta que se corrija (las escrituras del API responden 409), para no perder nunca una edición a mano. Los errores aparecen en `/health` y `kse status`.
 
 ## 5. Motor
 - **Scheduler**: bucle asyncio. Los disparadores de tiempo calculan `next_fire` (croniter + zoneinfo). Duerme hasta el más cercano, como mucho 30 s, para resincronizar tras suspensiones, saltos de reloj y cambios de horario.
@@ -183,14 +184,17 @@ class PlatformBackend(ABC):
 | POST | `/rules/{id}/enable` · `/disable` · `/run` | |
 | POST | `/quick` | acción rápida estilo KShutdown → regla `one_shot` |
 | GET | `/pending` | próximos disparos + despertar programado |
-| POST | `/runs/{id}/cancel` · `/cancel` | cancelar ejecución · cuenta atrás actual |
-| POST | `/runs/{id}/postpone` | posponer (p. ej. 10 min) |
+| GET | `/runs/{id}` | una ejecución (activa o del historial) |
+| POST | `/runs/{id}/cancel` · `/cancel` | cancelar ejecución · la cuenta atrás actual, si no la acción rápida en curso, si no la próxima acción rápida (queda en el historial como `cancelled`) |
+| POST | `/runs/{id}/postpone` · `/postpone` | posponer `{"delay": "10m"}` (10 min por defecto) · la cuenta atrás actual, si no la próxima acción rápida (se retrasa su disparador) |
 | GET | `/history` | historial paginado |
 | GET | `/capabilities` | informe doctor |
 | GET | `/schema/rule` | JSON Schema (GUI y futuro asistente IA) |
 | WS | `/events` | `warning_started`, `tick`, `cancelled`, `postponed`, `run_started`, `run_finished`, `rule_changed`, `wake_changed` |
 
-Solo escucha en 127.0.0.1. El acceso remoto (fase 5) será opt-in.
+Solo escucha en 127.0.0.1. El acceso remoto (fase 5) será opt-in. Sin `/docs` ni `/openapi.json`. El WebSocket acepta el token en la cabecera o en `?token=` (para clientes que no pueden poner cabeceras). Todas las rutas son `async` para ejecutarse en el bucle del motor.
+
+`/quick` recibe `{"action" | "command", "in" | "at", "mode", "warning", "dry_run"}`; `at` admite `"23:30"` (su próxima aparición), `"2026-09-24 07:30"` (hora local del demonio) o ISO con zona. Crea una regla `one_shot` con id `quick-…` que se borra sola al terminar (o al cancelarse); sin `in`/`at` se ejecuta ya.
 
 ## 9. CLI
 ```
@@ -209,7 +213,7 @@ kse service install [--linger] | uninstall | status
 kse helper install [--unattended] | uninstall
 kse gui
 ```
-Los comandos rápidos crean reglas `one_shot` vía API. Si el demonio no está activo, lo indican y sugieren `kse service install`. Opción global `--dry-run`.
+Los comandos rápidos crean reglas `one_shot` vía API (`kse shutdown|reboot|suspend|hibernate|hybrid-sleep|lock|logout|screen-off [--in|--at] [--force] [--warning]`). Si el demonio no está activo, lo indican y sugieren `kse service install`. Opción global `--dry-run`. `kse service install --dry-run` instala el servicio en modo dry-run (pruebas). `--wake` (M5) y `--when-*` (M6) llegan en sus hitos.
 
 ## 10. GUI (PySide6)
 - **Bandeja**: icono según estado (inactivo / programado / cuenta atrás); menú con acciones rápidas, próxima acción, cancelar y abrir.
@@ -226,7 +230,7 @@ pipx install kse            # servidor / VPS
 kse service install         # servicio de usuario + autoarranque
 kse helper install          # opcional: encender/despertar (sudo una vez)
 ```
-- Linux: `~/.config/systemd/user/kse.service` (+ linger opcional) · `~/.config/autostart/kse-gui.desktop`.
+- Linux: `~/.config/systemd/user/kse.service` (`ExecStart=<venv>/bin/kse-daemon --foreground`, `Restart=on-failure`; `systemctl --user enable --now`; linger opcional con `loginctl enable-linger`, sin sudo) · `~/.config/autostart/kse-gui.desktop` (M7). Una parada por SIGTERM es limpia: guarda la marca de vida y conserva las acciones rápidas pendientes.
 - Windows: tarea "al iniciar sesión" para el demonio · acceso directo de Inicio para la GUI.
 - macOS: `~/Library/LaunchAgents/org.kse.daemon.plist` · helper como LaunchDaemon.
 - Flatpak descartado: el sandbox impide logind de sistema, polkit y el helper.
@@ -246,19 +250,20 @@ KSHUTDOWN-EVOLUTION/
 ├── examples/            reglas de ejemplo (*.json)
 ├── src/kse/
 │   ├── models.py        # Rule, Trigger*, Predicate*, Action*, parse_duration
-│   ├── config.py        # rutas platformdirs, daemon.json
+│   ├── config.py        # rutas platformdirs (KSE_HOME), daemon.json, token, escritura atómica
+│   ├── timeparse.py     # "23:30" / "2026-09-24 07:30" → instante
 │   ├── doctor.py        # kse doctor: informe del backend + comprobaciones genéricas
 │   ├── i18n.py          # textos traducibles (catálogos es/en en M7)
 │   ├── engine/          # core.py (Engine) clock.py scheduler.py evaluator.py executor.py runs.py processes.py wake.py (M5)
 │   ├── sensors/         # base.py (SensorReader) system.py (psutil) fake.py registry.py (M6)
 │   ├── platform/        # __init__.py (get_backend) base.py fake.py dryrun.py
-│   │   ├── linux/       # backend.py logind.py idle.py wayland.py desktop.py notify.py network.py dbus.py commands.py host.py capabilities.py
+│   │   ├── linux/       # backend.py logind.py idle.py wayland.py desktop.py notify.py network.py dbus.py commands.py host.py capabilities.py service.py (systemd)
 │   │   ├── windows/     # fase 3
 │   │   └── macos/       # fase 4
 │   ├── helper/          # kse_helper_linux.py org.kse.helper.policy 50-kse-unattended.rules
-│   ├── daemon/          # main.py api.py store.py events.py
-│   ├── cli/             # main.py
-│   ├── install/         # service.py autostart.py helper.py
+│   ├── daemon/          # main.py (kse-daemon) core.py (Daemon) api.py store.py (reglas + historial) events.py
+│   ├── cli/             # main.py client.py format.py
+│   ├── install/         # service.py (fachada por SO) autostart.py helper.py
 │   └── gui/             # app.py tray.py quick.py rules.py countdown.py doctor.py client.py
 └── tests/               # unit/ + real/ (@pytest.mark.real, excluidos por defecto)
 ```

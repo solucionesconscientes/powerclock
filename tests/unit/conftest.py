@@ -21,7 +21,11 @@ def _no_real_system(monkeypatch: pytest.MonkeyPatch) -> None:
     async def forbidden(*args: object, **kwargs: object) -> None:
         raise AssertionError("a unit test tried to use the real system")
 
+    def forbidden_sync(*args: object, **kwargs: object) -> None:
+        raise AssertionError("a unit test tried to run a real system command")
+
     try:
+        from kse.platform.linux import service
         from kse.platform.linux.commands import SystemCommands
         from kse.platform.linux.dbus import DBusFastBus
     except ImportError:  # not on Linux
@@ -30,6 +34,7 @@ def _no_real_system(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(DBusFastBus, name, forbidden)
     for name in ("run", "spawn"):
         monkeypatch.setattr(SystemCommands, name, forbidden)
+    monkeypatch.setattr(service, "run", forbidden_sync)  # systemctl, loginctl
 
 
 @pytest.fixture
