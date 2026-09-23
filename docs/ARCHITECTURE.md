@@ -42,10 +42,10 @@ App multiplataforma (Linux → Windows → macOS) para automatizar energía y ta
 
 ## 3. Stack y dependencias permitidas
 - Python ≥ 3.11 · `pyproject.toml` + hatchling · layout `src/` · desarrollo con `uv`.
-- `pydantic` v2 (modelos, validación, JSON Schema) · `fastapi` + `uvicorn` (API local + WS) · `httpx` (cliente) · `typer` + `rich` (CLI) · `psutil` (CPU, red, procesos, batería, usuarios) · `croniter` (recurrencias) · `platformdirs` (rutas).
+- `pydantic` v2 (modelos, validación, JSON Schema) · `fastapi` + `uvicorn` (API local + WS) · `httpx` (cliente) · `typer` + `rich` (CLI) · `psutil` (CPU, red, procesos, batería, usuarios) · `croniter` (recurrencias) · `platformdirs` (rutas) · `websockets` (servidor WS de uvicorn para `/events` y cliente WS de la CLI; `httpx` no habla WebSocket).
 - Solo Linux: `dbus-fast` (logind, ScreenSaver, MPRIS, notificaciones) → `dbus-fast; sys_platform == "linux"`.
 - Solo Windows (fase 3): `pywin32`.
-- Extra `[gui]`: `PySide6`, `qasync`.
+- Extra `[gui]`: `PySide6`, `qasync`. La GUI usa `QtWebSockets` (incluido en PySide6) para `/events`.
 - Dev: `pytest`, `pytest-asyncio`, `ruff`, `time-machine`.
 - Entry points: `kse`, `kse-daemon`, `kse-gui`.
 - Licencia provisional: GPL-3.0-or-later (decidir antes de publicar).
@@ -111,8 +111,8 @@ Los disparadores de estado llevan `for` (condición sostenida N tiempo), p. ej. 
 ## 6. Encendido/despertar — WakePlanner (diferenciador)
 - El RTC guarda UNA sola alarma. WakePlanner calcula el instante más próximo entre las reglas con `wake: true` y los `set_wake`, le resta un margen (120 s por defecto, para que el demonio esté listo) y lo programa.
 - Se reprograma en tres momentos: (a) al cambiar reglas, (b) tras cada disparo, (c) justo antes de apagar/suspender. Para (c), el demonio toma un inhibidor logind `delay` (`shutdown:sleep`); en `PrepareForShutdown`/`PrepareForSleep(true)` reescribe la alarma y libera el inhibidor. Así se cubren también los apagados manuales del usuario.
-- Linux: el helper usa `rtcwake -m no -t <epoch>`, que respeta RTC en UTC o localtime según `/etc/adjtime`; si falla, recurre a `/sys/class/rtc/rtc0/wakealarm` (escribir 0 y luego el valor). Para consultar: `rtcwake -m show`. Para borrar: `rtcwake -m disable`.
-- **Modo desatendido** (encender → ejecutar → apagar sin iniciar sesión): el servicio de usuario necesita `loginctl enable-linger <usuario>`, y apagar sin sesión activa requiere una regla polkit opcional (`50-kse-unattended.rules`) que permita las acciones `org.freedesktop.login1.power-off/reboot/suspend/hibernate` (y sus variantes `-multiple-sessions`) a ese usuario. Lo instalan `kse service install --linger` y `kse helper install --unattended`.
+- Linux: el helper usa `rtcwake -m no -t <epoch>`, que respeta RTC en UTC o localtime según `/etc/adjtime`; si falla, recurre a `/sys/class/rtc/rtc0/wakealarm`: escribe `0` y después el valor **relativo** `+<segundos>`. Un valor absoluto el kernel lo interpreta en la hora del RTC, que puede ir en hora local (arranque dual con Windows) y desplazaría la alarma 1–2 h; el relativo no depende de eso. Para consultar: `rtcwake -m show`. Para borrar: `rtcwake -m disable`.
+- **Modo desatendido** (encender → ejecutar → apagar sin iniciar sesión): el servicio de usuario necesita `loginctl enable-linger <usuario>`, y sin sesión activa `allow_active` no se aplica. Por eso hace falta una regla polkit opcional (`50-kse-unattended.rules`) que conceda a ese usuario las acciones `org.freedesktop.login1.power-off/reboot/suspend/hibernate` (y sus variantes `-multiple-sessions`) **y la acción del helper `org.kse.helper.wake`**; sin esta última, el WakePlanner no podría programar el siguiente despertar y la cadena se cortaría tras el primero. Lo instalan `kse service install --linger` y `kse helper install --unattended`.
 - Windows (fase 3): tarea programada con `WakeToRun` que ejecuta `kse wake-hook`. `doctor` comprueba los temporizadores de reactivación y Modern Standby (`powercfg /a`).
 - macOS (fase 4): `pmset schedule wakeorpoweron` vía helper.
 - Realidad del hardware: desde S3/S4 suele funcionar; desde S5 depende de la BIOS/UEFI; en portátiles suele requerir corriente AC. `doctor` lo avisa y lo verifica con `--test-wake`.
@@ -145,7 +145,7 @@ class PlatformBackend(ABC):
 - Idle (debe funcionar en Wayland), estrategias en cadena: `org.freedesktop.ScreenSaver.GetSessionIdleTime` (KDE) → `org.gnome.Mutter.IdleMonitor.GetIdletime` (GNOME) → logind `IdleSinceHint` → `xprintidle` (X11).
 - Multimedia: MPRIS (`PlaybackStatus == "Playing"`). Notificaciones: `org.freedesktop.Notifications` con acción "Cancelar".
 - Eventos: señales `PrepareForSleep`/`PrepareForShutdown`; inhibidor `Inhibit("shutdown:sleep", "kse", motivo, "delay")`.
-- Helper: `/usr/local/libexec/kse-helper` (root:root 0755, `#!/usr/bin/python3` del sistema, solo stdlib) + `/usr/share/polkit-1/actions/org.kse.helper.policy` con `allow_active=yes` y la anotación `org.freedesktop.policykit.exec.path` → `pkexec /usr/local/libexec/kse-helper wake-set <epoch>` sin contraseña en sesión activa. Valida que el epoch sea entero, futuro y < 1 año. Nunca ejecuta nada arbitrario.
+- Helper: `/usr/local/libexec/kse-helper` (root:root 0755, `#!/usr/bin/python3` del sistema, solo stdlib) + `/usr/share/polkit-1/actions/org.kse.helper.policy` (acción `org.kse.helper.wake`) con `allow_active=yes` y la anotación `org.freedesktop.policykit.exec.path` → `pkexec /usr/local/libexec/kse-helper wake-set <epoch>` sin contraseña en sesión activa. Valida que el epoch sea entero, futuro y < 1 año. Nunca ejecuta nada arbitrario.
 - `doctor` informa de: RTC presente, helper instalado, Can*, hibernación configurada (swap/resume), AC/batería, sesión Wayland/X11, escritorio, fabricante/modelo (`/sys/class/dmi/id/`) con pista de BIOS (p. ej. Dell: *Power Management → Auto On Time*), linger activo, RTC UTC/local.
 
 ## 8. API local
