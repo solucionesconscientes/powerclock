@@ -1,12 +1,15 @@
 """The Linux part of `kse doctor`: what works on this machine and how to fix what does not."""
 
 import logging
+import os
 from collections.abc import Awaitable, Callable
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from kse.i18n import _
 from kse.platform.base import Capability, NotSupported, PowerAction
 from kse.platform.linux.dbus import DBusError
+from kse.platform.linux.helper import ACTION, packaged
 from kse.platform.linux.idle import LOGIND, WAYLAND
 from kse.platform.linux.logind import ALLOWED, METHODS
 from kse.platform.linux.network import wifi_ssid
@@ -178,13 +181,56 @@ async def _wake(p: "LinuxPlatform") -> list[Capability]:
         rtc_row = row(
             "wake.rtc", True, _("{name} · clock in {clock}").format(name=rtc.name, clock=clock)
         )
-    if p.host.helper_installed():
-        helper_row = row("wake.helper", True, _("installed"))
+    rows = [rtc_row, *await _helper_rows(p)]
+    alarm = await p.wake_get()
+    detail = _("programmed for {time}").format(time=_local(alarm)) if alarm else _("none")
+    rows.append(row("wake.alarm", True, detail))
+    return rows
+
+
+async def _helper_rows(p: "LinuxPlatform") -> list[Capability]:
+    if not p.host.helper_installed():
+        return [row("wake.helper", False, _("not installed"), _("kse helper install"))]
+    if not p.host.helper_matches(packaged("kse_helper_linux.py")):
+        return [
+            row(
+                "wake.helper",
+                False,
+                _("installed, but from another version of kse"),
+                _("kse helper install"),
+            )
+        ]
+    rows = [row("wake.helper", True, _("installed and up to date"))]
+    code, _output = await p.commands.run(
+        ["pkcheck", "--action-id", ACTION, "--process", str(os.getpid())]
+    )
+    answers = {
+        0: (True, _("this process may program the alarm without a password")),
+        1: (False, _("this process is not allowed to program the alarm")),
+        2: (False, _("a password would be needed (no active session?)")),
+    }
+    supported, detail = answers.get(code, (False, _("pkcheck failed ({code})").format(code=code)))
+    fix = None if supported else _("without a graphical session: kse helper install --unattended")
+    rows.append(row("wake.authorized", supported, detail, fix))
+    unattended = p.host.unattended_installed()
+    if unattended is None:
+        rows.append(row("wake.unattended", True, _("cannot be checked by a normal user")))
+    elif unattended:
+        rows.append(row("wake.unattended", True, _("rule installed: works without a login")))
     else:
-        helper_row = row(
-            "wake.helper", False, _("not installed"), _("kse helper install (roadmap M5)")
+        rows.append(
+            row(
+                "wake.unattended",
+                False,
+                _("only while you are logged in"),
+                _("kse helper install --unattended (and kse service install --linger)"),
+            )
         )
-    return [rtc_row, helper_row]
+    return rows
+
+
+def _local(moment: datetime) -> str:
+    return moment.astimezone().strftime("%Y-%m-%d %H:%M:%S")
 
 
 async def _hardware(p: "LinuxPlatform") -> list[Capability]:

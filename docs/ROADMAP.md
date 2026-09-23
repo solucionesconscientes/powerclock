@@ -45,12 +45,12 @@ Marca `[x]` al completar. Cada hito termina con ruff + pytest en verde y un comm
 **DoD:** con el servicio en dry-run: `kse shutdown --in 2m` crea la regla, `kse status` la muestra, `kse cancel` la cancela y el historial lo registra.
 
 ### M5 — Encendido/despertar ⚠ requiere sudo del usuario
-- [ ] Helper stdlib: wake-set/clear/get con `rtcwake -m no` (alternativa sysfs con valor relativo `+<segundos>`) y validación estricta
-- [ ] Política polkit `allow_active=yes`; `kse helper install/uninstall` (muestra los comandos sudo y pide confirmación)
-- [ ] Regla polkit opcional `--unattended` (login1 power-* y acción del helper `org.kse.helper.wake`, sin sesión activa)
-- [ ] WakePlanner: próximo despertar, margen, reprogramación (cambios, disparos, PrepareForSleep/Shutdown con inhibidor delay)
-- [ ] `kse wake --at`, `kse doctor --test-wake 120` (solo con confirmación explícita)
-**DoD:** el usuario verifica en su Latitude el despertar desde suspensión; el resultado desde S5 queda documentado.
+- [x] Helper stdlib: wake-set/clear/get con `rtcwake -m no` (alternativa sysfs con valor relativo `+<segundos>`) y validación estricta
+- [x] Política polkit `allow_active=yes`; `kse helper install/uninstall` (muestra los comandos sudo y pide confirmación)
+- [x] Regla polkit opcional `--unattended` (login1 power-* y acción del helper `org.kse.helper.wake`, sin sesión activa)
+- [x] WakePlanner: próximo despertar, margen, reprogramación (cambios, disparos, PrepareForSleep/Shutdown con inhibidor delay)
+- [x] `kse wake --at`, `kse doctor --test-wake 120` (solo con confirmación explícita)
+**DoD (pendiente de la prueba del usuario):** el usuario verifica en su Latitude el despertar desde suspensión; el resultado desde S5 queda documentado.
 
 ### M6 — Disparadores por condición y guardas
 - [ ] `idle`, `process_exit`, `cpu_below`, `net_below` (media móvil + `for`), `battery`, `power_source`, `startup`

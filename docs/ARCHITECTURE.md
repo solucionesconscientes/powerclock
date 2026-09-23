@@ -129,8 +129,11 @@ Los disparadores de estado llevan `for` (condición sostenida N tiempo), p. ej. 
 - **Reglas que cambia el motor**: armar un `countdown` (al crear o reactivar la regla) y desactivar una `one_shot` tras dispararse emiten `rule_changed` para que el demonio lo guarde.
 
 ## 6. Encendido/despertar — WakePlanner (diferenciador)
-- El RTC guarda UNA sola alarma. WakePlanner calcula el instante más próximo entre las reglas con `wake: true` y los `set_wake`, le resta un margen (120 s por defecto, para que el demonio esté listo) y lo programa.
-- Se reprograma en tres momentos: (a) al cambiar reglas, (b) tras cada disparo, (c) justo antes de apagar/suspender. Para (c), el demonio toma un inhibidor logind `delay` (`shutdown:sleep`); en `PrepareForShutdown`/`PrepareForSleep(true)` reescribe la alarma y libera el inhibidor. Así se cubren también los apagados manuales del usuario.
+- El RTC guarda UNA sola alarma. WakePlanner (`engine/wake.py`) calcula el próximo disparo de las reglas activas con `wake: true`, le resta un margen (120 s, para que el demonio esté listo), lo redondea a segundos (nunca a menos de 10 s vista) y lo programa. Las peticiones sueltas (`kse wake --at`, `--wake` de las acciones rápidas, la acción `set_wake`) se convierten en reglas `quick-…` de un solo uso con `wake: true` y un `notify`, así solo hay una fuente de verdad.
+- Nunca retrasa ni borra una alarma **ajena** que llegue antes (p. ej. la de `kse doctor --test-wake` o un `rtcwake` a mano): solo borra la suya. Al parar el demonio la alarma **se queda** (tiene que encender el equipo). Los errores (helper sin instalar, sin permiso) quedan en `/pending` → `wake.error` y en `kse status`, y se reintentan en el siguiente cambio.
+- Se reprograma en tres momentos: (a) al cambiar reglas, (b) tras cada disparo, (c) justo antes de apagar/suspender. Para (c), el demonio toma un inhibidor logind `delay` (`shutdown:sleep`) **solo mientras hay una alarma que mantener**; en `PrepareForShutdown`/`PrepareForSleep(true)` reescribe la alarma y libera el inhibidor. Así se cubren también los apagados manuales del usuario. Tras reanudar, vuelve a leer la alarma (puede haberse consumido) y programa la siguiente.
+- Lectura: el backend lee `/sys/class/rtc/rtc0/wakealarm` directamente (es legible sin privilegios), convirtiendo si el RTC va en hora local. Escritura: `pkexec kse-helper wake-set|wake-clear`; códigos 126/127 de pkexec → `NotSupported` (sin permiso) con la pista de `--unattended`.
+- `kse doctor --test-wake N` (60–3600 s): tras confirmación explícita, programa la alarma (si falla, **no suspende**), suspende y, al reanudar, dice si despertó sola (`ok`), antes de tiempo (¿a mano?), tarde o si no llegó a suspender. En dry-run no hace nada.
 - Linux: el helper usa `rtcwake -m no -t <epoch>`, que respeta RTC en UTC o localtime según `/etc/adjtime`; si falla, recurre a `/sys/class/rtc/rtc0/wakealarm`: escribe `0` y después el valor **relativo** `+<segundos>`. Un valor absoluto el kernel lo interpreta en la hora del RTC, que puede ir en hora local (arranque dual con Windows) y desplazaría la alarma 1–2 h; el relativo no depende de eso. Para consultar: `rtcwake -m show`. Para borrar: `rtcwake -m disable`.
 - **Modo desatendido** (encender → ejecutar → apagar sin iniciar sesión): el servicio de usuario necesita `loginctl enable-linger <usuario>`, y sin sesión activa `allow_active` no se aplica. Por eso hace falta una regla polkit opcional (`50-kse-unattended.rules`) que conceda a ese usuario las acciones `org.freedesktop.login1.power-off/reboot/suspend/hibernate` (y sus variantes `-multiple-sessions`) **y la acción del helper `org.kse.helper.wake`**; sin esta última, el WakePlanner no podría programar el siguiente despertar y la cadena se cortaría tras el primero. Lo instalan `kse service install --linger` y `kse helper install --unattended`.
 - Windows (fase 3): tarea programada con `WakeToRun` que ejecuta `kse wake-hook`. `doctor` comprueba los temporizadores de reactivación y Modern Standby (`powercfg /a`).
@@ -170,7 +173,8 @@ class PlatformBackend(ABC):
 - Entorno de un servicio systemd de usuario: puede faltar `DBUS_SESSION_BUS_ADDRESS` (se usa `$XDG_RUNTIME_DIR/bus`) y `WAYLAND_DISPLAY` (se busca `wayland-*` en el directorio de ejecución y se pasa a `kscreen-doctor`/`xdg-open`).
 - Zona horaria (`timezone()`): `$TZ` → enlace `/etc/localtime` → `/etc/timezone` → contenido de `/etc/localtime` → UTC.
 - Eventos: señales `PrepareForSleep`/`PrepareForShutdown`; inhibidor `Inhibit("shutdown:sleep", "kse", motivo, "delay")`.
-- Helper: `/usr/local/libexec/kse-helper` (root:root 0755, `#!/usr/bin/python3` del sistema, solo stdlib) + `/usr/share/polkit-1/actions/org.kse.helper.policy` (acción `org.kse.helper.wake`) con `allow_active=yes` y la anotación `org.freedesktop.policykit.exec.path` → `pkexec /usr/local/libexec/kse-helper wake-set <epoch>` sin contraseña en sesión activa. Valida que el epoch sea entero, futuro y < 1 año. Nunca ejecuta nada arbitrario.
+- Helper: `/usr/local/libexec/kse-helper` (root:root 0755, `#!/usr/bin/python3` del sistema, solo stdlib) + `/usr/share/polkit-1/actions/org.kse.helper.policy` (acción `org.kse.helper.wake`) con `allow_active=yes` y la anotación `org.freedesktop.policykit.exec.path` → `pkexec /usr/local/libexec/kse-helper wake-set <epoch>` sin contraseña en sesión activa. Valida que el epoch sea solo dígitos, al menos 5 s en el futuro y como mucho 366 días. Nunca ejecuta nada arbitrario: `rtcwake` con ruta absoluta y entorno limpio. `wake-get` imprime el epoch UTC o `none`.
+- `kse helper install [--unattended] [--print]` muestra los comandos `sudo install -D -o root -g root -m 0755|0644 …` exactos y solo los ejecuta si el usuario responde que sí; con `--unattended` genera la regla para ese usuario en su directorio de datos. `uninstall` borra la alarma y los tres archivos. `doctor` comprueba que el helper instalado coincide con el de esta versión, pregunta a polkit con `pkcheck --action-id org.kse.helper.wake --process <pid>` si este proceso puede programar la alarma sin contraseña (sin ejecutar nada como root), y muestra la alarma actual.
 - `doctor` informa de: RTC presente, helper instalado, Can*, hibernación configurada (swap/resume), AC/batería, sesión Wayland/X11, escritorio, fabricante/modelo (`/sys/class/dmi/id/`) con pista de BIOS (p. ej. Dell: *Power Management → Auto On Time*), linger activo, RTC UTC/local.
 
 ## 8. API local
@@ -183,7 +187,8 @@ class PlatformBackend(ABC):
 | GET · PUT · DELETE | `/rules/{id}` | ver · editar · borrar |
 | POST | `/rules/{id}/enable` · `/disable` · `/run` | |
 | POST | `/quick` | acción rápida estilo KShutdown → regla `one_shot` |
-| GET | `/pending` | próximos disparos + despertar programado |
+| POST | `/wake` | `{"at": "07:30"}` → regla de despertar de un solo uso |
+| GET | `/pending` | próximos disparos + ejecuciones activas + `wake: {at, error}` |
 | GET | `/runs/{id}` | una ejecución (activa o del historial) |
 | POST | `/runs/{id}/cancel` · `/cancel` | cancelar ejecución · la cuenta atrás actual, si no la acción rápida en curso, si no la próxima acción rápida (queda en el historial como `cancelled`) |
 | POST | `/runs/{id}/postpone` · `/postpone` | posponer `{"delay": "10m"}` (10 min por defecto) · la cuenta atrás actual, si no la próxima acción rápida (se retrasa su disparador) |
@@ -208,9 +213,9 @@ kse wake --at "2026-09-24 07:30"
 kse run --at 03:00 --wake -- /home/pc/bin/backup.sh
 kse status | kse cancel | kse postpone 10m
 kse rules list|show|add <f.json>|edit <id>|enable|disable|rm|export|import
-kse doctor [--test-wake 120]
+kse doctor [--json] [--test-wake 120]
 kse service install [--linger] | uninstall | status
-kse helper install [--unattended] | uninstall
+kse helper install [--unattended] [--print] | uninstall [--print]
 kse gui
 ```
 Los comandos rápidos crean reglas `one_shot` vía API (`kse shutdown|reboot|suspend|hibernate|hybrid-sleep|lock|logout|screen-off [--in|--at] [--force] [--warning]`). Si el demonio no está activo, lo indican y sugieren `kse service install`. Opción global `--dry-run`. `kse service install --dry-run` instala el servicio en modo dry-run (pruebas). `--wake` (M5) y `--when-*` (M6) llegan en sus hitos.
@@ -260,7 +265,7 @@ KSHUTDOWN-EVOLUTION/
 │   │   ├── linux/       # backend.py logind.py idle.py wayland.py desktop.py notify.py network.py dbus.py commands.py host.py capabilities.py service.py (systemd)
 │   │   ├── windows/     # fase 3
 │   │   └── macos/       # fase 4
-│   ├── helper/          # kse_helper_linux.py org.kse.helper.policy 50-kse-unattended.rules
+│   ├── helper/          # kse_helper_linux.py org.kse.helper.policy 50-kse-unattended.rules.in (plantilla por usuario)
 │   ├── daemon/          # main.py (kse-daemon) core.py (Daemon) api.py store.py (reglas + historial) events.py
 │   ├── cli/             # main.py client.py format.py
 │   ├── install/         # service.py (fachada por SO) autostart.py helper.py

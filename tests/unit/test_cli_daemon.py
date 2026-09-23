@@ -150,3 +150,15 @@ def test_daemon_not_running() -> None:
     paths.settings.write_text(json.dumps({"port": port}))
     output = kse_fails("status")
     assert "the kse daemon is not running" in output
+
+
+def test_wake_commands(daemon: Daemon) -> None:
+    output = kse("wake", "--at", "2026-09-25 07:30")
+    assert "Wake up at 2026-09-25 07:30" in output
+    assert "wake-up alarm" in output
+    assert "wake-up alarm" in kse("status")
+    output = kse("suspend", "--at", "23:30", "--wake", "07:30")
+    assert "wake-up alarm" in output
+    kse("run", "--at", "03:00", "--wake", "--", "backup.sh")
+    wake_rules = [rule for rule in daemon.engine.rules.values() if rule.wake]
+    assert len(wake_rules) == 3

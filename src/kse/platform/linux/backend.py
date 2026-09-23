@@ -4,7 +4,7 @@ import os
 import pwd
 from collections.abc import Mapping
 from contextlib import AbstractAsyncContextManager
-from datetime import tzinfo
+from datetime import datetime, tzinfo
 from pathlib import Path
 
 from dbus_fast import BusType
@@ -20,6 +20,7 @@ from kse.platform.base import (
 from kse.platform.linux.commands import Commands, SystemCommands
 from kse.platform.linux.dbus import Bus, DBusFastBus
 from kse.platform.linux.desktop import Desktop
+from kse.platform.linux.helper import HELPER
 from kse.platform.linux.host import Host
 from kse.platform.linux.idle import IdleProbe
 from kse.platform.linux.logind import ALLOWED, METHODS, Logind
@@ -77,6 +78,33 @@ class LinuxPlatform(PlatformBackend):
                     await self.logind.power(action)
             case _:
                 await self.logind.power(action)
+
+    async def wake_set(self, when: datetime) -> None:
+        if when.tzinfo is None or when.utcoffset() is None:
+            raise ValueError("wake_set needs a timezone-aware datetime")
+        await self._helper("wake-set", str(int(when.timestamp())))
+
+    async def wake_clear(self) -> None:
+        await self._helper("wake-clear")
+
+    async def wake_get(self) -> datetime | None:
+        return self.host.wake_alarm(self.env)  # sysfs is readable without privileges
+
+    async def _helper(self, *args: str) -> None:
+        """Run kse-helper as root through pkexec (polkit action org.kse.helper.wake)."""
+        if not self.host.helper_installed():
+            raise NotSupported("wake", "kse-helper is not installed", fix_hint="kse helper install")
+        if self.commands.which("pkexec") is None:
+            raise NotSupported("wake", "pkexec is not installed", fix_hint="install polkit")
+        code, output = await self.commands.run(["pkexec", str(HELPER), *args])
+        if code in (126, 127):  # dismissed / not authorized
+            raise NotSupported(
+                "wake",
+                f"not authorized to program the wake-up alarm: {output}",
+                fix_hint="without a graphical session: kse helper install --unattended",
+            )
+        if code != 0:
+            raise OSError(f"kse-helper {args[0]} failed ({code}): {output}")
 
     async def capabilities(self) -> list[Capability]:
         from kse.platform.linux.capabilities import collect

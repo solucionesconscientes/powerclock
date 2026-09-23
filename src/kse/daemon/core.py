@@ -27,6 +27,7 @@ from kse.models import (
     CountdownTrigger,
     Duration,
     ManualTrigger,
+    NotifyStep,
     PositiveDuration,
     PowerStep,
     Rule,
@@ -64,6 +65,8 @@ class QuickRequest(BaseModel):
     mode: PowerMode = PowerMode.GRACEFUL
     warning: Duration = timedelta(seconds=60)
     dry_run: bool = False
+    wake: bool = False  # wake the machine up for this action (needs `in` or `at`)
+    wake_at: str | None = None  # and/or wake it up at another time (suspend --wake 07:30)
 
     @model_validator(mode="after")
     def _consistent(self) -> Self:
@@ -72,6 +75,12 @@ class QuickRequest(BaseModel):
         if self.in_ is not None and self.at is not None:
             raise ValueError("set at most one of: in, at")
         return self
+
+
+class WakeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    at: str
 
 
 class PostponeRequest(BaseModel):
@@ -102,7 +111,12 @@ class Daemon:
         self.history = History(paths.history)
         self.tz = _timezone(backend)
         self.engine = Engine(
-            backend, tz=self.tz, clock=clock, dry_run=self.dry_run, emit=self._on_event
+            backend,
+            tz=self.tz,
+            clock=clock,
+            dry_run=self.dry_run,
+            emit=self._on_event,
+            request_wake=self._request_wake,  # the set_wake action
         )
         self.started_at = self.engine.clock.now()
         self._tasks: list[asyncio.Task[None]] = []
@@ -208,31 +222,62 @@ class Daemon:
             trigger = CountdownTrigger(duration=request.in_)
             name = _("{action} in {delay}").format(action=label, delay=format_duration(request.in_))
         elif request.at is not None:
-            try:
-                when = resolve_at(request.at, now, self.tz)
-            except ValueError as exc:
-                raise DaemonError(422, str(exc)) from None
-            if when <= now:
-                raise DaemonError(422, f"{request.at!r} is already in the past")
+            when = self._resolve(request.at, now)
             trigger = AtTrigger(when=when)
             local = when.astimezone(self.tz).strftime("%Y-%m-%d %H:%M")
             name = _("{action} at {time}").format(action=label, time=local)
         else:
             trigger = ManualTrigger()
             name = label
-        rule = Rule(
-            id=f"{QUICK_PREFIX}{uuid.uuid4().hex[:6]}",
-            name=name,
-            trigger=trigger,
-            actions=[step],
-            warning=request.warning,
-            one_shot=True,
-            dry_run=request.dry_run,
-        )
+        try:
+            rule = Rule(
+                id=f"{QUICK_PREFIX}{uuid.uuid4().hex[:6]}",
+                name=name,
+                trigger=trigger,
+                actions=[step],
+                warning=request.warning,
+                one_shot=True,
+                dry_run=request.dry_run,
+                wake=request.wake,
+            )
+        except ValidationError as exc:
+            raise DaemonError(422, json.loads(exc.json(include_url=False))) from None
+        wake_at = self._resolve(request.wake_at, now) if request.wake_at else None
         stored = self._save(rule, "created")
+        if wake_at is not None:
+            self.create_wake(wake_at)
         if isinstance(trigger, ManualTrigger):
             self.engine.run_now(rule.id)
         return stored
+
+    def wake(self, request: WakeRequest) -> Rule:
+        return self.create_wake(self._resolve(request.at, self.engine.clock.now()))
+
+    def create_wake(self, when: datetime) -> Rule:
+        """A one-shot rule whose only job is to wake the machine up at `when`."""
+        local = when.astimezone(self.tz).strftime("%Y-%m-%d %H:%M")
+        rule = Rule(
+            id=f"{QUICK_PREFIX}{uuid.uuid4().hex[:6]}",
+            name=_("Wake up at {time}").format(time=local),
+            trigger=AtTrigger(when=when),
+            wake=True,
+            one_shot=True,
+            warning=timedelta(0),
+            actions=[NotifyStep(title="KSE", body=_("Woken up as scheduled"))],
+        )
+        return self._save(rule, "created")
+
+    async def _request_wake(self, when: datetime) -> None:
+        self.create_wake(when)
+
+    def _resolve(self, text: str, now: datetime) -> datetime:
+        try:
+            when = resolve_at(text, now, self.tz)
+        except ValueError as exc:
+            raise DaemonError(422, str(exc)) from None
+        if when <= now:
+            raise DaemonError(422, f"{text!r} is already in the past")
+        return when
 
     # ── Runs ──────────────────────────────────────────────────────────────────
 
@@ -245,7 +290,7 @@ class Daemon:
                 for rule_id, at in upcoming
             ],
             "active": self.engine.executor.active,
-            "wake": None,  # the WakePlanner arrives in M5
+            "wake": {"at": self.engine.wake.target, "error": self.engine.wake.error},
         }
 
     def get_run(self, run_id: str) -> Run:

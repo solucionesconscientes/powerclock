@@ -146,6 +146,7 @@ async def test_capabilities_of_the_kde_laptop(linux: LinuxPlatform, tmp_path: Pa
         "inhibit",
         "wake.rtc",
         "wake.helper",
+        "wake.alarm",
         "hardware",
         "linger",
         "timezone",

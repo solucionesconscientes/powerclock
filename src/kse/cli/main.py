@@ -7,7 +7,9 @@ import asyncio
 import contextlib
 import getpass
 import json
+import time
 from collections.abc import Callable, Iterator
+from datetime import datetime
 from pathlib import Path
 from types import ModuleType
 from typing import Annotated, Any, NoReturn
@@ -20,8 +22,10 @@ from rich.table import Table
 from kse import __version__
 from kse.cli import client as api
 from kse.cli.format import local, relative, span, trigger
-from kse.doctor import collect
+from kse.config import Paths
+from kse.doctor import WakeTest, collect, run_wake_test
 from kse.i18n import _, power_action_label
+from kse.install.helper import helper_module
 from kse.install.service import service_module
 from kse.platform import dry_run_requested, get_backend
 from kse.platform.base import NotSupported, PowerAction
@@ -34,8 +38,13 @@ app = typer.Typer(
 )
 rules_app = typer.Typer(help="Manage rules.", no_args_is_help=True)
 service_app = typer.Typer(help="Run the daemon as a service of your user.", no_args_is_help=True)
+helper_app = typer.Typer(
+    help="The root helper that programs wake-ups (installed once with sudo).",
+    no_args_is_help=True,
+)
 app.add_typer(rules_app, name="rules")
 app.add_typer(service_app, name="service")
+app.add_typer(helper_app, name="helper")
 
 console = Console()
 errors = Console(stderr=True)
@@ -115,7 +124,35 @@ def _quick(ctx: typer.Context, payload: dict[str, Any]) -> None:
     if when:
         line += f" — {local(when)} ({relative(when)})"
     console.print(line)
+    if rule.get("wake") or payload.get("wake_at"):
+        _show_wake()
     console.print(_("  cancel: kse cancel · postpone: kse postpone 10m"), style="dim")
+
+
+def _show_wake(wait: float = 3.0) -> None:
+    """The planner programs the alarm right after a change: show its result."""
+    deadline = time.monotonic() + wait
+    with _daemon() as client:
+        while True:
+            wake = client.get("/pending")["wake"]
+            if wake["at"] or wake["error"] or time.monotonic() > deadline:
+                break
+            time.sleep(0.2)
+    if wake["error"]:
+        console.print(f"  [red]✘ {_('wake-up alarm')}:[/] {wake['error']}")
+    elif wake["at"]:
+        console.print(f"  ⏰ {_('wake-up alarm')}: {local(wake['at'])} ({relative(wake['at'])})")
+
+
+@app.command("wake")
+def wake_command(
+    at: Annotated[str, typer.Option("--at", help="23:30 or '2026-09-24 07:30'.")],
+) -> None:
+    """Wake the computer up (from suspend, or from off if the firmware allows it)."""
+    with _daemon() as client:
+        rule = client.post("/wake", json={"at": at})
+    console.print(f"[green]✔[/] {rule['name']}")
+    _show_wake()
 
 
 def _power_command(action: PowerAction) -> Callable[..., None]:
@@ -129,12 +166,18 @@ def _power_command(action: PowerAction) -> Callable[..., None]:
         warning: Annotated[
             str, typer.Option("--warning", help="Cancellable countdown before acting.")
         ] = "60s",
+        wake: Annotated[
+            str | None,
+            typer.Option("--wake", help="Also wake the computer up at this time (07:30)."),
+        ] = None,
     ) -> None:
         payload: dict[str, Any] = {
             "action": action.value,
             "mode": "force" if force else "graceful",
             "warning": warning,
         }
+        if wake:
+            payload["wake_at"] = wake
         if in_:
             payload["in"] = in_
         if at:
@@ -157,9 +200,12 @@ def run_command(
     command: Annotated[list[str], typer.Argument(help="The program and its arguments, after --.")],
     in_: InOption = None,
     at: AtOption = None,
+    wake: Annotated[
+        bool, typer.Option("--wake", help="Wake the computer up to run it (needs --in/--at).")
+    ] = False,
 ) -> None:
-    """Run a program now, after a delay or at a time: kse run --at 03:00 -- backup.sh"""
-    payload: dict[str, Any] = {"command": command}
+    """Run a program now, after a delay or at a time: kse run --at 03:00 --wake -- backup.sh"""
+    payload: dict[str, Any] = {"command": command, "wake": wake}
     if in_:
         payload["in"] = in_
     if at:
@@ -184,6 +230,11 @@ def status() -> None:
         console.print(_("[yellow]Dry run:[/] power actions and wake alarms are only logged."))
     for problem in health["rules_errors"]:
         console.print(f"[red]✘ rules.json:[/] {problem}")
+    wake = pending["wake"]
+    if wake["error"]:
+        console.print(f"[red]✘ {_('wake-up alarm')}:[/] {wake['error']}")
+    elif wake["at"]:
+        console.print(f"⏰ {_('wake-up alarm')}: {local(wake['at'])} ({relative(wake['at'])})")
     active, upcoming = pending["active"], pending["next"]
     if active:
         table = Table(title=_("Running"), title_justify="left", header_style="bold")
@@ -460,14 +511,132 @@ def service_status() -> None:
     console.print(f"  {_('active')}: {state.active} · {_('enabled')}: {state.enabled}")
 
 
+# ── Helper ─────────────────────────────────────────────────────────────────────
+
+
+def _helper() -> ModuleType:
+    try:
+        return helper_module()
+    except NotSupported as exc:
+        _fail(str(exc))
+
+
+def _offer(module: ModuleType, commands: list[list[str]], print_only: bool) -> bool:
+    """Show the exact commands; run them with sudo only if the user says yes."""
+    for command in commands:
+        typer.echo(module.shell(command))
+    if print_only:
+        return False
+    if not typer.confirm(_("Run these commands now with sudo?"), default=False):
+        console.print(_("Nothing done: you can run them yourself."))
+        return False
+    failed = module.run_all(commands)
+    if failed is not None:
+        _fail(_("failed: {command}").format(command=module.shell(failed)))
+    return True
+
+
+@helper_app.command("install")
+def helper_install(
+    unattended: Annotated[
+        bool,
+        typer.Option(
+            "--unattended",
+            help="Also allow wake-ups and power actions without a login (polkit rule).",
+        ),
+    ] = False,
+    print_only: Annotated[
+        bool, typer.Option("--print", help="Only show the commands, do not run them.")
+    ] = False,
+) -> None:
+    """Install the wake-up helper and its polkit policy (asks before using sudo)."""
+    module = _helper()
+    rules_file = Paths.default().data / "50-kse-unattended.rules"
+    user = getpass.getuser() if unattended else None
+    commands = module.install_commands(unattended_user=user, rules_file=rules_file)
+    console.print(_("To install the helper, these commands run as root:"))
+    if _offer(module, commands, print_only):
+        console.print(f"[green]✔[/] {_('Helper installed.')}")
+        console.print(_("  check: kse doctor · try it: kse doctor --test-wake 120"), style="dim")
+        if unattended:
+            console.print(_("  unattended also needs: kse service install --linger"), style="dim")
+
+
+@helper_app.command("uninstall")
+def helper_uninstall(
+    print_only: Annotated[
+        bool, typer.Option("--print", help="Only show the commands, do not run them.")
+    ] = False,
+) -> None:
+    """Clear the alarm and remove the helper and the polkit files (asks before using sudo)."""
+    module = _helper()
+    commands = module.uninstall_commands(helper_present=module.HELPER.exists())
+    console.print(_("To remove the helper, these commands run as root:"))
+    if _offer(module, commands, print_only):
+        console.print(f"[green]✔[/] {_('Helper removed.')}")
+
+
 # ── Doctor ─────────────────────────────────────────────────────────────────────
+
+
+def _test_wake(seconds: int) -> None:
+    if dry_run_requested():
+        console.print(_("[yellow]Dry run:[/] the test would suspend the computer; nothing done."))
+        return
+    console.print(
+        _(
+            "This programs a wake-up in {seconds} s and [bold]suspends the computer now[/]. "
+            "Save your work and do not touch it until it wakes up by itself."
+        ).format(seconds=seconds)
+    )
+    if not typer.confirm(_("Suspend now?"), default=False):
+        raise typer.Exit(1)
+
+    def announce(alarm: datetime) -> None:
+        console.print(_("⏰ alarm set for {time}; suspending…").format(time=local(alarm)))
+
+    async def run() -> WakeTest:
+        backend = get_backend()
+        try:
+            return await run_wake_test(backend, seconds, announce=announce)
+        finally:
+            await backend.close()
+
+    try:
+        result = asyncio.run(run())
+    except NotSupported as exc:
+        _fail(f"{exc}" + (f" ({exc.fix_hint})" if exc.fix_hint else ""))
+    messages = {
+        "ok": _("[green]✔ Woke up by itself[/] at {resumed} (alarm {alarm})."),
+        "early": _("[yellow]? Resumed at {resumed}, before the alarm ({alarm}): woken by hand?[/]"),
+        "late": _("[red]✘ Resumed at {resumed}, long after the alarm ({alarm}).[/]"),
+        "no_sleep": _("[red]✘ The computer did not suspend (an inhibitor?).[/]"),
+        "no_resume": _("[red]✘ No resume was seen.[/]"),
+    }
+    console.print(
+        messages[result.verdict].format(resumed=local(result.resumed_at), alarm=local(result.alarm))
+    )
+    if result.verdict != "ok":
+        raise typer.Exit(1)
 
 
 @app.command()
 def doctor(
     as_json: Annotated[bool, typer.Option("--json", help="Print the report as JSON.")] = False,
+    test_wake: Annotated[
+        int | None,
+        typer.Option(
+            "--test-wake",
+            min=60,
+            max=3600,
+            help="Program a wake-up in N seconds and SUSPEND now, to check it (asks first).",
+        ),
+    ] = None,
 ) -> None:
     """Check what works on this machine and how to fix what does not."""
+    if test_wake is not None:
+        _test_wake(test_wake)
+        return
     backend = get_backend()
     name = backend.name
     capabilities = asyncio.run(collect(backend))

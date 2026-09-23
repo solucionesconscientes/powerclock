@@ -2,12 +2,14 @@
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import UTC, tzinfo
+from datetime import UTC, datetime, tzinfo
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 HELPER = "usr/local/libexec/kse-helper"
 HELPER_POLICY = "usr/share/polkit-1/actions/org.kse.helper.policy"
+HELPER_RULES = "etc/polkit-1/rules.d/50-kse-unattended.rules"
+WAKEALARM = "sys/class/rtc/rtc0/wakealarm"
 
 
 @dataclass(frozen=True)
@@ -49,6 +51,28 @@ class Host:
     def helper_installed(self) -> bool:
         return (self.root / HELPER).exists() and (self.root / HELPER_POLICY).exists()
 
+    def helper_matches(self, packaged: Path) -> bool:
+        """Is the installed helper the one shipped with this version of kse?"""
+        try:
+            return (self.root / HELPER).read_bytes() == packaged.read_bytes()
+        except OSError:
+            return False
+
+    def unattended_installed(self) -> bool | None:
+        # rules.d is root:polkitd 0750: a normal user cannot even see inside.
+        return _exists(self.root / HELPER_RULES)
+
+    def wake_alarm(self, env: Mapping[str, str]) -> datetime | None:
+        """The programmed RTC alarm (readable without privileges), or None."""
+        raw = self._read(WAKEALARM)
+        if not raw:
+            return None
+        value = int(raw)
+        if self.rtc().local_time:  # local wall-clock time counted as if it were UTC
+            wall = datetime.fromtimestamp(value, UTC).replace(tzinfo=self.timezone(env))
+            return wall.astimezone(UTC)
+        return datetime.fromtimestamp(value, UTC)
+
     def memory_kib(self) -> int | None:
         return _meminfo_value(self._read("proc/meminfo"), "MemTotal")
 
@@ -84,6 +108,16 @@ class Host:
             return None
         _, found, key = target.partition("zoneinfo/")
         return key if found else None
+
+
+def _exists(path: Path) -> bool | None:
+    try:
+        path.stat()
+    except FileNotFoundError:
+        return False
+    except PermissionError:
+        return None  # unknown
+    return True
 
 
 def _meminfo_value(text: str | None, field: str) -> int | None:

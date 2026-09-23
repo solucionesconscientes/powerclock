@@ -12,6 +12,7 @@ from kse.engine.executor import Executor, RequestWake
 from kse.engine.processes import ProcessManager
 from kse.engine.runs import Event, EventSink, Run
 from kse.engine.scheduler import Scheduler
+from kse.engine.wake import WakePlanner
 from kse.models import CountdownTrigger, Rule
 from kse.platform.base import NotSupported, PlatformBackend, PowerEvent
 from kse.sensors.base import SensorReader, UnknownSensors
@@ -55,8 +56,10 @@ class Engine:
             request_wake=request_wake,
         )
         self.scheduler = Scheduler(self.clock, self._on_due)
+        self.wake = WakePlanner(backend, self.clock, self._wake_times, emit=emit)
         self._rules: dict[str, Rule] = {}
         self._loop: asyncio.Task[None] | None = None
+        self._wake_loop: asyncio.Task[None] | None = None
 
     @property
     def rules(self) -> dict[str, Rule]:
@@ -68,13 +71,16 @@ class Engine:
         except NotSupported:
             log.info("no power events on this platform; relying on periodic re-checks")
         self._loop = asyncio.create_task(self.scheduler.run(), name="kse-scheduler")
+        self._wake_loop = asyncio.create_task(self.wake.run(), name="kse-wake")
+        self.wake.request_sync()
 
     async def stop(self) -> None:
-        if self._loop is not None:
-            self._loop.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await self._loop
-            self._loop = None
+        for task in (self._loop, self._wake_loop):
+            if task is not None:
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
+        self._loop = self._wake_loop = None
         await self.executor.shutdown()
 
     def upsert(self, rule: Rule, since: datetime | None = None) -> Rule:
@@ -86,11 +92,13 @@ class Engine:
         rule = self._arm(rule, self._rules.get(rule.id))
         self._rules[rule.id] = rule
         self.scheduler.schedule(rule, self._tz_for(rule), since)
+        self.wake.request_sync()
         return rule
 
     def remove(self, rule_id: str) -> None:
         self._rules.pop(rule_id, None)
         self.scheduler.unschedule(rule_id)
+        self.wake.request_sync()
 
     def run_now(self, rule_id: str) -> Run:
         rule = self._rules[rule_id]
@@ -119,6 +127,7 @@ class Engine:
             self._rules[rule.id] = finished
             self.scheduler.schedule(finished, tz)
             self._rule_changed(finished)
+        self.wake.request_sync()  # the next occurrence may need another wake-up
         if missed and rule.on_missed == "skip":
             self.executor.record(
                 rule,
@@ -136,6 +145,15 @@ class Engine:
     async def _on_power_event(self, event: PowerEvent) -> None:
         if event is PowerEvent.AFTER_RESUME:
             self.scheduler.poke()
+        await self.wake.on_power_event(event)
+
+    def _wake_times(self) -> list[datetime]:
+        rules = self._rules
+        return [
+            due
+            for rule_id, due in self.scheduler.pending().items()
+            if rule_id in rules and rules[rule_id].wake
+        ]
 
     def _rule_changed(self, rule: Rule) -> None:
         if self._sink is None:

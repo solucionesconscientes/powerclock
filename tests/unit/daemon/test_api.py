@@ -344,3 +344,53 @@ async def test_missed_while_the_daemon_was_stopped(
     [entry] = second.history.list()
     assert (entry.rule_id, entry.state, entry.missed) == ("test", "skipped", True)
     assert entry.scheduled_for == datetime(2026, 9, 24, 1, 0, tzinfo=UTC)
+
+
+# ── Wake-ups (M5) ────────────────────────────────────────────────────────────
+
+
+async def test_wake_request(http: httpx.AsyncClient, fake: FakePlatform) -> None:
+    rule = (await http.post("/wake", json={"at": "2026-09-25 07:30"})).json()
+    assert rule["name"] == "Wake up at 2026-09-25 07:30"
+    assert (rule["wake"], rule["one_shot"]) == (True, True)
+    await settle()
+    wake = (await http.get("/pending")).json()["wake"]
+    assert wake == {"at": "2026-09-25T05:28:00Z", "error": None}  # 2 min before 07:30 Madrid
+    assert fake.wake == datetime(2026, 9, 25, 5, 28, tzinfo=UTC)
+    assert (await http.post("/wake", json={"at": "yesterday"})).status_code == 422
+
+
+async def test_suspend_and_wake_up_later(http: httpx.AsyncClient, fake: FakePlatform) -> None:
+    rule = (
+        await http.post("/quick", json={"action": "suspend", "at": "23:30", "wake_at": "07:30"})
+    ).json()
+    names = sorted(r["name"] for r in (await http.get("/rules")).json())
+    assert names == ["Suspend at 2026-09-24 23:30", "Wake up at 2026-09-25 07:30"]
+    assert rule["wake"] is False
+    await settle()
+    assert fake.wake == datetime(2026, 9, 25, 5, 28, tzinfo=UTC)
+
+
+async def test_wake_to_run_a_program(http: httpx.AsyncClient, fake: FakePlatform) -> None:
+    payload = {"command": ["backup.sh"], "at": "2026-09-25 03:00", "wake": True}
+    rule = (await http.post("/quick", json=payload)).json()
+    assert rule["wake"] is True
+    await settle()
+    assert fake.wake == datetime(2026, 9, 25, 0, 58, tzinfo=UTC)
+    now = await http.post("/quick", json={"command": ["x"], "wake": True})  # no time
+    assert now.status_code == 422
+    assert "time trigger" in json.dumps(now.json())
+
+
+async def test_wake_errors_are_visible(http: httpx.AsyncClient, fake: FakePlatform) -> None:
+    async def refuse(when: datetime) -> None:
+        from kse.platform.base import NotSupported
+
+        raise NotSupported("wake", "kse-helper is not installed", fix_hint="kse helper install")
+
+    fake.wake_set = refuse  # type: ignore[method-assign]
+    await http.post("/wake", json={"at": "07:30"})
+    await settle()
+    wake = (await http.get("/pending")).json()["wake"]
+    assert wake["at"] is None
+    assert "kse helper install" in wake["error"]

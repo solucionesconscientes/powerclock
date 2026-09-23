@@ -12,7 +12,7 @@ from starlette.requests import HTTPConnection
 from starlette.websockets import WebSocketDisconnect
 
 from kse import __version__
-from kse.daemon.core import DaemonError, PostponeRequest, QuickRequest
+from kse.daemon.core import DaemonError, PostponeRequest, QuickRequest, WakeRequest
 from kse.doctor import capabilities
 from kse.models import rule_json_schema
 
@@ -98,6 +98,10 @@ def create_app(daemon: "Daemon") -> FastAPI:
     @api.post("/quick", status_code=201)
     async def quick(request: QuickRequest) -> dict[str, Any]:
         return daemon.quick(request).model_dump(mode="json")
+
+    @api.post("/wake", status_code=201)
+    async def wake(request: WakeRequest) -> dict[str, Any]:
+        return daemon.wake(request).model_dump(mode="json")
 
     @api.get("/pending")
     async def pending() -> dict[str, Any]:

@@ -35,6 +35,9 @@ def _no_real_system(monkeypatch: pytest.MonkeyPatch) -> None:
     for name in ("run", "spawn"):
         monkeypatch.setattr(SystemCommands, name, forbidden)
     monkeypatch.setattr(service, "run", forbidden_sync)  # systemctl, loginctl
+    from kse.platform.linux import helper
+
+    monkeypatch.setattr(helper, "run_interactive", forbidden_sync)  # sudo
 
 
 @pytest.fixture
