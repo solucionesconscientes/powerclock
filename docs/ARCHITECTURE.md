@@ -119,7 +119,7 @@ Los disparadores de estado llevan `for` (condición sostenida N tiempo), p. ej. 
 - **Sensores bajo demanda**: solo se sondean los que usa alguna regla activa (idle 5 s, CPU/red 5 s con media móvil, procesos 3 s).
 - **Evaluator**: evalúa conditions/guards contra un snapshot de sensores.
 - **Executor**: cada ejecución es un `Run` (id, estado: `warning|running|waiting|done|failed|cancelled|skipped|postponed`), cancelable por API. Solo una acción de energía activa a la vez.
-- **Kill-switch**: `KSE_DRY_RUN=1` o `dry_run` global/por regla → el backend de energía solo registra.
+- **Dry-run (kill-switch)**: con `KSE_DRY_RUN=1` se usa el backend **real** envuelto en `DryRunPlatform`: las lecturas (inactividad, multimedia, capacidades…) son reales, pero `power`, `wake_set` y `wake_clear` solo se registran. `dry_run: true` en una regla hace lo mismo con sus acciones `power`. `run`, `open`, `close_app` y `notify` sí se ejecutan.
 - **Resume/arranque**: detecta la reanudación (PrepareForSleep(false) o salto de reloj), reevalúa y aplica `on_missed`.
 
 ## 6. Encendido/despertar — WakePlanner (diferenciador)
@@ -153,7 +153,7 @@ class PlatformBackend(ABC):
 - `notify` sin `actions` vuelve enseguida; con `actions` espera a que el usuario elija una (devuelve su clave) o cierre la notificación (`None`), así que se lanza como tarea y se cancela cuando deja de hacer falta.
 - `subscribe_power_events` recibe un `PowerEvent` (`before_sleep`, `after_resume`, `before_shutdown`).
 - Lo genérico (CPU, red, procesos, batería, usuarios) va en `sensors/` con psutil, no en el backend.
-- `FakePlatform`: en memoria, registra todas las llamadas. Se usa en TODOS los tests y en dry-run. Se selecciona con `KSE_BACKEND=fake`.
+- `FakePlatform`: en memoria, registra todas las llamadas. Se usa en TODOS los tests (el dry-run usa el backend real, ver §5). Se selecciona con `KSE_BACKEND=fake`.
 
 **Linux (detalle)**
 - Energía: logind `org.freedesktop.login1.Manager` → `CanPowerOff/CanSuspend/CanHibernate…` y luego `PowerOff/Reboot/Suspend/Hibernate/HybridSleep(interactive=true)`.
