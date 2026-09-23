@@ -86,7 +86,9 @@ class FakePlatform(PlatformBackend):
         self._record("wifi_ssid")
         return self.ssid
 
-    async def notify(self, title: str, body: str, actions: list[str] | None = None) -> str | None:
+    async def notify(
+        self, title: str, body: str, actions: dict[str, str] | None = None
+    ) -> str | None:
         self._record("notify", title, body, tuple(actions or ()))
         return self.notify_response if actions else None
 

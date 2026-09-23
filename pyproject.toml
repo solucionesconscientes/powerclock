@@ -63,6 +63,7 @@ known-first-party = ["kse"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["tests"]  # tests/support.py
 addopts = ["-m", "not real", "--strict-markers", "--import-mode=importlib"]
 markers = ["real: touches the real system (power, D-Bus, RTC); excluded by default"]
 asyncio_mode = "auto"

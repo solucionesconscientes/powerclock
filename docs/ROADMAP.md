@@ -15,12 +15,12 @@ Marca `[x]` al completar. Cada hito termina con ruff + pytest en verde y un comm
 **DoD:** `uv run pytest` verde; `uv run kse --version` funciona.
 
 ### M2 — Motor
-- [ ] Scheduler: `at`, `countdown`, `cron` (zoneinfo + croniter), `next_fire`, resincronización ≤ 30 s, saltos de reloj
-- [ ] Evaluator: conditions y guards con retry/max_wait
-- [ ] Executor: secuencias, `on_error`, `Run` con estados, cuenta atrás cancelable/posponible, una sola acción de energía a la vez
-- [ ] Acciones: `run`, `notify`, `wait`, `wait_until`, `power` (vía backend), `open`, `close_app`
-- [ ] Dry-run global (`KSE_DRY_RUN`) y por regla; `on_missed`
-- [ ] Tests con reloj falso + FakePlatform (cancelar cuenta atrás, guardas que posponen, cron a través del cambio de hora DST)
+- [x] Scheduler: `at`, `countdown`, `cron` (zoneinfo + croniter), `next_fire`, resincronización ≤ 30 s, saltos de reloj
+- [x] Evaluator: conditions y guards con retry/max_wait
+- [x] Executor: secuencias, `on_error`, `Run` con estados, cuenta atrás cancelable/posponible, una sola acción de energía a la vez
+- [x] Acciones: `run`, `notify`, `wait`, `wait_until`, `power` (vía backend), `open`, `close_app`
+- [x] Dry-run global (`KSE_DRY_RUN`) y por regla; `on_missed`
+- [x] Tests con reloj falso + FakePlatform (cancelar cuenta atrás, guardas que posponen, cron a través del cambio de hora DST)
 **DoD:** tests verdes para cada disparador de tiempo y cada acción.
 
 ### M3 — Backend Linux: energía, idle, sensores, doctor
@@ -31,6 +31,7 @@ Marca `[x]` al completar. Cada hito termina con ruff + pytest en verde y un comm
 - [ ] `media_playing` (MPRIS); notificaciones con acción "Cancelar"
 - [ ] `sensors/` con psutil: CPU, red, procesos, batería, AC, sesiones SSH
 - [ ] `capabilities()` completo (ver ARCHITECTURE §7) y `kse doctor` con tabla rich
+- [ ] Zona horaria IANA del sistema (para reglas sin `timezone`; en Linux, `/etc/localtime`)
 - [ ] Tests con D-Bus simulado; tests reales marcados `real`
 **DoD:** `KSE_DRY_RUN=1 uv run kse doctor` da un informe correcto en Kubuntu/KDE Wayland.
 

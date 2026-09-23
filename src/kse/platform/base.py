@@ -9,7 +9,7 @@ from collections.abc import Awaitable, Callable
 from contextlib import AbstractAsyncContextManager
 from datetime import datetime
 from enum import StrEnum
-from typing import ClassVar, NoReturn
+from typing import NoReturn
 
 from pydantic import BaseModel, ConfigDict
 
@@ -67,7 +67,7 @@ class PlatformBackend(ABC):
     does not override raises NotSupported. Datetimes are always timezone-aware.
     """
 
-    name: ClassVar[str]
+    name: str
 
     @abstractmethod
     async def power(self, action: PowerAction, mode: PowerMode) -> None: ...
@@ -96,8 +96,10 @@ class PlatformBackend(ABC):
     async def wifi_ssid(self) -> str | None:
         self._unsupported("wifi_ssid")
 
-    async def notify(self, title: str, body: str, actions: list[str] | None = None) -> str | None:
-        """Show a desktop notification.
+    async def notify(
+        self, title: str, body: str, actions: dict[str, str] | None = None
+    ) -> str | None:
+        """Show a desktop notification; `actions` maps each button key to its label.
 
         Without `actions` it returns None right away. With `actions` it waits until
         the user picks one (returning its key) or the notification closes (None),

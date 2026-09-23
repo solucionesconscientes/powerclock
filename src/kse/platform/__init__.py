@@ -7,6 +7,7 @@ from collections.abc import Callable
 from kse.platform.base import NotSupported, PlatformBackend
 
 BACKEND_ENV = "KSE_BACKEND"
+DRY_RUN_ENV = "KSE_DRY_RUN"
 
 
 def _fake() -> PlatformBackend:
@@ -29,8 +30,17 @@ def current_os() -> str:
     return sys.platform
 
 
-def get_backend(name: str | None = None) -> PlatformBackend:
-    """Return the backend `name`, else the one in $KSE_BACKEND, else the current OS's."""
+def dry_run_requested() -> bool:
+    """True when $KSE_DRY_RUN is set to 1, true, yes or on."""
+    return os.environ.get(DRY_RUN_ENV, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def get_backend(name: str | None = None, *, dry_run: bool | None = None) -> PlatformBackend:
+    """Return the backend `name`, else the one in $KSE_BACKEND, else the current OS's.
+
+    In dry-run (by default, when $KSE_DRY_RUN asks for it) the backend is wrapped so that
+    power actions and wake-alarm writes are only logged.
+    """
     selected = (name or os.environ.get(BACKEND_ENV) or current_os()).strip().lower()
     factory = _FACTORIES.get(selected)
     if factory is None:
@@ -40,4 +50,9 @@ def get_backend(name: str | None = None) -> PlatformBackend:
             f"no backend named {selected!r} (available: {available})",
             fix_hint=f"Set {BACKEND_ENV}=fake to use the simulated backend.",
         )
-    return factory()
+    backend = factory()
+    if dry_run_requested() if dry_run is None else dry_run:
+        from kse.platform.dryrun import DryRunPlatform
+
+        return DryRunPlatform(backend)
+    return backend

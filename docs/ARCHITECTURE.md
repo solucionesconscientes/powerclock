@@ -27,7 +27,7 @@ App multiplataforma (Linux → Windows → macOS) para automatizar energía y ta
                           │  PlatformBackend (ABC)
      ┌──────────────┬─────┴────────┬──────────────┐
    linux/        windows/        macos/         fake/
- logind D-Bus   Win32/schtasks  pmset/osascript  (tests, dry-run)
+ logind D-Bus   Win32/schtasks  pmset/osascript  (tests)
      │                              │
  kse-helper (root, polkit)      kse-helper (LaunchDaemon)
  solo: wake set/clear/get       solo: pmset schedule
@@ -89,7 +89,9 @@ Semántica:
 - Alguna `guard` verdadera → **posponer**; reintenta cada `retry` hasta `max_wait`, y después skip.
 - `actions` se ejecutan en secuencia; si una falla, `on_error`: `stop` (por defecto) | `continue`.
 - `warning`: cuenta atrás cancelable antes de cualquier acción `power`.
-- `on_missed`: `skip` | `run_once` (el instante pasó con el equipo apagado).
+- `on_missed`: `skip` | `run_once` (el instante pasó con el equipo apagado). Un disparo con más de 2 min de retraso cuenta como perdido; si se perdieron varios, se registra uno solo.
+- Sensor que no se puede leer → valor **desconocido** (lógica de tres valores en `all`/`any`/`not`). Condiciones desconocidas → skip; guardas desconocidas → no bloquean; `wait_until` desconocido → sigue esperando.
+- Una regla no se solapa consigo misma: si se dispara mientras su ejecución anterior sigue activa, el nuevo disparo se registra como skip.
 
 **Disparadores** — MVP: `at`, `countdown`, `cron`, `idle`, `process_exit`, `cpu_below`, `net_below`, `battery`, `power_source`, `startup` (arranque del demonio o tras despertar), `manual`. Más adelante: `file`, `wifi_ssid`, `usb`, `temperature`, `webhook`, `telegram`, `calendar`, `sunrise`/`sunset`.
 Los disparadores de estado llevan `for` (condición sostenida N tiempo), p. ej. `{"type":"cpu_below","percent":10,"for":"5m"}`.
@@ -117,10 +119,13 @@ Los disparadores de estado llevan `for` (condición sostenida N tiempo), p. ej. 
 ## 5. Motor
 - **Scheduler**: bucle asyncio. Los disparadores de tiempo calculan `next_fire` (croniter + zoneinfo). Duerme hasta el más cercano, como mucho 30 s, para resincronizar tras suspensiones, saltos de reloj y cambios de horario.
 - **Sensores bajo demanda**: solo se sondean los que usa alguna regla activa (idle 5 s, CPU/red 5 s con media móvil, procesos 3 s).
-- **Evaluator**: evalúa conditions/guards contra un snapshot de sensores.
-- **Executor**: cada ejecución es un `Run` (id, estado: `warning|running|waiting|done|failed|cancelled|skipped|postponed`), cancelable por API. Solo una acción de energía activa a la vez.
+- **Evaluator**: evalúa conditions/guards/wait_until. `time_window` y `weekday` los resuelve él con el reloj y la zona de la regla; el resto se lo pregunta a un `SensorReader` (`sensors/base.py`), que es quien aplica `for` con su historial (M6).
+- **Executor**: cada ejecución es un `Run` (id, estado: `warning|running|waiting|done|failed|cancelled|skipped|postponed`, pasos con su resultado y motivo), cancelable por API. Solo una acción de energía activa a la vez (la segunda espera en `waiting`), así "la cuenta atrás actual" está siempre bien definida. Durante la cuenta atrás, notificación con botones Cancelar / Posponer 10 min. `notify` es de mejor esfuerzo: sin escritorio queda como skip, no como fallo. `run` guarda los últimos 4000 caracteres de la salida; al cancelar o agotar `timeout`, el comando recibe SIGTERM y, 5 s después, SIGKILL.
+- **Reloj**: todo el motor lee la hora y duerme a través de `Clock` (`engine/clock.py`); los tests usan `FakeClock`, que distingue el reloj de pared (`jump`, como una suspensión) del monótono (`advance`).
+- **Cron y cambio de hora**: cron sigue la hora local de la regla. En el hueco de primavera la ejecución se desplaza (02:30 → 03:30); en la hora repetida de otoño cada hora local se ejecuta una sola vez, en su primera aparición.
 - **Dry-run (kill-switch)**: con `KSE_DRY_RUN=1` se usa el backend **real** envuelto en `DryRunPlatform`: las lecturas (inactividad, multimedia, capacidades…) son reales, pero `power`, `wake_set` y `wake_clear` solo se registran. `dry_run: true` en una regla hace lo mismo con sus acciones `power`. `run`, `open`, `close_app` y `notify` sí se ejecutan.
-- **Resume/arranque**: detecta la reanudación (PrepareForSleep(false) o salto de reloj), reevalúa y aplica `on_missed`.
+- **Resume/arranque**: tras `after_resume` (PrepareForSleep(false)) el scheduler revisa al momento; sin eventos de energía lo nota en ≤ 30 s. Al arrancar, el demonio pasa a cada regla la última vez que se revisó (`since`) para detectar lo perdido y aplicar `on_missed`.
+- **Reglas que cambia el motor**: armar un `countdown` (al crear o reactivar la regla) y desactivar una `one_shot` tras dispararse emiten `rule_changed` para que el demonio lo guarde.
 
 ## 6. Encendido/despertar — WakePlanner (diferenciador)
 - El RTC guarda UNA sola alarma. WakePlanner calcula el instante más próximo entre las reglas con `wake: true` y los `set_wake`, le resta un margen (120 s por defecto, para que el demonio esté listo) y lo programa.
@@ -150,7 +155,7 @@ class PlatformBackend(ABC):
 ```
 - `Capability(id, supported: bool, detail: str, fix_hint: str | None)`.
 - Solo `power` y `capabilities` son obligatorios; cualquier otro método que un backend no implemente lanza `NotSupported(feature, detail, fix_hint)`.
-- `notify` sin `actions` vuelve enseguida; con `actions` espera a que el usuario elija una (devuelve su clave) o cierre la notificación (`None`), así que se lanza como tarea y se cancela cuando deja de hacer falta.
+- `notify(title, body, actions)`: `actions` es `{clave: etiqueta}`. Sin `actions` vuelve enseguida; con `actions` espera a que el usuario elija una (devuelve su clave) o cierre la notificación (`None`), así que se lanza como tarea y se cancela cuando deja de hacer falta.
 - `subscribe_power_events` recibe un `PowerEvent` (`before_sleep`, `after_resume`, `before_shutdown`).
 - Lo genérico (CPU, red, procesos, batería, usuarios) va en `sensors/` con psutil, no en el backend.
 - `FakePlatform`: en memoria, registra todas las llamadas. Se usa en TODOS los tests (el dry-run usa el backend real, ver §5). Se selecciona con `KSE_BACKEND=fake`.

@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 import pytest
 
 import kse.platform
-from kse.platform import get_backend
+from kse.platform import dry_run_requested, get_backend
 from kse.platform.base import (
     Capability,
     NotSupported,
@@ -12,6 +12,7 @@ from kse.platform.base import (
     PowerEvent,
     PowerMode,
 )
+from kse.platform.dryrun import DryRunPlatform
 from kse.platform.fake import FakeCall, FakePlatform
 
 WHEN = datetime(2026, 9, 24, 5, 30, tzinfo=UTC)
@@ -28,11 +29,29 @@ class MinimalBackend(PlatformBackend):
 
 
 def test_get_backend_uses_environment() -> None:
-    assert isinstance(get_backend(), FakePlatform)
+    # conftest sets KSE_BACKEND=fake and KSE_DRY_RUN=1
+    backend = get_backend()
+    assert isinstance(backend, DryRunPlatform)
+    assert isinstance(backend.inner, FakePlatform)
+    assert backend.name == "fake (dry-run)"
+
+
+def test_get_backend_without_dry_run() -> None:
+    assert isinstance(get_backend(dry_run=False), FakePlatform)
 
 
 def test_get_backend_by_name_is_forgiving() -> None:
-    assert isinstance(get_backend(" FAKE "), FakePlatform)
+    assert isinstance(get_backend(" FAKE ", dry_run=False), FakePlatform)
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [("1", True), ("true", True), (" YES ", True), ("on", True), ("0", False), ("", False)],
+)
+def test_dry_run_flag(monkeypatch: pytest.MonkeyPatch, value: str, expected: bool) -> None:
+    monkeypatch.setenv("KSE_DRY_RUN", value)
+    assert dry_run_requested() is expected
+    assert isinstance(get_backend(), DryRunPlatform) is expected
 
 
 def test_get_backend_unknown_name() -> None:
@@ -107,7 +126,8 @@ async def test_fake_sensors_reflect_simulated_state() -> None:
 async def test_fake_notify() -> None:
     fake = FakePlatform(notify_response="cancel")
     assert await fake.notify("KSE", "plain") is None
-    assert await fake.notify("KSE", "countdown", actions=["cancel", "postpone"]) == "cancel"
+    buttons = {"cancel": "Cancel", "postpone": "Postpone"}
+    assert await fake.notify("KSE", "countdown", actions=buttons) == "cancel"
     assert fake.calls_to("notify")[1] == FakeCall(
         "notify", ("KSE", "countdown", ("cancel", "postpone"))
     )
