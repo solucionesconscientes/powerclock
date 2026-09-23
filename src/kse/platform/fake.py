@@ -3,7 +3,7 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime, tzinfo
 from typing import Any
 
 from kse.platform.base import (
@@ -32,12 +32,14 @@ class FakePlatform(PlatformBackend):
         media: bool | None = False,
         ssid: str | None = None,
         notify_response: str | None = None,
+        timezone: tzinfo = UTC,
     ) -> None:
         # Simulated state; tests change these attributes freely.
         self.idle = idle
         self.media = media
         self.ssid = ssid
         self.notify_response = notify_response
+        self.tz = timezone
         self.wake: datetime | None = None
         self.inhibited = False
         self.calls: list[FakeCall] = []
@@ -107,6 +109,9 @@ class FakePlatform(PlatformBackend):
             yield
         finally:
             self.inhibited = False
+
+    def timezone(self) -> tzinfo:
+        return self.tz
 
     def _record(self, method: str, *args: Any) -> None:
         self.calls.append(FakeCall(method, args))

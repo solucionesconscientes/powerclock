@@ -161,11 +161,13 @@ class PlatformBackend(ABC):
 - `FakePlatform`: en memoria, registra todas las llamadas. Se usa en TODOS los tests (el dry-run usa el backend real, ver §5). Se selecciona con `KSE_BACKEND=fake`.
 
 **Linux (detalle)**
-- Energía: logind `org.freedesktop.login1.Manager` → `CanPowerOff/CanSuspend/CanHibernate…` y luego `PowerOff/Reboot/Suspend/Hibernate/HybridSleep(interactive=true)`.
+- Energía: logind `org.freedesktop.login1.Manager` → `CanPowerOff/CanSuspend/CanHibernate…` y luego `PowerOff/Reboot/Suspend/Hibernate/HybridSleep(interactive=true)`. Apagar/reiniciar comprueban `Can*` **antes** de pedírselo al escritorio; `no`/`na` → `NotSupported`.
 - Graceful: en KDE, `org.kde.Shutdown` (`logoutAndShutdown`, `logoutAndReboot`, `logout`) para que las apps pidan guardar; en GNOME, `gnome-session-quit`. Verificar por introspección en tiempo de ejecución y recurrir a logind si no existe.
-- Bloquear: `loginctl lock-session`. Apagar pantalla: `kscreen-doctor --dpms off` (KDE) con alternativas.
-- Idle (debe funcionar en Wayland), estrategias en cadena: `org.freedesktop.ScreenSaver.GetSessionIdleTime` (KDE) → `org.gnome.Mutter.IdleMonitor.GetIdletime` (GNOME) → logind `IdleSinceHint` → `xprintidle` (X11).
-- Multimedia: MPRIS (`PlaybackStatus == "Playing"`). Notificaciones: `org.freedesktop.Notifications` con acción "Cancelar".
+- Bloquear y cerrar sesión forzado: `Lock`/`Terminate` sobre la sesión gráfica del usuario (propiedad `Display` de `login1.User`, que funciona también desde un servicio systemd de usuario). Apagar pantalla: `kscreen-doctor --dpms off` (KDE) → `PowerSaveMode` de `org.gnome.Mutter.DisplayConfig` (GNOME) → `xset dpms force off` (X11).
+- Idle (debe funcionar en Wayland), estrategias en cadena: **Wayland `ext-idle-notify-v1`** (cliente mínimo en Python puro, `linux/wayland.py`; v2 mide solo teclado/ratón; granularidad 5 s) → `org.gnome.Mutter.IdleMonitor.GetIdletime` (GNOME, ms) → logind `IdleHint`/`IdleSinceHint` (solo tan fiable como el escritorio que lo marque) → `xprintidle` (X11). `org.freedesktop.ScreenSaver.GetSessionIdleTime` queda **fuera**: en KDE Wayland responde "not supported on this platform" (verificado en M3) y en X11 sus unidades no son fiables para decidir una suspensión.
+- Multimedia: MPRIS (`PlaybackStatus == "Playing"`); sin bus de sesión → desconocido. Notificaciones: `org.freedesktop.Notifications`; con botones, urgencia crítica y sin caducidad, se espera `ActionInvoked`/`NotificationClosed` y se cierra con `CloseNotification` si se cancela. Wi-Fi: `PrimaryConnection` de NetworkManager → `SpecificObject` → `Ssid`.
+- Entorno de un servicio systemd de usuario: puede faltar `DBUS_SESSION_BUS_ADDRESS` (se usa `$XDG_RUNTIME_DIR/bus`) y `WAYLAND_DISPLAY` (se busca `wayland-*` en el directorio de ejecución y se pasa a `kscreen-doctor`/`xdg-open`).
+- Zona horaria (`timezone()`): `$TZ` → enlace `/etc/localtime` → `/etc/timezone` → contenido de `/etc/localtime` → UTC.
 - Eventos: señales `PrepareForSleep`/`PrepareForShutdown`; inhibidor `Inhibit("shutdown:sleep", "kse", motivo, "delay")`.
 - Helper: `/usr/local/libexec/kse-helper` (root:root 0755, `#!/usr/bin/python3` del sistema, solo stdlib) + `/usr/share/polkit-1/actions/org.kse.helper.policy` (acción `org.kse.helper.wake`) con `allow_active=yes` y la anotación `org.freedesktop.policykit.exec.path` → `pkexec /usr/local/libexec/kse-helper wake-set <epoch>` sin contraseña en sesión activa. Valida que el epoch sea entero, futuro y < 1 año. Nunca ejecuta nada arbitrario.
 - `doctor` informa de: RTC presente, helper instalado, Can*, hibernación configurada (swap/resume), AC/batería, sesión Wayland/X11, escritorio, fabricante/modelo (`/sys/class/dmi/id/`) con pista de BIOS (p. ej. Dell: *Power Management → Auto On Time*), linger activo, RTC UTC/local.
@@ -245,10 +247,12 @@ KSHUTDOWN-EVOLUTION/
 ├── src/kse/
 │   ├── models.py        # Rule, Trigger*, Predicate*, Action*, parse_duration
 │   ├── config.py        # rutas platformdirs, daemon.json
-│   ├── engine/          # scheduler.py evaluator.py executor.py wake.py
-│   ├── sensors/         # base.py system.py (psutil) registry.py
-│   ├── platform/        # __init__.py (get_backend) base.py fake.py
-│   │   ├── linux/       # backend.py logind.py idle.py desktop.py notify.py
+│   ├── doctor.py        # kse doctor: informe del backend + comprobaciones genéricas
+│   ├── i18n.py          # textos traducibles (catálogos es/en en M7)
+│   ├── engine/          # core.py (Engine) clock.py scheduler.py evaluator.py executor.py runs.py processes.py wake.py (M5)
+│   ├── sensors/         # base.py (SensorReader) system.py (psutil) fake.py registry.py (M6)
+│   ├── platform/        # __init__.py (get_backend) base.py fake.py dryrun.py
+│   │   ├── linux/       # backend.py logind.py idle.py wayland.py desktop.py notify.py network.py dbus.py commands.py host.py capabilities.py
 │   │   ├── windows/     # fase 3
 │   │   └── macos/       # fase 4
 │   ├── helper/          # kse_helper_linux.py org.kse.helper.policy 50-kse-unattended.rules

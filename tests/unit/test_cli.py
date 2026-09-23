@@ -1,3 +1,4 @@
+import json
 from importlib.metadata import distribution
 
 from typer.testing import CliRunner
@@ -26,3 +27,19 @@ def test_entry_points_resolve() -> None:
     assert set(scripts) == {"kse", "kse-daemon", "kse-gui"}
     for entry_point in scripts.values():
         assert callable(entry_point.load())
+
+
+def test_doctor_table() -> None:
+    result = runner.invoke(app, ["doctor"])  # KSE_BACKEND=fake, KSE_DRY_RUN=1 (conftest)
+    assert result.exit_code == 0
+    assert "fake (dry-run)" in result.output
+    assert "power.shutdown" in result.output
+    assert "power_source" in result.output
+
+
+def test_doctor_json() -> None:
+    result = runner.invoke(app, ["doctor", "--json"])
+    assert result.exit_code == 0
+    rows = json.loads(result.output)
+    assert {"id", "supported", "detail", "fix_hint"} <= set(rows[0])
+    assert "sensors" in {row["id"] for row in rows}

@@ -13,6 +13,25 @@ from kse.sensors.fake import FakeSensors
 from support import MADRID, START
 
 
+@pytest.fixture(autouse=True)
+def _no_real_system(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Unit tests must never reach the real D-Bus or run real helper programs
+    (kscreen-doctor, xdg-open…): every Linux test injects fakes."""
+
+    async def forbidden(*args: object, **kwargs: object) -> None:
+        raise AssertionError("a unit test tried to use the real system")
+
+    try:
+        from kse.platform.linux.commands import SystemCommands
+        from kse.platform.linux.dbus import DBusFastBus
+    except ImportError:  # not on Linux
+        return
+    for name in ("call", "subscribe"):
+        monkeypatch.setattr(DBusFastBus, name, forbidden)
+    for name in ("run", "spawn"):
+        monkeypatch.setattr(SystemCommands, name, forbidden)
+
+
 @pytest.fixture
 def clock() -> FakeClock:
     return FakeClock(START)

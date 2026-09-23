@@ -2,7 +2,7 @@
 
 import logging
 from contextlib import AbstractAsyncContextManager
-from datetime import datetime
+from datetime import datetime, tzinfo
 from typing import Any
 
 from kse.platform.base import (
@@ -63,6 +63,12 @@ class DryRunPlatform(PlatformBackend):
 
     def inhibit_delay(self) -> AbstractAsyncContextManager[None]:
         return self.inner.inhibit_delay()
+
+    def timezone(self) -> tzinfo:
+        return self.inner.timezone()
+
+    async def close(self) -> None:
+        await self.inner.close()
 
     def _block(self, method: str, *args: Any) -> None:
         self.blocked.append((method, args))

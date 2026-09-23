@@ -16,8 +16,14 @@ def _fake() -> PlatformBackend:
     return FakePlatform()
 
 
-# The Linux backend is registered here in M3, Windows in phase 3, macOS in phase 4.
-_FACTORIES: dict[str, Callable[[], PlatformBackend]] = {"fake": _fake}
+def _linux() -> PlatformBackend:
+    from kse.platform.linux import LinuxPlatform
+
+    return LinuxPlatform()
+
+
+# Windows arrives in phase 3, macOS in phase 4.
+_FACTORIES: dict[str, Callable[[], PlatformBackend]] = {"fake": _fake, "linux": _linux}
 
 
 def current_os() -> str:

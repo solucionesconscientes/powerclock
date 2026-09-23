@@ -24,15 +24,15 @@ Marca `[x]` al completar. Cada hito termina con ruff + pytest en verde y un comm
 **DoD:** tests verdes para cada disparador de tiempo y cada acción.
 
 ### M3 — Backend Linux: energía, idle, sensores, doctor
-- [ ] logind vía dbus-fast (Can* + acciones)
-- [ ] Graceful KDE (`org.kde.Shutdown`) / GNOME con introspección y alternativa logind
-- [ ] lock, logout, screen_off
-- [ ] `idle_seconds` con cadena de estrategias (KDE → GNOME → logind → xprintidle)
-- [ ] `media_playing` (MPRIS); notificaciones con acción "Cancelar"
-- [ ] `sensors/` con psutil: CPU, red, procesos, batería, AC, sesiones SSH
-- [ ] `capabilities()` completo (ver ARCHITECTURE §7) y `kse doctor` con tabla rich
-- [ ] Zona horaria IANA del sistema (para reglas sin `timezone`; en Linux, `/etc/localtime`)
-- [ ] Tests con D-Bus simulado; tests reales marcados `real`
+- [x] logind vía dbus-fast (Can* + acciones)
+- [x] Graceful KDE (`org.kde.Shutdown`) / GNOME con introspección y alternativa logind
+- [x] lock, logout, screen_off
+- [x] `idle_seconds` con cadena de estrategias (Wayland ext-idle-notify → GNOME → logind → xprintidle)
+- [x] `media_playing` (MPRIS); notificaciones con acción "Cancelar"
+- [x] `sensors/` con psutil: CPU, red, procesos, batería, AC, sesiones SSH
+- [x] `capabilities()` completo (ver ARCHITECTURE §7) y `kse doctor` con tabla rich
+- [x] Zona horaria IANA del sistema (para reglas sin `timezone`; en Linux, `/etc/localtime`)
+- [x] Tests con D-Bus simulado; tests reales marcados `real`
 **DoD:** `KSE_DRY_RUN=1 uv run kse doctor` da un informe correcto en Kubuntu/KDE Wayland.
 
 ### M4 — Demonio, API, almacenamiento, CLI

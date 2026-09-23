@@ -7,7 +7,7 @@ and use psutil; only what differs between operating systems belongs here.
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable
 from contextlib import AbstractAsyncContextManager
-from datetime import datetime
+from datetime import datetime, tzinfo
 from enum import StrEnum
 from typing import NoReturn
 
@@ -117,6 +117,14 @@ class PlatformBackend(ABC):
     def inhibit_delay(self) -> AbstractAsyncContextManager[None]:
         """Delay sleep/shutdown while the context is held (e.g. to rewrite the wake alarm)."""
         self._unsupported("inhibit_delay")
+
+    def timezone(self) -> tzinfo:
+        """The system's time zone (IANA when possible), for rules without `timezone`."""
+        self._unsupported("timezone")
+
+    async def close(self) -> None:
+        """Release connections (D-Bus, Wayland…). Safe to call more than once."""
+        return
 
     def _unsupported(self, feature: str) -> NoReturn:
         raise NotSupported(feature, f"not supported by the {self.name!r} backend")
