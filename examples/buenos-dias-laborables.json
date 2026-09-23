@@ -1,0 +1,14 @@
+{
+  "id": "buenos-dias-laborables",
+  "name": "Encender los días laborables y abrir la agenda",
+  "trigger": {"type": "cron", "expr": "30 7 * * 1-5"},
+  "wake": true,
+  "timezone": "Europe/Madrid",
+  "conditions": {"type": "time_window", "start": "07:00", "end": "10:00"},
+  "actions": [
+    {"type": "wait", "duration": "1m"},
+    {"type": "notify", "title": "Buenos días", "body": "Abriendo la agenda"},
+    {"type": "open", "target": "https://calendar.google.com"}
+  ],
+  "on_missed": "run_once"
+}

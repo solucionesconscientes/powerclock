@@ -5,13 +5,13 @@ Marca `[x]` al completar. Cada hito termina con ruff + pytest en verde y un comm
 ## Fase 1 — Linux MVP (v0.1.0)
 
 ### M1 — Esqueleto y modelos
-- [ ] `pyproject.toml` (hatchling, src/, entry points kse/kse-daemon/kse-gui, extras gui/dev, marcadores de plataforma)
-- [ ] `uv sync --all-extras` funciona; ruff y pytest configurados (marker `real` excluido por defecto)
-- [ ] `models.py`: Rule, disparadores, predicados (all/any/not), guardas, acciones (uniones discriminadas pydantic), `parse_duration`
-- [ ] `platform/base.py` (PlatformBackend, Capability, NotSupported, enums) y `platform/fake.py`
-- [ ] `get_backend()` con override `KSE_BACKEND=fake`
-- [ ] `examples/` con 5 reglas de ejemplo válidas
-- [ ] Tests: reglas válidas/inválidas, round-trip JSON, exportación de JSON Schema, ejemplos validan
+- [x] `pyproject.toml` (hatchling, src/, entry points kse/kse-daemon/kse-gui, extra `gui` + grupo `dev`, marcadores de plataforma)
+- [x] `uv sync --all-extras` funciona; ruff y pytest configurados (marker `real` excluido por defecto)
+- [x] `models.py`: Rule, disparadores, predicados (all/any/not), guardas, acciones (uniones discriminadas pydantic), `parse_duration`
+- [x] `platform/base.py` (PlatformBackend, Capability, NotSupported, enums) y `platform/fake.py`
+- [x] `get_backend()` con override `KSE_BACKEND=fake`
+- [x] `examples/` con 5 reglas de ejemplo válidas
+- [x] Tests: reglas válidas/inválidas, round-trip JSON, exportación de JSON Schema, ejemplos validan
 **DoD:** `uv run pytest` verde; `uv run kse --version` funciona.
 
 ### M2 — Motor

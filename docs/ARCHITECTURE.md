@@ -46,7 +46,7 @@ App multiplataforma (Linux → Windows → macOS) para automatizar energía y ta
 - Solo Linux: `dbus-fast` (logind, ScreenSaver, MPRIS, notificaciones) → `dbus-fast; sys_platform == "linux"`.
 - Solo Windows (fase 3): `pywin32`.
 - Extra `[gui]`: `PySide6`, `qasync`. La GUI usa `QtWebSockets` (incluido en PySide6) para `/events`.
-- Dev: `pytest`, `pytest-asyncio`, `ruff`, `time-machine`.
+- Dev (grupo `dev` de uv; no es un extra publicado): `pytest`, `pytest-asyncio`, `ruff`, `time-machine`.
 - Entry points: `kse`, `kse-daemon`, `kse-gui`.
 - Licencia provisional: GPL-3.0-or-later (decidir antes de publicar).
 
@@ -98,6 +98,20 @@ Los disparadores de estado llevan `for` (condición sostenida N tiempo), p. ej. 
 
 **Acciones**: `power` (`shutdown|reboot|suspend|hibernate|hybrid_sleep|lock|logout|screen_off`, `mode: graceful|force`) · `run` (`cmd` lista, `cwd`, `env`, `shell` false por defecto, `timeout`, `wait`) · `open` (archivo/URL) · `close_app` (término limpio y kill tras timeout) · `notify` · `wait` · `wait_until` · `set_wake` (absoluto/relativo) · más adelante `webhook`, `telegram`.
 
+**Detalles fijados en M1** (referencia completa: el JSON Schema de `GET /schema/rule`, generado desde `src/kse/models.py`):
+- Todo objeto rechaza campos desconocidos: una errata en `rules.json` da error en vez de ignorarse.
+- `id`: `[a-z0-9][a-z0-9_-]*` (máx. 64). Duraciones compuestas en orden d→h→m→s (`"1h30m"`), resolución 1 s.
+- Instantes (`at.when`, `set_wake.when`, `countdown.armed_at`) en ISO 8601 **con zona**: `"2026-09-24T07:30:00+02:00"`.
+- `timezone` (opcional, nombre IANA como `"Europe/Madrid"`): zona de `cron`, `time_window` y `weekday`; por defecto, la del sistema.
+- `countdown`: `{"duration": "30m", "armed_at": null}`. El demonio rellena `armed_at` al activar la regla, así la cuenta atrás sobrevive a reinicios.
+- `cron`: 5 campos o `@hourly`, `@daily`, `@weekly`…
+- `wake: true` solo con disparadores de tiempo (`at`, `countdown`, `cron`).
+- `shutdown`, `reboot` y `logout` deben ser la última acción (nada detrás llegaría a ejecutarse); tras `suspend` o `hibernate` sí puede haber más.
+- `cpu_below` y `net_below` exigen `for`. `net_below.kbps` va en kilobits/s, con `direction` (`down|up|both`) e `interface` opcionales. `battery`: `below` o `above`.
+- Exactamente uno de: `process_exit` → `name` | `pid`; `set_wake` → `when` | `after`; `battery` → `below` | `above`.
+- `startup`: `on` (`daemon_start`, `resume`) y `delay`. `time_window`: `start`/`end` como `"22:00"`, cruza medianoche si start > end. `weekday.days`: `mon…sun`.
+- `run` con `shell: true` → `cmd` es una única línea de comando; `timeout` solo con `wait: true`.
+
 **Almacenamiento** (`platformdirs`): `rules.json` en user_config_dir (editable a mano, validado al cargar, escritura atómica, recarga en caliente) · `history.sqlite` en user_data_dir · `daemon.json` (puerto y ajustes) · `api.token` (permisos 0600).
 
 ## 5. Motor
@@ -135,6 +149,9 @@ class PlatformBackend(ABC):
     async def capabilities(self) -> list[Capability]: ...
 ```
 - `Capability(id, supported: bool, detail: str, fix_hint: str | None)`.
+- Solo `power` y `capabilities` son obligatorios; cualquier otro método que un backend no implemente lanza `NotSupported(feature, detail, fix_hint)`.
+- `notify` sin `actions` vuelve enseguida; con `actions` espera a que el usuario elija una (devuelve su clave) o cierre la notificación (`None`), así que se lanza como tarea y se cancela cuando deja de hacer falta.
+- `subscribe_power_events` recibe un `PowerEvent` (`before_sleep`, `after_resume`, `before_shutdown`).
 - Lo genérico (CPU, red, procesos, batería, usuarios) va en `sensors/` con psutil, no en el backend.
 - `FakePlatform`: en memoria, registra todas las llamadas. Se usa en TODOS los tests y en dry-run. Se selecciona con `KSE_BACKEND=fake`.
 

@@ -1,0 +1,18 @@
+{
+  "id": "suspender-inactivo",
+  "name": "Suspender tras 20 minutos sin usar el equipo",
+  "trigger": {"type": "idle", "for": "20m"},
+  "guards": {
+    "any": [
+      {"type": "media_playing"},
+      {"type": "ssh_session"},
+      {"not": {"type": "cpu_below", "percent": 20, "for": "2m"}}
+    ],
+    "retry": "5m",
+    "max_wait": "1h"
+  },
+  "actions": [
+    {"type": "power", "action": "suspend"}
+  ],
+  "warning": "60s"
+}

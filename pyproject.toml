@@ -1,0 +1,77 @@
+[project]
+name = "kse"
+dynamic = ["version"]
+description = "KShutdown Evolution: power and task automation (shutdown, suspend, wake-up, scripts) driven by persistent rules."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "GPL-3.0-or-later"
+keywords = ["shutdown", "suspend", "wake", "rtcwake", "scheduler", "automation", "power-management"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: System :: Power (UPS)",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "croniter>=6.2.4",
+    "dbus-fast>=5.0.22 ; sys_platform == 'linux'",
+    "fastapi>=0.141.1",
+    "httpx>=0.28.1",
+    "platformdirs>=4.11.12",
+    "psutil>=7.2.2",
+    "pydantic>=2.13.5",
+    "rich>=15.0.0",
+    "typer>=0.27.2",
+    "uvicorn>=0.53.0",
+    "websockets>=17.1",
+]
+
+[project.scripts]
+kse = "kse.cli.main:app"
+kse-daemon = "kse.daemon.main:main"
+kse-gui = "kse.gui.app:main"
+
+[project.optional-dependencies]
+gui = [
+    "pyside6>=6.11.2",
+    "qasync>=0.28.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/kse/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/kse"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+extend-exclude = ["*.md"]  # docs keep their own layout
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF", "ASYNC", "PT", "PTH"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["kse"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-m", "not real", "--strict-markers", "--import-mode=importlib"]
+markers = ["real: touches the real system (power, D-Bus, RTC); excluded by default"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.16.8",
+    "time-machine>=3.5.1",
+]

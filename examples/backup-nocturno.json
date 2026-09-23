@@ -1,0 +1,28 @@
+{
+  "id": "backup-nocturno",
+  "name": "Backup nocturno",
+  "enabled": true,
+  "trigger": {"type": "cron", "expr": "0 3 * * *"},
+  "wake": true,
+  "conditions": {"all": [{"type": "power_source", "is": "ac"}]},
+  "guards": {
+    "any": [
+      {"type": "process_running", "name": "ffmpeg"},
+      {"type": "media_playing"},
+      {"type": "ssh_session"}
+    ],
+    "retry": "5m",
+    "max_wait": "2h"
+  },
+  "actions": [
+    {"type": "run", "cmd": ["/home/pc/bin/backup.sh"], "timeout": "2h", "wait": true},
+    {"type": "wait_until", "condition": {"type": "net_below", "kbps": 50, "for": "5m"}, "timeout": "1h"},
+    {"type": "notify", "title": "KSE", "body": "Backup terminado"},
+    {"type": "power", "action": "shutdown", "mode": "graceful"}
+  ],
+  "warning": "60s",
+  "on_missed": "skip",
+  "on_error": "stop",
+  "one_shot": false,
+  "dry_run": false
+}

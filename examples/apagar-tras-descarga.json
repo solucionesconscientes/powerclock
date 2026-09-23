@@ -1,0 +1,15 @@
+{
+  "id": "apagar-tras-descarga",
+  "name": "Apagar cuando termine la descarga",
+  "trigger": {"type": "net_below", "kbps": 50, "for": "5m", "direction": "down"},
+  "guards": {
+    "any": [{"type": "ssh_session"}],
+    "retry": "5m",
+    "max_wait": "1h"
+  },
+  "actions": [
+    {"type": "power", "action": "shutdown"}
+  ],
+  "warning": "2m",
+  "one_shot": true
+}
