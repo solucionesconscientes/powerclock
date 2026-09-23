@@ -40,6 +40,7 @@ class FakePlatform(PlatformBackend):
         self.ssid = ssid
         self.notify_response = notify_response
         self.tz = timezone
+        self.wakeup: str | None = None  # what "woke the machine" last
         self.wake: datetime | None = None
         self.inhibited = False
         self.calls: list[FakeCall] = []
@@ -109,6 +110,10 @@ class FakePlatform(PlatformBackend):
             yield
         finally:
             self.inhibited = False
+
+    async def wakeup_source(self) -> str | None:
+        self._record("wakeup_source")
+        return self.wakeup
 
     def timezone(self) -> tzinfo:
         return self.tz

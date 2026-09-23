@@ -8,7 +8,14 @@ from datetime import UTC, datetime, timedelta
 import psutil
 
 from kse.i18n import _
-from kse.platform.base import Capability, PlatformBackend, PowerAction, PowerEvent, PowerMode
+from kse.platform.base import (
+    Capability,
+    NotSupported,
+    PlatformBackend,
+    PowerAction,
+    PowerEvent,
+    PowerMode,
+)
 from kse.sensors import system
 
 
@@ -54,6 +61,7 @@ class WakeTest:
     slept: bool
     resumed_at: datetime | None
     alarm_left: bool  # the alarm is still programmed: it did not fire
+    woken_by: str | None = None  # what the OS says woke it, when it changed during the test
 
     @property
     def verdict(self) -> str:
@@ -90,6 +98,7 @@ async def run_wake_test(
             resumed.set()
 
     await backend.subscribe_power_events(on_event)
+    before = await _wakeup_source(backend)
     alarm = (now() + timedelta(seconds=seconds)).replace(microsecond=0)
     await backend.wake_set(alarm)
     announce(alarm)
@@ -103,4 +112,18 @@ async def run_wake_test(
     except TimeoutError:
         return WakeTest(alarm, slept=True, resumed_at=None, alarm_left=True)
     left = await backend.wake_get()
-    return WakeTest(alarm, slept=True, resumed_at=resumed_at[0], alarm_left=left == alarm)
+    after = await _wakeup_source(backend)
+    return WakeTest(
+        alarm,
+        slept=True,
+        resumed_at=resumed_at[0],
+        alarm_left=left == alarm,
+        woken_by=after if after != before else None,
+    )
+
+
+async def _wakeup_source(backend: PlatformBackend) -> str | None:
+    try:
+        return await backend.wakeup_source()
+    except NotSupported:
+        return None

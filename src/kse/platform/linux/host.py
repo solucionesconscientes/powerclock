@@ -83,6 +83,25 @@ class Host:
     def resume_configured(self) -> bool:
         return "resume=" in (self._read("proc/cmdline") or "")
 
+    def wakeup_source(self) -> str | None:
+        """The last wake-up IRQ (/sys/power/pm_wakeup_irq), its device and input names."""
+        irq = self._read("sys/power/pm_wakeup_irq")
+        if not irq or not irq.isdigit():
+            return None
+        label = None
+        for line in (self._read("proc/interrupts") or "").splitlines():
+            number, _, rest = line.strip().partition(":")
+            if number == irq and rest.split():
+                label = rest.split()[-1]
+                break
+        if label is None:
+            return f"IRQ {irq}"
+        names = []
+        for name_file in sorted((self.root / "sys/class/input").glob("input*/name")):
+            if label in str(name_file.parent.resolve()):
+                names.append(name_file.read_text().strip())
+        return f"IRQ {irq}: {label}" + (f" ({', '.join(names)})" if names else "")
+
     def timezone(self, env: Mapping[str, str]) -> tzinfo:
         """IANA zone from $TZ, the /etc/localtime link or /etc/timezone; else the raw file."""
         for name in (

@@ -64,6 +64,9 @@ class DryRunPlatform(PlatformBackend):
     def inhibit_delay(self) -> AbstractAsyncContextManager[None]:
         return self.inner.inhibit_delay()
 
+    async def wakeup_source(self) -> str | None:
+        return await self.inner.wakeup_source()
+
     def timezone(self) -> tzinfo:
         return self.inner.timezone()
 

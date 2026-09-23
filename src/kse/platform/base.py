@@ -118,6 +118,13 @@ class PlatformBackend(ABC):
         """Delay sleep/shutdown while the context is held (e.g. to rewrite the wake alarm)."""
         self._unsupported("inhibit_delay")
 
+    async def wakeup_source(self) -> str | None:
+        """What the OS says woke the machine last (e.g. "IRQ 51: touchpad"), if it says.
+
+        It may be stale: compare the value before and after a suspend.
+        """
+        self._unsupported("wakeup_source")
+
     def timezone(self) -> tzinfo:
         """The system's time zone (IANA when possible), for rules without `timezone`."""
         self._unsupported("timezone")

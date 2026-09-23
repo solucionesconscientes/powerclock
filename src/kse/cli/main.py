@@ -49,6 +49,8 @@ app.add_typer(helper_app, name="helper")
 console = Console()
 errors = Console(stderr=True)
 
+HANDS_OFF = 10  # seconds between confirming a wake test and suspending
+
 STATE_STYLES = {
     "done": "green",
     "failed": "red",
@@ -591,6 +593,15 @@ def _test_wake(seconds: int) -> None:
     )
     if not typer.confirm(_("Suspend now?"), default=False):
         raise typer.Exit(1)
+    for left in range(HANDS_OFF, 0, -1):  # a touchpad or a pointing stick can wake it up
+        console.print(
+            _("Suspending in {seconds} s: hands off the keyboard, touchpad and stick…").format(
+                seconds=left
+            ),
+            end="\r",
+        )
+        time.sleep(1)
+    console.print()
 
     def announce(alarm: datetime) -> None:
         console.print(_("⏰ alarm set for {time}; suspending…").format(time=local(alarm)))
@@ -616,6 +627,10 @@ def _test_wake(seconds: int) -> None:
     console.print(
         messages[result.verdict].format(resumed=local(result.resumed_at), alarm=local(result.alarm))
     )
+    if result.woken_by:
+        console.print(_("  woken by: {source}").format(source=result.woken_by))
+    elif result.verdict in ("early", "late"):
+        console.print(_("  the OS did not say what woke it up"), style="dim")
     if result.verdict != "ok":
         raise typer.Exit(1)
 

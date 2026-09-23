@@ -134,6 +134,9 @@ class LinuxPlatform(PlatformBackend):
     def inhibit_delay(self) -> AbstractAsyncContextManager[None]:
         return self.logind.inhibitor("shutdown:sleep", "Updating the wake-up alarm")
 
+    async def wakeup_source(self) -> str | None:
+        return self.host.wakeup_source()
+
     def timezone(self) -> tzinfo:
         return self.host.timezone(self.env)
 

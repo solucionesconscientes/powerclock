@@ -86,3 +86,26 @@ def test_timezone_from_the_file_or_utc(tmp_path: Path) -> None:
     zone = Host(tmp_path).timezone({})
     assert str(zone) == "localtime"
     assert zone.utcoffset(__import__("datetime").datetime(2026, 7, 1)).total_seconds() == 7200
+
+
+def test_wakeup_source(tmp_path: Path) -> None:
+    host = Host(tmp_path)
+    assert host.wakeup_source() is None
+    write(tmp_path, "sys/power/pm_wakeup_irq", "51\n")
+    assert host.wakeup_source() == "IRQ 51"
+    write(
+        tmp_path,
+        "proc/interrupts",
+        "           CPU0       CPU1\n"
+        "   8:          0          0  IR-IO-APIC    8-edge      rtc0\n"
+        "  51:      66438          0  IR-IO-APIC   51-fasteoi   DLL07A7:01\n",
+    )
+    assert host.wakeup_source() == "IRQ 51: DLL07A7:01"
+    device = tmp_path / "sys/bus/i2c/devices/i2c-DLL07A7:01/0018:044E:120B.0001/input"
+    for number, name in (("5", "DLL07A7:01 044E:120B"), ("6", "DualPoint Stick")):
+        write(tmp_path, f"{device.relative_to(tmp_path)}/input{number}/name", name)
+        link = tmp_path / f"sys/class/input/input{number}"
+        link.parent.mkdir(parents=True, exist_ok=True)
+        link.symlink_to(device / f"input{number}")
+    write(tmp_path, "sys/class/input/input9/name", "Power Button")  # another device
+    assert host.wakeup_source() == ("IRQ 51: DLL07A7:01 (DLL07A7:01 044E:120B, DualPoint Stick)")

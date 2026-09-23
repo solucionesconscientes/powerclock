@@ -1,6 +1,7 @@
 """`kse doctor --test-wake`: the logic with a simulated suspend, and the CLI safeguards."""
 
 import asyncio
+import functools
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -55,10 +56,11 @@ class Sleepy(FakePlatform):
 async def test_run_wake_test() -> None:
     clock = [datetime(2026, 9, 24, 8, 0, 0, 500_000, tzinfo=UTC)]
     backend = Sleepy(clock, woken_after=4)
+    backend.wakeup = "IRQ 51: touchpad"  # stale: from an earlier wake-up
     announced: list[datetime] = []
     result = await run_wake_test(backend, 120, announce=announced.append, now=lambda: clock[0])
     assert announced == [ALARM]
-    assert result == WakeTest(ALARM, True, ALARM + timedelta(seconds=4), False)
+    assert result == WakeTest(ALARM, True, ALARM + timedelta(seconds=4), False, woken_by=None)
     assert result.verdict == "ok"
     methods = [call.method for call in backend.calls]
     assert methods.index("wake_set") < methods.index("power")  # alarm first, then suspend
@@ -102,3 +104,35 @@ def test_cli_asks_before_suspending(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_cli_limits() -> None:
     result = CliRunner().invoke(app, ["doctor", "--test-wake", "5"])
     assert result.exit_code == 2  # at least 60 s
+
+
+async def test_the_wake_source_is_reported_when_it_changes() -> None:
+    clock = [datetime(2026, 9, 24, 8, 0, tzinfo=UTC)]
+
+    class Touchy(Sleepy):
+        async def power(self, action: PowerAction, mode: PowerMode) -> None:
+            self.wakeup = "IRQ 51: DLL07A7:01 (DualPoint Stick)"
+            await super().power(action, mode)
+
+    backend = Touchy(clock, woken_after=-100)  # resumed well before the alarm
+    result = await run_wake_test(backend, 120, announce=lambda alarm: None, now=lambda: clock[0])
+    assert result.verdict == "early"
+    assert result.woken_by == "IRQ 51: DLL07A7:01 (DualPoint Stick)"
+
+
+def test_cli_full_test(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("KSE_DRY_RUN")
+    monkeypatch.setenv("COLUMNS", "200")
+    clock = [datetime(2026, 9, 24, 8, 0, tzinfo=UTC)]
+    backend = Sleepy(clock, woken_after=2)
+    backend.wakeup = "IRQ 9: acpi"
+    monkeypatch.setattr("kse.cli.main.get_backend", lambda: backend)
+    monkeypatch.setattr("kse.cli.main.time.sleep", lambda seconds: None)
+    monkeypatch.setattr(
+        "kse.cli.main.run_wake_test", functools.partial(run_wake_test, now=lambda: clock[0])
+    )
+    result = CliRunner().invoke(app, ["doctor", "--test-wake", "120"], input="y\n")
+    assert result.exit_code == 0, result.output
+    assert "hands off" in result.output
+    assert "Woke up by itself" in result.output
+    assert [call.method for call in backend.calls].count("power") == 1
