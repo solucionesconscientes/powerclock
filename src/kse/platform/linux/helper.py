@@ -50,6 +50,17 @@ def shell(command: Sequence[str]) -> str:
     return shlex.join(command)
 
 
+def script(commands: list[Command]) -> str:
+    """The commands as one shell line without their `sudo` (for pkexec, which runs it as root)."""
+    return " && ".join(shlex.join(c[1:] if c[:1] == ["sudo"] else c) for c in commands)
+
+
+def elevated(commands: list[Command]) -> Command:
+    """One command that runs them all as root, asking for the password in a desktop window
+    (for the GUI, which has no terminal for sudo)."""
+    return ["pkexec", "/bin/sh", "-c", script(commands)]
+
+
 Run = Callable[[Sequence[str]], int]
 
 

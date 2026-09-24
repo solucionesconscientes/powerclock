@@ -22,9 +22,15 @@ def test_no_arguments_shows_help() -> None:
 
 def test_entry_points_resolve() -> None:
     scripts = {
-        ep.name: ep for ep in distribution("kse").entry_points if ep.group == "console_scripts"
+        (ep.group, ep.name): ep
+        for ep in distribution("kse").entry_points
+        if ep.group in ("console_scripts", "gui_scripts")
     }
-    assert set(scripts) == {"kse", "kse-daemon", "kse-gui"}
+    assert set(scripts) == {
+        ("console_scripts", "kse"),
+        ("console_scripts", "kse-daemon"),
+        ("gui_scripts", "kse-gui"),  # no console window on Windows
+    }
     for entry_point in scripts.values():
         assert callable(entry_point.load())
 

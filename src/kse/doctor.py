@@ -122,6 +122,25 @@ async def run_wake_test(
     )
 
 
+def verdict_message(result: WakeTest, show: Callable[[datetime | None], str]) -> str:
+    """What the wake test found, in words; `show` writes a time for the user."""
+    messages = {
+        "ok": _("✔ Woke up by itself at {resumed} (alarm {alarm})."),
+        "early": _("? Resumed at {resumed}, before the alarm ({alarm}): woken by hand?"),
+        "late": _("✘ Resumed at {resumed}, long after the alarm ({alarm})."),
+        "no_sleep": _("✘ The computer did not suspend (an inhibitor?)."),
+        "no_resume": _("✘ No resume was seen."),
+    }
+    text = messages[result.verdict].format(
+        resumed=show(result.resumed_at), alarm=show(result.alarm)
+    )
+    if result.woken_by:
+        text += "\n" + _("woken by: {source}").format(source=result.woken_by)
+    elif result.verdict in ("early", "late"):
+        text += "\n" + _("the OS did not say what woke it up")
+    return text
+
+
 async def _wakeup_source(backend: PlatformBackend) -> str | None:
     try:
         return await backend.wakeup_source()

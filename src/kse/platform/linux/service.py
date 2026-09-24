@@ -98,6 +98,12 @@ def install(
     return done
 
 
+def start(*, runner: Runner | None = None) -> list[str]:
+    """Start the installed service as it is (its unit, dry run or not, is not rewritten)."""
+    _check(runner or run, ["systemctl", "--user", "start", UNIT])
+    return [f"started {UNIT}"]
+
+
 def uninstall(*, runner: Runner | None = None, path: Path | None = None) -> list[str]:
     """Stop and remove the service. Rules, history and settings are kept."""
     runner = runner or run

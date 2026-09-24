@@ -1,6 +1,12 @@
+import os
 from pathlib import Path
 
 import pytest
+
+# Tests read English messages: ours (gettext) and the system's (strerror). Set before any
+# kse module is imported, and before Qt applies the desktop's language to the process.
+os.environ.pop("LANGUAGE", None)
+os.environ["LC_ALL"] = "C.UTF-8"
 
 
 @pytest.fixture(autouse=True)

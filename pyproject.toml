@@ -32,11 +32,13 @@ dependencies = [
 [project.scripts]
 kse = "kse.cli.main:app"
 kse-daemon = "kse.daemon.main:main"
-kse-gui = "kse.gui.app:main"
+
+[project.gui-scripts]
+kse-gui = "kse.gui.app:main"  # no console window on Windows
 
 [project.optional-dependencies]
 gui = [
-    "pyside6>=6.11.2",
+    "pyside6-essentials>=6.11.2",
     "qasync>=0.28.0",
 ]
 

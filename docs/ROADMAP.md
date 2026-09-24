@@ -60,19 +60,26 @@ Marca `[x]` al completar. Cada hito termina con ruff + pytest en verde y un comm
 **DoD:** tests con sensores falsos para cada disparador y guarda ✅ (`FakeReadings` + reloj falso: `test_sensor_hub.py`, `test_watcher.py`, `test_watch_api.py`). Probado además en dry-run en el Latitude con sensores reales (CPU, red y un `ffmpeg` falso).
 
 ### M7 — GUI PySide6
-- [ ] Bandeja con estado y menú
-- [ ] Pestaña Rápido (estilo KShutdown) + "Encender a las…"
-- [ ] Pestaña Reglas (lista + editor por formularios + JSON)
-- [ ] Historial y Diagnóstico (instalar helper, probar despertar)
-- [ ] Diálogo de cuenta atrás (Cancelar / Posponer 10 min) vía WS
-- [ ] Autoarranque; i18n es/en
-**DoD:** flujo completo desde la GUI en KDE Wayland.
+- [x] Bandeja con estado y menú
+- [x] Pestaña Rápido (estilo KShutdown) + "Encender a las…"
+- [x] Pestaña Reglas (lista + editor por formularios + JSON)
+- [x] Historial y Diagnóstico (instalar helper, probar despertar)
+- [x] Diálogo de cuenta atrás (Cancelar / Posponer 10 min) vía WS
+- [x] Autoarranque; i18n es/en
+**DoD:** flujo completo desde la GUI en KDE Wayland ⏳ (pendiente de la prueba del usuario; automatizado: tests con Qt offscreen contra un demonio simulado y arranque real de `kse-gui` contra un demonio en dry-run).
 
 ### M8 — Publicación 0.1.0
 - [ ] README (es/en) con capturas; `examples/` documentados
 - [ ] Comprobar el nombre en PyPI; `pipx install .` limpio en Kubuntu y en el VPS (sin GUI)
 - [ ] GitHub Actions: lint + tests (Linux), build sdist/wheel
 - [ ] CHANGELOG; licencia definitiva
+
+## Empaquetado (opcional, cuando se decida)
+De momento la distribución es `pipx` en los tres SO. Opciones estudiadas, por ganancia:
+- Instalador de un comando con `uv` (`install.sh` / `install.ps1`: instala uv, que trae su propio Python, luego `uv tool install "kse[gui]"` y `kse setup`), con `kse setup|update|uninstall`.
+- Windows: instalador firmado + winget (evita instalar Python antes).
+- macOS: `.app` firmada vía Homebrew cask (necesaria para notificaciones con botones y un icono propio en el Dock).
+- Linux: paquetes `kse` + `kse-gui` (PPA, AUR, COPR/OBS): instalación en un paso, actualizaciones del sistema y Breeze nativo. Ubuntu 26.04 tiene todas las dependencias, pero más antiguas que los mínimos actuales: habría que bajar los mínimos y probarlas, o llevar las propias dentro del paquete.
 
 ## Fase 2 — Workflows y más disparadores (v0.2)
 `file`, `wifi_ssid`, `usb`, `temperature`; webhook de entrada y salida; Telegram (notificar); editor visual de condiciones; plantillas/recetas; estadísticas de uso y ahorro.

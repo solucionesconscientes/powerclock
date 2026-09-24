@@ -45,9 +45,9 @@ App multiplataforma (Linux → Windows → macOS) para automatizar energía y ta
 - `pydantic` v2 (modelos, validación, JSON Schema) · `fastapi` + `uvicorn` (API local + WS) · `httpx` (cliente) · `typer` + `rich` (CLI) · `psutil` (CPU, red, procesos, batería, usuarios) · `croniter` (recurrencias) · `platformdirs` (rutas) · `websockets` (servidor WS de uvicorn para `/events` y cliente WS de la CLI; `httpx` no habla WebSocket).
 - Solo Linux: `dbus-fast` (logind, ScreenSaver, MPRIS, notificaciones) → `dbus-fast; sys_platform == "linux"`.
 - Solo Windows (fase 3): `pywin32`.
-- Extra `[gui]`: `PySide6`, `qasync`. La GUI usa `QtWebSockets` (incluido en PySide6) para `/events`.
+- Extra `[gui]`: `PySide6-Essentials` (QtCore/Gui/Widgets/Network/Svg…, sin los Addons: 236 MB en disco en vez de 674 MB) y `qasync`. La GUI habla con el API como la CLI: `httpx` (async) y `websockets` para `/events`; nada de QtWebSockets (está en los Addons).
 - Dev (grupo `dev` de uv; no es un extra publicado): `pytest`, `pytest-asyncio`, `ruff`, `time-machine`.
-- Entry points: `kse`, `kse-daemon`, `kse-gui`.
+- Entry points: `kse`, `kse-daemon` y `kse-gui` (este en `[project.gui-scripts]`: en Windows se lanza sin ventana de consola).
 - Licencia provisional: GPL-3.0-or-later (decidir antes de publicar).
 
 ## 4. Modelo de reglas
@@ -195,6 +195,7 @@ class PlatformBackend(ABC):
 | GET · POST | `/rules` | listar · crear |
 | GET · PUT · DELETE | `/rules/{id}` | ver · editar · borrar |
 | POST | `/rules/{id}/enable` · `/disable` · `/run` | |
+| POST | `/rules/{id}/cancel` · `/rules/{id}/postpone` | una regla concreta: su ejecución en curso (o su cuenta atrás); si es una acción rápida que aún no ha actuado, la cancela (queda en el historial) o retrasa su momento `{"delay"}`. Otras reglas sin ejecución en curso → 409 (se desactivan o se editan) |
 | POST | `/quick` | acción rápida estilo KShutdown → regla `one_shot` |
 | POST | `/wake` | `{"at": "07:30"}` → regla de despertar de un solo uso |
 | GET | `/pending` | próximos disparos + ejecuciones activas + `watching` (reglas con disparador de estado: estado, si está armada y lo que mide su sensor) + `wake: {at, error}` |
@@ -226,29 +227,40 @@ kse rules list|show|add <f.json>|edit <id>|enable|disable|rm|export|import
 kse doctor [--json] [--test-wake 120]
 kse service install [--linger] | uninstall | status
 kse helper install [--unattended] [--print] | uninstall [--print]
-kse gui
+kse gui [--tray]
 ```
 Los comandos rápidos crean reglas `one_shot` vía API (`kse shutdown|reboot|suspend|hibernate|hybrid-sleep|lock|logout|screen-off|run [--in|--at|--when-idle|--when-exits|--when-cpu-below|--when-net-below [--for]] [--force] [--warning] [--wake]`). Con `--when-*` muestran al momento lo que ve el sensor (p. ej. "ffmpeg is not running yet: waiting for it to start"); `kse status` las lista en **Watching** y `kse rules list` lo muestra en su columna "Next". Si el demonio no está activo, lo indican y sugieren `kse service install`. Opción global `--dry-run`. `kse service install --dry-run` instala el servicio en modo dry-run (pruebas).
 
 ## 10. GUI (PySide6)
-- **Bandeja**: icono según estado (inactivo / programado / cuenta atrás); menú con acciones rápidas, próxima acción, cancelar y abrir.
-- **Rápido** (estilo KShutdown): Acción + Cuándo (a la hora / dentro de / inactividad / al terminar un proceso / CPU baja / descarga terminada) + casilla "Encender a las …" → Aceptar.
-- **Reglas**: lista con activar/desactivar, editor por formularios (disparador, condiciones, guardas, pasos) y vista JSON.
-- **Historial** y **Diagnóstico** (capabilities con botones "Instalar helper" y "Probar despertar en 2 min").
-- **Diálogo de cuenta atrás** siempre encima: Cancelar / Posponer 10 min (vía WS).
-- Autoarranque; i18n es/en.
+Decisiones (M7):
+- **Qt Widgets estándar, sin librerías exclusivas de KDE** (KDE Frameworks, Kirigami): el mismo código en cualquier escritorio y SO. Descartados por consumo o por encaje: Rust (Slint/iced; más ligero, pero rompe `pipx install` y duplica lenguaje), plasmoide (solo KDE), Tauri/Electron (motor web), Tkinter (sin bandeja, no viene en el Python de Ubuntu), GTK4 (sin bandeja).
+- **Consumo**: solo la bandeja vive siempre (medido en el Latitude, Wayland: ~50 MB; con la ventana construida ~65 MB; 0 % CPU en reposo porque todo llega por `/events`, sin sondeo). La ventana se crea al abrirla y se destruye al cerrarla. En el VPS no se instala (`pipx install kse` sin `[gui]`).
+- **Sin bandeja también funciona** (GNOME sin la extensión AppIndicator): la ventana es la app y la cuenta atrás sigue llegando por notificación.
+- **Aspecto**: con el Qt de pip, estilo Fusion con la paleta, los iconos y el modo claro/oscuro del escritorio (en Plasma: colores e iconos Breeze; no el estilo de los controles ni la fuente). Modo nativo opcional en Linux, con el mismo código: `sudo apt install python3-pyside6.qtwidgets python3-qasync` y `pipx install --system-site-packages kse` (sin `[gui]`) → usa el Qt del sistema y se ve Breeze exacto.
+- **Una sola instancia** (`QLocalServer`): lanzar `kse-gui` otra vez muestra la ventana de la que ya corre.
+- **Nunca bloquea el hilo de Qt**: `qasync` integra asyncio en el bucle de Qt; las peticiones y el WebSocket son corrutinas. Los componentes solo necesitan un bucle asyncio en marcha, así los tests los ejercitan sin qasync (Qt `offscreen`).
+- **Enlace con el demonio** (`gui/client.py`): `HttpApi` (httpx async; relee puerto y token tras un fallo, por si el demonio se reinició) y `DaemonLink`, que mantiene `/health` y `/pending` al día: los refresca con cada evento de `/events` (salvo `tick`), agrupando ráfagas, y repite la consulta si llega un evento mientras otra está en curso. Sin demonio: estado "sin conexión" y reintento con espera creciente (hasta 10 s). Con la ventana abierta, refresco cada 5 s para ver en vivo lo que miden los sensores.
+- **Bandeja**: icono según estado (inactivo / programado / cuenta atrás / sin demonio); tooltip con lo próximo; menú con lo próximo, Cancelar, Posponer 10 min, **Ahora** (apagar, reiniciar, suspender… con su cuenta atrás de 60 s; bloquear y apagar pantalla, al momento), Programar…, Abrir KSE y cerrar el icono (las reglas siguen: las ejecuta el demonio).
+- **Rápido** (estilo KShutdown): Acción (las de energía o "Ejecutar un programa") + Cuándo (ahora / fecha y hora / dentro de / inactividad / al terminar un programa, eligiéndolo entre los que corren / CPU baja / red baja, con su `for`) + cuenta atrás, forzar y "Encender también el equipo a las…" → Aceptar. Debajo, las acciones rápidas en espera con Cancelar y +10 min (este último solo si tienen hora o están en cuenta atrás).
+- **Reglas**: tabla con activar/desactivar, cuándo y lo próximo (hora o lo que ve el sensor); nueva, editar, ejecutar ahora, borrar (pregunta), importar y exportar.
+- **Editor de reglas** (`gui/editor.py` + `gui/forms.py`): los formularios se **generan del JSON Schema de cada modelo** (`models.model_json_schema`): un control por tipo de campo (duración, fecha local, hora, número con sus límites, lista de opciones, días, orden como línea de shell, entorno `K=V`, zona horaria, programa en marcha…), así el editor sigue a `models.py` sin formularios a mano. Pestañas Regla (disparador), Condiciones ("solo si se cumplen todas" + guardas "esperar mientras se cumpla alguna" con su reintento y límite), Pasos (ordenables), Opciones y JSON; las dos vistas se sincronizan al cambiar de pestaña. Condiciones complejas (`any`, anidadas) se editan como JSON dentro del formulario sin perderse. Se valida con los mismos modelos antes de enviar; editar una cuenta atrás no la reinicia.
+- **Historial** (resultado, por qué se ejecutó, motivo y pasos de cada ejecución) y **Diagnóstico**: estado del demonio y botón "Iniciar el servicio" (si ya está instalado solo lo arranca; si no, pregunta y lo instala; en dry-run, como servicio dry-run), capacidades con cómo arreglarlas, próxima alarma, **instalar el ayudante** (muestra los comandos exactos y los ejecuta con `pkexec /bin/sh -c …`: una sola ventana de contraseña del sistema), **probar un despertar en 2 min** (pregunta, 10 s para apartar las manos, informa del resultado; en dry-run no hace nada) y las casillas de menú de aplicaciones y arranque con la sesión.
+- **Diálogo de cuenta atrás** (`WindowStaysOnTopHint`; en Wayland el compositor decide): Cancelar (también con Esc) / Posponer 10 min. Se abre con `warning_started` o al arrancar la GUI a mitad de una cuenta atrás; se cierra con el fin de la ejecución, con un `/pending` pedido después de abrirse que ya no la tenga, o 3 s después de llegar a 0.
+- **Menú y autoarranque** (`install/autostart.py` → `platform/linux/autostart.py`): `~/.local/share/applications/kse.desktop` (+ icono en `icons/hicolor/scalable/apps/kse.svg`) y `~/.config/autostart/kse-gui.desktop` con `--tray`, en carpetas del usuario, sin root.
+- **Traducciones**: gettext. Los textos son los `_("…")` del código; `scripts/i18n.py update` los lleva a `src/kse/locale/<idioma>/LC_MESSAGES/kse.po` y `compile` genera el `.mo` (sin herramientas de gettext). Los tests fallan si un texto queda sin traducir, si una traducción pierde un `{marcador}` o el formato de rich, o si el `.mo` no está al día. Qt carga además sus propias traducciones (`qtbase_es`). Los tests corren en inglés (`LC_ALL=C.UTF-8`).
 
 ## 11. Instalación
 ```
-pipx install "kse[gui]"     # escritorio
+pipx install "kse[gui]"     # escritorio (Linux, Windows y macOS: de momento, pipx en todos)
 pipx install kse            # servidor / VPS
 kse service install         # servicio de usuario + autoarranque
 kse helper install          # opcional: encender/despertar (sudo una vez)
 ```
-- Linux: `~/.config/systemd/user/kse.service` (`ExecStart=<venv>/bin/kse-daemon --foreground`, `Restart=on-failure`; `systemctl --user enable --now`; linger opcional con `loginctl enable-linger`, sin sudo) · `~/.config/autostart/kse-gui.desktop` (M7). Una parada por SIGTERM es limpia: guarda la marca de vida y conserva las acciones rápidas pendientes.
+- Linux: `~/.config/systemd/user/kse.service` (`ExecStart=<venv>/bin/kse-daemon --foreground`, `Restart=on-failure`; `systemctl --user enable --now`; linger opcional con `loginctl enable-linger`, sin sudo) · `~/.config/autostart/kse-gui.desktop` y la entrada del menú (casillas en Diagnóstico). Una parada por SIGTERM es limpia: guarda la marca de vida y conserva las acciones rápidas pendientes.
 - Windows: tarea "al iniciar sesión" para el demonio · acceso directo de Inicio para la GUI.
 - macOS: `~/Library/LaunchAgents/org.kse.daemon.plist` · helper como LaunchDaemon.
-- Flatpak descartado: el sandbox impide logind de sistema, polkit y el helper.
+- Flatpak descartado para la app: el sandbox tiene su propio espacio de procesos (no vería `ffmpeg` ni ningún proceso del usuario), ejecutaría los comandos de `run` dentro del sandbox y no puede instalar el helper, polkit ni el servicio. Solo la GUI podría ir en Flatpak (runtime KDE), con el demonio instalado aparte. Snap (requiere confinamiento `classic`) y AppImage (su ruta cambia al actualizar; no instala helper ni servicio) tampoco encajan.
+- Empaquetado por SO: opcional y más adelante (ROADMAP, "Empaquetado"). Para dejarlo fácil: el helper debe poder vivir también en `/usr/libexec/kse-helper` (ruta de paquete) y `kse service install` debe limitarse a activar un `kse.service` que ya instale un paquete.
 
 ## 12. Seguridad
 - Demonio sin privilegios; helper con lista blanca y validación estricta; ejecutado con el Python del sistema, nunca desde el venv.
@@ -268,19 +280,22 @@ KSHUTDOWN-EVOLUTION/
 │   ├── config.py        # rutas platformdirs (KSE_HOME), daemon.json, token, escritura atómica
 │   ├── timeparse.py     # "23:30" / "2026-09-24 07:30" → instante
 │   ├── doctor.py        # kse doctor: informe del backend + comprobaciones genéricas
-│   ├── i18n.py          # textos traducibles (catálogos es/en en M7)
+│   ├── i18n.py          # textos traducibles (gettext)
+│   ├── locale/          # es/LC_MESSAGES/kse.po + kse.mo (scripts/i18n.py)
+│   ├── connection.py    # dónde está el API del demonio, su token y sus errores (CLI y GUI)
 │   ├── engine/          # core.py (Engine) clock.py scheduler.py watcher.py evaluator.py executor.py runs.py processes.py wake.py
 │   ├── sensors/         # base.py (SensorReader, Readings) system.py (psutil + SystemReadings) fake.py registry.py (SensorHub)
 │   ├── platform/        # __init__.py (get_backend) base.py fake.py dryrun.py
-│   │   ├── linux/       # backend.py logind.py idle.py wayland.py desktop.py notify.py network.py dbus.py commands.py host.py capabilities.py service.py (systemd)
+│   │   ├── linux/       # backend.py logind.py idle.py wayland.py desktop.py notify.py network.py dbus.py commands.py host.py capabilities.py service.py (systemd) helper.py autostart.py (.desktop)
 │   │   ├── windows/     # fase 3
 │   │   └── macos/       # fase 4
 │   ├── helper/          # kse_helper_linux.py org.kse.helper.policy 50-kse-unattended.rules.in (plantilla por usuario)
 │   ├── daemon/          # main.py (kse-daemon) core.py (Daemon) api.py store.py (reglas + historial) events.py
 │   ├── cli/             # main.py client.py format.py
 │   ├── install/         # service.py (fachada por SO) autostart.py helper.py
-│   └── gui/             # app.py tray.py quick.py rules.py countdown.py doctor.py client.py
-└── tests/               # unit/ + real/ (@pytest.mark.real, excluidos por defecto)
+│   └── gui/             # app.py (kse-gui) controller.py client.py (HttpApi, DaemonLink) tray.py window.py quick.py rules.py editor.py forms.py history.py diagnostics.py countdown.py summary.py labels.py widgets.py tasks.py single.py icons.py icons/*.svg
+├── scripts/             # i18n.py (extraer y compilar traducciones)
+└── tests/               # unit/ (unit/gui: Qt offscreen) + real/ (@pytest.mark.real, excluidos por defecto)
 ```
 
 ## 14. Límites conocidos y decisiones

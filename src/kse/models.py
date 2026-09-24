@@ -544,7 +544,11 @@ class _RuleSchemaGenerator(GenerateJsonSchema):
         return super().encode_default(dft)
 
 
+def model_json_schema(model: type[BaseModel]) -> dict[str, Any]:
+    """JSON Schema of one part of a rule, with defaults written as in rules.json ("1m")."""
+    return model.model_json_schema(schema_generator=_RuleSchemaGenerator)
+
+
 def rule_json_schema() -> dict[str, Any]:
     """JSON Schema of a rule (served at /schema/rule for the GUI and the AI assistant)."""
-    schema = Rule.model_json_schema(schema_generator=_RuleSchemaGenerator)
-    return {"$schema": "https://json-schema.org/draft/2020-12/schema", **schema}
+    return {"$schema": "https://json-schema.org/draft/2020-12/schema", **model_json_schema(Rule)}

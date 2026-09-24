@@ -355,6 +355,26 @@ class Daemon:
             raise DaemonError(404, f"no active run {run_id!r}")
         return {"cancelled": "run", "run_id": run.id, "rule_id": run.rule_id, "name": run.rule_name}
 
+    def cancel_rule(self, rule_id: str) -> dict[str, Any]:
+        """One rule: its run in progress; else, for a quick action, the action itself before
+        it fires (other rules are disabled instead)."""
+        rule = self.get_rule(rule_id)
+        executor = self.engine.executor
+        run = next((r for r in executor.active if r.rule_id == rule_id), None)
+        if run is not None:
+            executor.cancel(run.id)
+            return {"cancelled": "run", "run_id": run.id, "rule_id": rule_id, "name": rule.name}
+        if not rule_id.startswith(QUICK_PREFIX):
+            raise DaemonError(409, f"{rule.name!r} is not running: disable the rule instead")
+        executor.record(
+            rule,
+            "cancelled",
+            "cancelled before it fired",
+            cause="manual",
+            scheduled_for=self.engine.pending().get(rule_id),
+        )  # its run_finished removes the quick rule and writes the history
+        return {"cancelled": "rule", "rule_id": rule_id, "name": rule.name}
+
     def cancel_current(self) -> dict[str, Any]:
         """The countdown in progress; else a quick action running or waiting to fire."""
         executor = self.engine.executor
@@ -401,6 +421,20 @@ class Daemon:
         rule, _when = self._next_quick()
         if rule is None:
             raise DaemonError(404, "nothing to postpone")
+        return self._delay(rule, delay)
+
+    def postpone_rule(self, rule_id: str, delay: timedelta) -> dict[str, Any]:
+        """One rule: its countdown in progress; else, for a quick action, its moment."""
+        rule = self.get_rule(rule_id)
+        for run in self.engine.executor.active:
+            if run.rule_id == rule_id and run.state == "warning":
+                return self.postpone_run(run.id, delay)
+        if not rule_id.startswith(QUICK_PREFIX):
+            raise DaemonError(409, f"{rule.name!r} is not counting down: edit the rule instead")
+        return self._delay(rule, delay)
+
+    def _delay(self, rule: Rule, delay: timedelta) -> dict[str, Any]:
+        """Move a quick action's moment `delay` later."""
         trigger = rule.trigger
         if isinstance(trigger, CountdownTrigger):
             trigger = trigger.model_copy(update={"duration": trigger.duration + delay})

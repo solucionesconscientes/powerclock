@@ -6,7 +6,11 @@ Everything except `doctor` and `service` talks to the daemon's local API.
 import asyncio
 import contextlib
 import getpass
+import importlib.util
 import json
+import shutil
+import subprocess
+import sys
 import time
 from collections.abc import Callable, Iterator
 from datetime import datetime
@@ -17,13 +21,14 @@ from typing import Annotated, Any, NoReturn
 import click
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 
 from kse import __version__
 from kse.cli import client as api
 from kse.cli.format import local, relative, span, trigger, watch_detail
 from kse.config import Paths
-from kse.doctor import WakeTest, collect, run_wake_test
+from kse.doctor import WakeTest, collect, run_wake_test, verdict_message
 from kse.i18n import _, power_action_label
 from kse.install.helper import helper_module
 from kse.install.service import service_module
@@ -90,16 +95,16 @@ def _daemon() -> Iterator[api.Client]:
     try:
         yield api.connect()
     except api.DaemonUnavailable as exc:
-        errors.print(f"[red]✘[/] {exc}")
+        errors.print(f"[red]✘[/] {escape(str(exc))}")
         errors.print(_("Start it with: kse service install   (or run: kse-daemon)"))
         raise typer.Exit(1) from None
     except api.ApiError as exc:
-        errors.print(f"[red]✘[/] {exc}")
+        errors.print(f"[red]✘[/] {escape(str(exc))}")
         raise typer.Exit(1) from None
 
 
 def _fail(message: str) -> NoReturn:
-    errors.print(f"[red]✘[/] {message}")
+    errors.print(f"[red]✘[/] {escape(message)}")
     raise typer.Exit(1)
 
 
@@ -666,6 +671,37 @@ def helper_uninstall(
         console.print(f"[green]✔[/] {_('Helper removed.')}")
 
 
+# ── GUI ────────────────────────────────────────────────────────────────────────
+
+
+def gui_executable() -> Path | None:
+    """kse-gui next to this Python (the same install), else the one on the PATH."""
+    beside = Path(sys.executable).parent / ("kse-gui.exe" if sys.platform == "win32" else "kse-gui")
+    if beside.exists():
+        return beside
+    found = shutil.which("kse-gui")
+    return Path(found) if found else None
+
+
+@app.command()
+def gui(
+    tray: Annotated[bool, typer.Option("--tray", help="Only the tray icon, no window.")] = False,
+) -> None:
+    """Open KSE's window and tray icon (it keeps running after this command returns)."""
+    executable = gui_executable()
+    if executable is None or importlib.util.find_spec("PySide6") is None:
+        _fail(_("The GUI is not installed: pipx install --force 'kse[gui]'"))
+    command = [str(executable), *(["--tray"] if tray else [])]
+    subprocess.Popen(  # detached: the terminal is free again at once
+        command,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+    console.print(f"[green]✔[/] {_('KSE opened')}")
+
+
 # ── Doctor ─────────────────────────────────────────────────────────────────────
 
 
@@ -705,20 +741,11 @@ def _test_wake(seconds: int) -> None:
         result = asyncio.run(run())
     except NotSupported as exc:
         _fail(f"{exc}" + (f" ({exc.fix_hint})" if exc.fix_hint else ""))
-    messages = {
-        "ok": _("[green]✔ Woke up by itself[/] at {resumed} (alarm {alarm})."),
-        "early": _("[yellow]? Resumed at {resumed}, before the alarm ({alarm}): woken by hand?[/]"),
-        "late": _("[red]✘ Resumed at {resumed}, long after the alarm ({alarm}).[/]"),
-        "no_sleep": _("[red]✘ The computer did not suspend (an inhibitor?).[/]"),
-        "no_resume": _("[red]✘ No resume was seen.[/]"),
-    }
-    console.print(
-        messages[result.verdict].format(resumed=local(result.resumed_at), alarm=local(result.alarm))
-    )
-    if result.woken_by:
-        console.print(_("  woken by: {source}").format(source=result.woken_by))
-    elif result.verdict in ("early", "late"):
-        console.print(_("  the OS did not say what woke it up"), style="dim")
+    style = {"ok": "green", "early": "yellow"}.get(result.verdict, "red")
+    first, *rest = verdict_message(result, local).splitlines()
+    console.print(first, style=style, markup=False)
+    for line in rest:
+        console.print(f"  {line}", style="dim", markup=False)
     if result.verdict != "ok":
         raise typer.Exit(1)
 

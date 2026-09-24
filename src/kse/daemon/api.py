@@ -46,7 +46,7 @@ def create_app(daemon: "Daemon") -> FastAPI:
             token = ""
         return bool(token) and secrets.compare_digest(token, daemon.token)
 
-    def authorize(request: Request) -> None:
+    async def authorize(request: Request) -> None:  # async: no worker thread per request
         if not token_ok(request):
             raise HTTPException(401, "invalid or missing token", {"WWW-Authenticate": "Bearer"})
 
@@ -94,6 +94,14 @@ def create_app(daemon: "Daemon") -> FastAPI:
     @api.post("/rules/{rule_id}/run", status_code=202)
     async def run_rule(rule_id: str) -> dict[str, Any]:
         return daemon.run_rule(rule_id).model_dump(mode="json")
+
+    @api.post("/rules/{rule_id}/cancel")
+    async def cancel_rule(rule_id: str) -> dict[str, Any]:
+        return daemon.cancel_rule(rule_id)
+
+    @api.post("/rules/{rule_id}/postpone")
+    async def postpone_rule(rule_id: str, request: PostponeRequest | None = None) -> dict[str, Any]:
+        return daemon.postpone_rule(rule_id, (request or PostponeRequest()).delay)
 
     @api.post("/quick", status_code=201)
     async def quick(request: QuickRequest) -> dict[str, Any]:

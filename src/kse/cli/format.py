@@ -25,7 +25,7 @@ def relative(value: str | datetime | None, now: datetime | None = None) -> str:
         return "-"
     seconds = round((when - (now or datetime.now(UTC))).total_seconds())
     text = span(abs(seconds))
-    return f"in {text}" if seconds >= 0 else f"{text} ago"
+    return _("in {time}").format(time=text) if seconds >= 0 else _("{time} ago").format(time=text)
 
 
 def span(seconds: int) -> str:
