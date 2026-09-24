@@ -66,7 +66,7 @@ Marca `[x]` al completar. Cada hito termina con ruff + pytest en verde y un comm
 - [x] Historial y Diagnóstico (instalar helper, probar despertar)
 - [x] Diálogo de cuenta atrás (Cancelar / Posponer 10 min) vía WS
 - [x] Autoarranque; i18n es/en
-**DoD:** flujo completo desde la GUI en KDE Wayland ⏳ (pendiente de la prueba del usuario; automatizado: tests con Qt offscreen contra un demonio simulado y arranque real de `kse-gui` contra un demonio en dry-run).
+**DoD:** flujo completo desde la GUI en KDE Wayland ✅ (24-09-2026: probado por el usuario en su Latitude, en dry-run: bandeja, Rápido, cuenta atrás con Cancelar/Posponer, editor de reglas con JSON, Diagnóstico y entrada en el menú; además, tests con Qt offscreen contra un demonio simulado).
 
 ### M8 — Publicación 0.1.0
 - [ ] README (es/en) con capturas; `examples/` documentados
