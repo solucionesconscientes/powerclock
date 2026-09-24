@@ -69,7 +69,7 @@ Marca `[x]` al completar. Cada hito termina con ruff + pytest en verde y un comm
 **DoD:** flujo completo desde la GUI en KDE Wayland ✅ (24-09-2026: probado por el usuario en su Latitude, en dry-run: bandeja, Rápido, cuenta atrás con Cancelar/Posponer, editor de reglas con JSON, Diagnóstico y entrada en el menú; además, tests con Qt offscreen contra un demonio simulado).
 
 ### M8 — Publicación 0.1.0
-- [ ] README (es/en) con capturas; `examples/` documentados
+- [x] README (es/en) con capturas; `examples/` documentados (`README.md`, `README.es.md`; capturas con `scripts/screenshots.py`. Al publicar en PyPI, las imágenes necesitan URL absolutas)
 - [ ] Comprobar el nombre en PyPI; `pipx install .` limpio en Kubuntu y en el VPS (sin GUI)
 - [ ] GitHub Actions: lint + tests (Linux), build sdist/wheel
 - [ ] CHANGELOG; licencia definitiva
