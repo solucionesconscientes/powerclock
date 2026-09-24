@@ -98,6 +98,12 @@ def install(
     return done
 
 
+def restart(*, runner: Runner | None = None) -> list[str]:
+    """Restart the service (e.g. after an update, to run the new version)."""
+    _check(runner or run, ["systemctl", "--user", "restart", UNIT])
+    return [f"restarted {UNIT}"]
+
+
 def start(*, runner: Runner | None = None) -> list[str]:
     """Start the installed service as it is (its unit, dry run or not, is not rewritten)."""
     _check(runner or run, ["systemctl", "--user", "start", UNIT])

@@ -19,6 +19,7 @@ from types import ModuleType
 from typing import Annotated, Any, NoReturn
 
 import click
+import httpx
 import typer
 from rich.console import Console
 from rich.markup import escape
@@ -31,7 +32,10 @@ from powerclock.config import Paths
 from powerclock.doctor import WakeTest, collect, run_wake_test, verdict_message
 from powerclock.i18n import _
 from powerclock.install.helper import helper_module
+from powerclock.install.program import commands as program_commands
+from powerclock.install.program import latest_version, newer
 from powerclock.install.service import service_module
+from powerclock.install.steps import Options, Report, Setup
 from powerclock.labels import reason_label
 from powerclock.platform import dry_run_requested, get_backend
 from powerclock.platform.base import NotSupported, PowerAction
@@ -636,16 +640,28 @@ def _helper() -> ModuleType:
 
 def _offer(module: ModuleType, commands: list[list[str]], print_only: bool) -> bool:
     """Show the exact commands; run them with sudo only if the user says yes."""
+    if print_only:
+        for command in commands:
+            typer.echo(module.shell(command))
+        return False
+    if not _as_root(module, commands):
+        raise typer.Exit(1)
+    return True
+
+
+def _as_root(module: ModuleType, commands: list[list[str]]) -> bool:
+    """Show the commands and run them with sudo if the user agrees; False if not done."""
     for command in commands:
         typer.echo(module.shell(command))
-    if print_only:
-        return False
     if not typer.confirm(_("Run these commands now with sudo?"), default=False):
         console.print(_("Nothing done: you can run them yourself."))
         return False
     failed = module.run_all(commands)
     if failed is not None:
-        _fail(_("failed: {command}").format(command=module.shell(failed)))
+        errors.print(
+            "[red]✘[/] " + escape(_("failed: {command}").format(command=module.shell(failed)))
+        )
+        return False
     return True
 
 
@@ -724,6 +740,107 @@ def gui(
         start_new_session=True,
     )
     console.print(f"[green]✔[/] {_('PowerClock opened')}")
+
+
+# ── Setup, update and uninstall ────────────────────────────────────────────────
+
+
+def _report(report: Report) -> None:
+    for line in report.done:
+        console.print(f"[green]✔[/] {escape(line)}")
+    for line in report.problems:
+        console.print(f"[yellow]•[/] {escape(line)}")
+
+
+@app.command()
+def setup(
+    menu: Annotated[
+        bool, typer.Option("--menu/--no-menu", help="An entry in the applications menu.")
+    ] = True,
+    login: Annotated[
+        bool, typer.Option("--login/--no-login", help="The tray icon when the session starts.")
+    ] = True,
+    helper: Annotated[
+        bool,
+        typer.Option(
+            "--helper/--no-helper", help="Turn the computer on at a time (asks for sudo once)."
+        ),
+    ] = True,
+    unattended: Annotated[
+        bool, typer.Option("--unattended", help="Also act with nobody logged in.")
+    ] = False,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="The service only logs power actions (testing).")
+    ] = False,
+) -> None:
+    """Set PowerClock up in this session: service, menu, login start and wake-up helper."""
+    installer = Setup()
+    options = Options(
+        menu=menu,
+        login=login,
+        helper=helper,
+        unattended=unattended,
+        dry_run=dry_run or dry_run_requested(),
+    )
+
+    def run_root(commands: list[list[str]]) -> bool:
+        console.print(_("To install the helper, these commands run as root:"))
+        return installer.helper is not None and _as_root(installer.helper, commands)
+
+    report = installer.install(options, run_root)
+    _report(report)
+    if report.ok:
+        console.print(_("PowerClock is ready. Open it with: powerclock gui"))
+
+
+@app.command()
+def update() -> None:
+    """Install the newest version of PowerClock and restart its service."""
+    try:
+        latest = asyncio.run(latest_version())
+    except httpx.HTTPError as exc:
+        _fail(_("cannot reach PyPI: {error}").format(error=exc))
+    if not newer(latest):
+        console.print(_("PowerClock {version} is the newest version.").format(version=__version__))
+        return
+    upgrade = program_commands().upgrade
+    if upgrade is None:
+        _fail(
+            _("Version {latest} is out; update it the way you installed it.").format(latest=latest)
+        )
+    if subprocess.run(upgrade, check=False).returncode != 0:
+        _fail(_("the update failed"))
+    service = Setup().service
+    if service is not None and service.status().installed:
+        service.restart()
+    console.print("[green]✔[/] " + _("Updated to {version}.").format(version=latest))
+
+
+@app.command()
+def uninstall(
+    purge: Annotated[
+        bool, typer.Option("--purge", help="Also delete your rules and history.")
+    ] = False,
+    yes: Annotated[bool, typer.Option("--yes", "-y", help="Do not ask for confirmation.")] = False,
+) -> None:
+    """Take PowerClock out of this session: service, menu, login start, helper and program."""
+    if not yes and not typer.confirm(_("Uninstall PowerClock?"), default=False):
+        raise typer.Exit(1)
+    installer = Setup()
+
+    def run_root(commands: list[list[str]]) -> bool:
+        console.print(_("To remove the helper, these commands run as root:"))
+        return installer.helper is not None and _as_root(installer.helper, commands)
+
+    _report(installer.uninstall(run_root, remove_data=purge))
+    remove = program_commands().uninstall
+    if remove is None:
+        console.print(
+            _("Remove the program the way you installed it (e.g. pipx uninstall powerclock).")
+        )
+        return
+    subprocess.run(remove, check=False)
+    console.print("[green]✔[/] " + _("PowerClock uninstalled."))
 
 
 # ── Doctor ─────────────────────────────────────────────────────────────────────

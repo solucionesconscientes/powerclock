@@ -120,36 +120,36 @@ un **icono en la bandeja** · la interfaz en **español e inglés**.
 
 ## Instalación
 
-PowerClock se instala para tu usuario con [pipx](https://pipx.pypa.io/), que lo mantiene junto con sus
-bibliotecas aparte del resto del sistema.
+### La forma fácil (Linux)
+
+1. **Descarga el instalador**: [`install-powerclock.sh`](https://github.com/solucionesconscientes/powerclock/releases/latest/download/install-powerclock.sh) (unos KB).
+2. **Permite que se ejecute**: clic derecho → *Propiedades* → *Permisos* → *Permitir ejecutar el
+   archivo como un programa* (o, en una terminal, `chmod +x install-powerclock.sh`).
+3. **Haz doble clic.** Una terminal muestra la descarga: PowerClock con su propio Python y Qt,
+   unos 120 MB la primera vez, así no depende de lo que tenga tu sistema. Después se abre la
+   ventana de instalación de PowerClock.
+4. **Pulsa Instalar** y escribe tu contraseña cuando te la pida (una vez, para el pequeño ayudante
+   que enciende el equipo).
+
+Ya está: PowerClock queda en la bandeja y en el menú de aplicaciones, y su servicio en marcha. Todo
+vive en tu carpeta personal salvo ese pequeño ayudante, así que actualizar nunca pide contraseña.
+Para actualizar: *Diagnóstico → Buscar actualizaciones* (o `powerclock update`). Para desinstalar:
+*Diagnóstico → Desinstalar PowerClock…* (o `powerclock uninstall`).
+
+Los instaladores de Windows y macOS funcionarán igual cuando lleguen esas versiones.
+
+### Con pipx (usuarios técnicos y servidores)
 
 ```bash
-# 1. pipx (una vez; aquí para Debian/Ubuntu, usa el gestor de paquetes de tu distribución)
-sudo apt install pipx
-pipx ensurepath          # después abre una terminal nueva
-
-# 2. PowerClock con su ventana y su icono de la bandeja
-pipx install "powerclock[gui]"
-#    …o, mientras no esté publicado, desde una copia de este repositorio:
-#    pipx install "/ruta/a/powerclock[gui]"
-
-# 3. El demonio como servicio de tu usuario: arranca ahora y en cada inicio de sesión
-powerclock service install
-
-# 4. Comprueba qué funciona en este equipo
-powerclock doctor
-
-# 5. Opcional: encender el equipo a una hora (pide tu contraseña una vez)
-powerclock helper install
+sudo apt install pipx && pipx ensurepath   # una vez (aquí Debian/Ubuntu); después abre otra terminal
+pipx install "powerclock[gui]"             # en un servidor, sin la ventana: pipx install powerclock
+powerclock setup                           # servicio, menú, inicio con la sesión y ayudante (sudo una vez)
+powerclock doctor                          # qué funciona en este equipo
 ```
 
-Después abre la ventana con `powerclock gui` (o desde el menú de aplicaciones cuando marques *Mostrar PowerClock
-en el menú de aplicaciones* en la pestaña Diagnóstico).
-
-En un servidor, instálalo sin ventana: `pipx install powerclock` (mira
-[Uso en un servidor](#uso-en-un-servidor)).
-
-Para actualizar: `pipx upgrade powerclock`.
+`powerclock setup --no-helper`, `--no-menu`, `--no-login` y `--unattended` eligen qué preparar;
+`powerclock service install` y `powerclock helper install` lo hacen paso a paso. Mira
+[Uso en un servidor](#uso-en-un-servidor).
 
 ## Empezar en cinco minutos
 
@@ -333,6 +333,9 @@ escriben `30s`, `5m`, `2h`, `1d` o combinadas (`1h30m`).
 | `powerclock service install [--linger] [--dry-run]` · `uninstall` · `status` | El demonio como servicio de usuario de systemd. `--linger` lo mantiene funcionando sin iniciar sesión. |
 | `powerclock helper install [--unattended] [--print]` · `uninstall` | El pequeño ayudante de root que programa la alarma de encendido (muestra los comandos `sudo` y pregunta antes de ejecutarlos). |
 | `powerclock gui [--tray]` | Abre la ventana (o solo el icono de la bandeja). |
+| `powerclock setup [--no-menu] [--no-login] [--no-helper] [--unattended]` | Prepara PowerClock en esta sesión: servicio, entrada del menú, inicio con la sesión y ayudante de encendido (lo mismo que la ventana del instalador). |
+| `powerclock update` | Instala la versión más reciente y reinicia el servicio. |
+| `powerclock uninstall [--purge]` | Lo quita todo (con `--purge`, también reglas e historial). |
 
 ## Las reglas en detalle
 
@@ -624,15 +627,14 @@ pipx install --system-site-packages powerclock    # sin [gui]
 
 ## Desinstalar
 
+*Diagnóstico → Desinstalar PowerClock…*, o:
+
 ```bash
-powerclock helper uninstall      # borra la alarma y quita el ayudante (pide tu contraseña)
-powerclock service uninstall     # para y quita el servicio (conserva reglas e historial)
-pipx uninstall powerclock
-rm -r ~/.config/powerclock ~/.local/share/powerclock    # solo si quieres borrar también reglas e historial
+powerclock uninstall            # servicio, menú, inicio con la sesión, ayudante (contraseña) y el programa
+powerclock uninstall --purge    # …y también tus reglas y el historial
 ```
 
-Desmarca antes las opciones de menú e inicio con la sesión en la pestaña Diagnóstico, o borra
-`~/.local/share/applications/powerclock.desktop` y `~/.config/autostart/powerclock-gui.desktop`.
+Si lo instalaste con pipx, el último paso es `pipx uninstall powerclock`.
 
 ## Desarrollo
 

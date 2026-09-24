@@ -5,7 +5,7 @@ Antes de escribir código lee SIEMPRE: `docs/ARCHITECTURE.md` (diseño) y `docs/
 ## Contexto
 - El usuario (Ser) no programa a mano: tú escribes todo el código. Explica decisiones en español, breve y directo.
 - Máquina de desarrollo: Kubuntu, KDE Plasma (Wayland), Dell Latitude 5480. También se usará en un VPS Kubuntu sin GUI.
-- Distribución final: `pipx install powerclock` / `pipx install "powerclock[gui]"`.
+- Distribución: para todos, el instalador (lanzador `installers/install-powerclock.sh` + uv + ventana de instalación, ver ARCHITECTURE §11); para usuarios técnicos y servidores, `pipx install powerclock` / `pipx install "powerclock[gui]"`.
 
 ## 🚨 Reglas de seguridad (innegociables)
 1. NUNCA ejecutes acciones reales de energía (apagar, reiniciar, suspender, hibernar, cerrar sesión, bloquear, apagar pantalla) en esta máquina. Tests y pruebas manuales siempre con `POWERCLOCK_BACKEND=fake` o `POWERCLOCK_DRY_RUN=1`.

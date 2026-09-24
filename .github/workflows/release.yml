@@ -39,3 +39,24 @@ jobs:
           name: dist
           path: dist/
       - uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    # After PyPI: the installer script downloads PowerClock from there.
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Release with the installer and the packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "$GITHUB_REF_NAME"
+          installers/install-powerclock.sh dist/*
+          --title "PowerClock ${GITHUB_REF_NAME#v}"
+          --notes "Download install-powerclock.sh, allow it to run and double-click it. Changes: see CHANGELOG.md."

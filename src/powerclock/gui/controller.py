@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QApplication, QSystemTrayIcon
 from powerclock.gui.client import Api, DaemonLink, EventStream, HttpApi, event_stream
 from powerclock.gui.countdown import Countdowns
 from powerclock.gui.tray import Tray
+from powerclock.gui.welcome import WelcomeDialog, welcomed
 from powerclock.gui.window import MainWindow
 
 
@@ -18,6 +19,7 @@ class Controller(QObject):
         api: Api | None = None,
         stream: EventStream | None = None,
         tray: bool | None = None,
+        welcome: bool | None = None,
     ) -> None:
         super().__init__()
         self._app = app
@@ -29,6 +31,8 @@ class Controller(QObject):
             Tray(self.link, show_window=self.show_window, quit_app=self.quit) if with_tray else None
         )
         self.window: MainWindow | None = None
+        self._welcome = (not welcomed()) if welcome is None else welcome  # once, ever
+        self.welcome: WelcomeDialog | None = None
 
     def start(self, *, show_window: bool) -> None:
         self.link.start()
@@ -45,6 +49,10 @@ class Controller(QObject):
         self.window.show()
         self.window.raise_()
         self.window.activateWindow()
+        if self._welcome:
+            self._welcome = False
+            self.welcome = WelcomeDialog(parent=self.window)
+            self.welcome.open()
 
     def on_request(self, request: str) -> None:
         """From another `powerclock-gui` started meanwhile."""

@@ -250,17 +250,28 @@ Decisiones (M7):
 - **Traducciones**: gettext. Los textos son los `_("…")` del código; `scripts/i18n.py update` los lleva a `src/powerclock/locale/<idioma>/LC_MESSAGES/powerclock.po` y `compile` genera el `.mo` (sin herramientas de gettext). Los tests fallan si un texto queda sin traducir, si una traducción pierde un `{marcador}` o el formato de rich, o si el `.mo` no está al día. Qt carga además sus propias traducciones (`qtbase_es`). Los tests corren en inglés (`LC_ALL=C.UTF-8`).
 
 ## 11. Instalación
+**Para todos (decidido el 24-09-2026): lanzador + Python.** El usuario medio descarga un archivo, le da doble clic, pone su contraseña una vez y queda todo hecho. Un único archivo que funcione en los tres SO no es viable (formatos de ejecutable distintos; un `.py` falla sin Python en Windows y macOS, y en Linux no puede mostrar ventanas sin Tkinter/Qt ni crear entornos sin `python3-venv`). Por eso:
+
+1. **Lanzador mínimo por SO** (unos KB, sin Python): `installers/install-powerclock.sh` (Linux); `.command` (macOS, fase 4) y `.bat` (Windows, fase 3) seguirán el mismo guion. Hace solo esto:
+   - si se abrió con doble clic (sin terminal), se vuelve a abrir en una terminal para que se vea el progreso (konsole, gnome-terminal, `x-terminal-emulator`, xterm…);
+   - descarga **uv en una versión fija** a una carpeta propia (`~/.local/share/powerclock/uv/`), con curl, wget o, si no hay, el Python del sistema, y comprueba su **SHA-256 escrito en el propio lanzador** (no el publicado junto al archivo): una descarga manipulada se rechaza;
+   - `uv tool install --python 3.13 "powerclock[gui]"` con Python gestionado por uv (`UV_PYTHON_PREFERENCE=only-managed`): no depende del Python del sistema (versión, `venv`, PEP 668). Los comandos quedan en `~/.local/bin`;
+   - abre `powerclock-gui --setup`.
+   Variables para pruebas: `POWERCLOCK_SOURCE` (instalar desde una carpeta, un wheel o una URL en vez de PyPI) y `POWERCLOCK_DRY_RUN=1` (el servicio se instala en dry-run).
+2. **Ventana de instalación de PowerClock** (Python/Qt, común a los tres SO): casillas *Iniciar el icono de la bandeja con la sesión*, *Mostrar en el menú*, *Encender el equipo a una hora* (ayudante) y *También sin nadie con la sesión iniciada* (desatendido) → **Instalar** → una sola contraseña (polkit en Linux; UAC y la de macOS en sus fases) → listo, y abre PowerClock. Los pasos (`install/steps.py`) usan las fachadas por SO que ya existen (`service`, `helper`, `autostart`): entrada del menú e icono, servicio de usuario (y linger si es desatendido), arranque con la sesión y, con la única contraseña, el ayudante y sus reglas polkit. Todo en carpetas del usuario salvo el ayudante, así que **actualizar no pide contraseña** (salvo si cambia el ayudante). La CLI tiene lo mismo: `powerclock setup` y `powerclock uninstall`.
+3. **Después**: bienvenida la primera vez que se abre la ventana; Diagnóstico muestra la versión, busca actualizaciones (PyPI) y, si PowerClock se instaló con el lanzador, actualiza con un clic (`uv tool upgrade`); **Desinstalar** quita servicio, menú, arranque con la sesión, ayudante (contraseña) y el propio programa, y conserva reglas e historial salvo que se pida lo contrario.
+
+El lanzador descarga PowerClock de PyPI, así que requiere publicarlo allí (con Trusted Publishing desde GitHub). Para usuarios técnicos y servidores sigue valiendo pipx:
 ```
-pipx install "powerclock[gui]"     # escritorio (Linux, Windows y macOS: de momento, pipx en todos)
+pipx install "powerclock[gui]"     # escritorio
 pipx install powerclock            # servidor / VPS
-powerclock service install         # servicio de usuario + autoarranque
-powerclock helper install          # opcional: encender/despertar (sudo una vez)
+powerclock setup                   # o, por partes: service install / helper install
 ```
-- Linux: `~/.config/systemd/user/powerclock.service` (`ExecStart=<venv>/bin/powerclock-daemon --foreground`, `Restart=on-failure`; `systemctl --user enable --now`; linger opcional con `loginctl enable-linger`, sin sudo) · `~/.config/autostart/powerclock-gui.desktop` y la entrada del menú (casillas en Diagnóstico). Una parada por SIGTERM es limpia: guarda la marca de vida y conserva las acciones rápidas pendientes.
+- Linux: `~/.config/systemd/user/powerclock.service` (`ExecStart=<venv>/bin/powerclock-daemon --foreground`, `Restart=on-failure`; `systemctl --user enable --now`; linger opcional con `loginctl enable-linger`, sin sudo) · `~/.config/autostart/powerclock-gui.desktop` y la entrada del menú. Una parada por SIGTERM es limpia: guarda la marca de vida y conserva las acciones rápidas pendientes.
 - Windows: tarea "al iniciar sesión" para el demonio · acceso directo de Inicio para la GUI.
 - macOS: `~/Library/LaunchAgents/org.powerclock.daemon.plist` · helper como LaunchDaemon.
-- Flatpak descartado para la app: el sandbox tiene su propio espacio de procesos (no vería `ffmpeg` ni ningún proceso del usuario), ejecutaría los comandos de `run` dentro del sandbox y no puede instalar el helper, polkit ni el servicio. Solo la GUI podría ir en Flatpak (runtime KDE), con el demonio instalado aparte. Snap (requiere confinamiento `classic`) y AppImage (su ruta cambia al actualizar; no instala helper ni servicio) tampoco encajan.
-- Empaquetado por SO: opcional y más adelante (ROADMAP, "Empaquetado"). Para dejarlo fácil: el helper debe poder vivir también en `/usr/libexec/powerclock-helper` (ruta de paquete) y `powerclock service install` debe limitarse a activar un `powerclock.service` que ya instale un paquete.
+- Descartados: un `.run`/AppImage con todo dentro (≈100 MB y un paquete por SO que construir y probar; se podría añadir para instalar sin internet), Flatpak para la app (el sandbox tiene su propio espacio de procesos, ejecutaría los comandos de `run` dentro del sandbox y no puede instalar el helper, polkit ni el servicio), Snap (confinamiento `classic`).
+- Paquetes de distribución (`.deb`/`.rpm`): opcionales y más adelante (ROADMAP, "Empaquetado"). Para dejarlo fácil: el helper debe poder vivir también en `/usr/libexec/powerclock-helper` y `powerclock service install` debe limitarse a activar un `powerclock.service` que ya instale un paquete.
 
 ## 12. Seguridad
 - Demonio sin privilegios; helper con lista blanca y validación estricta; ejecutado con el Python del sistema, nunca desde el venv.
@@ -293,8 +304,9 @@ KSHUTDOWN-EVOLUTION/
 │   ├── helper/          # powerclock_helper_linux.py org.powerclock.helper.policy 50-powerclock-unattended.rules.in (plantilla por usuario)
 │   ├── daemon/          # main.py (powerclock-daemon) core.py (Daemon) api.py store.py (reglas + historial) events.py
 │   ├── cli/             # main.py client.py format.py
-│   ├── install/         # service.py (fachada por SO) autostart.py helper.py
-│   └── gui/             # app.py (powerclock-gui) controller.py client.py (HttpApi, DaemonLink) tray.py window.py quick.py rules.py editor.py forms.py history.py diagnostics.py countdown.py summary.py widgets.py tasks.py single.py icons.py icons/*.svg
+│   ├── install/         # service.py autostart.py helper.py (fachadas por SO) steps.py (instalar/desinstalar) program.py (versión, actualizar)
+│   └── gui/             # app.py (powerclock-gui) controller.py client.py (HttpApi, DaemonLink) tray.py window.py quick.py rules.py editor.py forms.py history.py diagnostics.py maintenance.py countdown.py setup.py (ventana de instalación) welcome.py summary.py widgets.py tasks.py single.py icons.py icons/*.svg
+├── installers/          # install-powerclock.sh (lanzador de Linux; .command y .bat en las fases 3 y 4)
 ├── scripts/             # i18n.py (extraer y compilar traducciones) screenshots.py (capturas del README, Qt offscreen y backend falso)
 └── tests/               # unit/ (unit/gui: Qt offscreen) + real/ (@pytest.mark.real, excluidos por defecto)
 ```

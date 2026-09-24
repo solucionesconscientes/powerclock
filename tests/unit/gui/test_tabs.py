@@ -1,7 +1,6 @@
 """Rules, History and Diagnostics tabs, the window and the controller."""
 
 import asyncio
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -11,6 +10,7 @@ import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QMessageBox
 
+from fakeinstall import FakeDesktop, FakeService
 from guisupport import pump
 from powerclock.daemon.core import Daemon
 from powerclock.doctor import WakeTest
@@ -120,48 +120,6 @@ async def test_history_tab(link: DaemonLink) -> None:
 # ── Diagnostics ───────────────────────────────────────────────────────────────
 
 
-@dataclass
-class ServiceState:
-    installed: bool
-
-
-class FakeService:
-    def __init__(self, installed: bool) -> None:
-        self.installed = installed
-        self.calls: list[tuple[str, Any]] = []
-
-    def status(self) -> ServiceState:
-        return ServiceState(self.installed)
-
-    def start(self) -> list[str]:
-        self.calls.append(("start", None))
-        return []
-
-    def install(self, *, dry_run: bool) -> list[str]:
-        self.calls.append(("install", dry_run))
-        return []
-
-
-class FakeDesktop:
-    def __init__(self) -> None:
-        self.menu = False
-        self.login = True
-
-    def in_menu(self) -> bool:
-        return self.menu
-
-    def at_login(self) -> bool:
-        return self.login
-
-    def set_menu(self, on: bool) -> list[str]:
-        self.menu = on
-        return []
-
-    def set_login(self, on: bool) -> list[str]:
-        self.login = on
-        return []
-
-
 def diagnostics(link: DaemonLink, **kwargs: Any) -> DiagnosticsTab:
     options: dict[str, Any] = {
         "desktop": FakeDesktop(),
@@ -185,6 +143,7 @@ async def test_capabilities_and_status(link: DaemonLink) -> None:
 
 async def test_desktop_checkboxes(link: DaemonLink) -> None:
     desktop = FakeDesktop()
+    desktop.login = True
     tab = diagnostics(link, desktop=desktop)
     assert (tab.menu_box.isChecked(), tab.login_box.isChecked()) == (False, True)
     tab.menu_box.setChecked(True)
@@ -209,10 +168,11 @@ async def test_start_the_service(link: DaemonLink, monkeypatch: pytest.MonkeyPat
     [box] = await boxes()  # installing asks first
     assert "starts now and every time you log in" in box.text()
     answer(box, QMessageBox.StandardButton.Yes)
-    await pump()
-    assert missing.calls == [
-        ("install", True)
-    ]  # POWERCLOCK_DRY_RUN=1 in the tests: a dry-run service
+    for _ in range(100):  # installed in a worker thread
+        if missing.calls:
+            break
+        await asyncio.sleep(0.01)
+    assert missing.calls == [("install", (True, None))]  # POWERCLOCK_DRY_RUN=1: a dry-run one
 
 
 async def test_helper_dialog_shows_and_runs_the_commands(link: DaemonLink, tmp_path: Path) -> None:

@@ -68,7 +68,15 @@ Marca `[x]` al completar. Cada hito termina con ruff + pytest en verde y un comm
 - [x] Autoarranque; i18n es/en
 **DoD:** flujo completo desde la GUI en KDE Wayland ✅ (24-09-2026: probado por el usuario en su Latitude, en dry-run: bandeja, Rápido, cuenta atrás con Cancelar/Posponer, editor de reglas con JSON, Diagnóstico y entrada en el menú; además, tests con Qt offscreen contra un demonio simulado).
 
-### M8 — Publicación 0.1.0
+### M8 — Instalador para todos (Linux)
+- [x] Lanzador `installers/install-powerclock.sh`: se abre en una terminal, descarga uv (versión fija, SHA-256 comprobado), instala PowerClock con Python gestionado y abre la ventana de instalación
+- [x] Pasos de instalación y desinstalación comunes (`install/steps.py`); `powerclock setup`, `powerclock update` y `powerclock uninstall`
+- [x] Ventana de instalación (`powerclock-gui --setup`): casillas, una sola contraseña, abrir PowerClock al terminar
+- [x] Bienvenida la primera vez; Diagnóstico: versión, buscar/instalar actualizaciones, desinstalar
+- [x] Tests (lanzador con uv falso, pasos con fachadas falsas, ventana en offscreen) y README; la publicación en GitHub adjunta el lanzador
+**DoD:** en el Kubuntu del usuario, con el paquete local: doble clic en el lanzador → contraseña → PowerClock en la bandeja, en el menú y con el servicio en marcha; desinstalar lo deja todo como estaba. ⏳ (pendiente de la prueba del usuario)
+
+### M9 — Publicación 0.1.0
 - [x] README (es/en) con capturas; `examples/` documentados (`README.md`, `README.es.md`; capturas con `scripts/screenshots.py`. Al publicar en PyPI, las imágenes necesitan URL absolutas)
 - [ ] Comprobar el nombre en PyPI (PowerClock ✅, libre); `pipx install .` limpio en Kubuntu y en el VPS (sin GUI)
 - [ ] GitHub Actions: lint + tests (Linux), build sdist/wheel (`ci.yml` con Python 3.11–3.14 y `release.yml`, que publica en PyPI con Trusted Publishing al etiquetar `vX.Y.Z`; falta verlos en verde en GitHub)
@@ -76,7 +84,6 @@ Marca `[x]` al completar. Cada hito termina con ruff + pytest en verde y un comm
 
 ## Empaquetado (opcional, cuando se decida)
 De momento la distribución es `pipx` en los tres SO. Opciones estudiadas, por ganancia:
-- Instalador de un comando con `uv` (`install.sh` / `install.ps1`: instala uv, que trae su propio Python, luego `uv tool install "powerclock[gui]"` y `powerclock setup`), con `powerclock setup|update|uninstall`.
 - Windows: instalador firmado + winget (evita instalar Python antes).
 - macOS: `.app` firmada vía Homebrew cask (necesaria para notificaciones con botones y un icono propio en el Dock).
 - Linux: paquetes `powerclock` + `powerclock-gui` (PPA, AUR, COPR/OBS): instalación en un paso, actualizaciones del sistema y Breeze nativo. Ubuntu 26.04 tiene todas las dependencias, pero más antiguas que los mínimos actuales: habría que bajar los mínimos y probarlas, o llevar las propias dentro del paquete.

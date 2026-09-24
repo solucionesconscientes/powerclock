@@ -28,3 +28,8 @@ The first release, for Linux.
 - **Graphical interface** (`powerclock-gui`): tray icon, Quick tab, rule editor with forms and
   JSON, history, diagnostics, countdown window; English and Spanish.
 - **Local API** (HTTP + WebSocket on 127.0.0.1 with a token) and a dry-run mode everywhere.
+- **Installer for everyone** on Linux: download `install-powerclock.sh`, allow it to run,
+  double-click it; it fetches a pinned, checksum-verified uv, installs PowerClock with its own
+  Python, and opens an installation window that asks for the password once. A welcome on first
+  use; updates and uninstalling from the Diagnostics tab or with `powerclock update` /
+  `powerclock uninstall`; `powerclock setup` for technical users.

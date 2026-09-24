@@ -32,11 +32,13 @@ from powerclock.config import Paths
 from powerclock.doctor import WakeTest, run_wake_test, verdict_message
 from powerclock.gui.client import DaemonLink
 from powerclock.gui.icons import themed
+from powerclock.gui.maintenance import MaintenanceBox
 from powerclock.gui.tasks import ask, inform, show_error, spawn
 from powerclock.i18n import _
 from powerclock.install.autostart import desktop_module
 from powerclock.install.helper import helper_module
 from powerclock.install.service import service_module
+from powerclock.install.steps import Setup
 from powerclock.platform import dry_run_requested, get_backend
 from powerclock.platform.base import NotSupported
 
@@ -78,6 +80,7 @@ class DiagnosticsTab(QWidget):
         helper: ModuleType | None = None,
         elevate: RunElevated = run_elevated,
         wake_tester: WakeTester = test_wake,
+        maintenance: MaintenanceBox | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -149,11 +152,15 @@ class DiagnosticsTab(QWidget):
         self.menu_box.toggled.connect(lambda on: self._set_desktop("set_menu", on))
         self.login_box.toggled.connect(lambda on: self._set_desktop("set_login", on))
 
+        setup = Setup(service=self._service, helper=self._helper, desktop=self._desktop)
+        self.maintenance = maintenance or MaintenanceBox(setup)
+
         layout = QVBoxLayout(self)
         layout.addWidget(daemon_box)
         layout.addWidget(checks_box, 1)
         layout.addWidget(wake_box)
         layout.addWidget(desktop_box)
+        layout.addWidget(self.maintenance)
 
         link.changed.connect(self.update_status)
         self.update_status()

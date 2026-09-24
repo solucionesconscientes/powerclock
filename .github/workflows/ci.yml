@@ -36,6 +36,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
+      - name: The Linux installer script
+        run: shellcheck --shell=sh installers/install-powerclock.sh
       - run: uv build
       - uses: actions/upload-artifact@v4
         with:
