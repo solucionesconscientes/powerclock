@@ -50,7 +50,7 @@ Marca `[x]` al completar. Cada hito termina con ruff + pytest en verde y un comm
 - [x] Regla polkit opcional `--unattended` (login1 power-* y acción del helper `org.kse.helper.wake`, sin sesión activa)
 - [x] WakePlanner: próximo despertar, margen, reprogramación (cambios, disparos, PrepareForSleep/Shutdown con inhibidor delay)
 - [x] `kse wake --at`, `kse doctor --test-wake 120` (solo con confirmación explícita)
-**DoD (pendiente de la prueba del usuario):** el usuario verifica en su Latitude el despertar desde suspensión; el resultado desde S5 queda documentado.
+**DoD:** el usuario verifica en su Latitude el despertar desde suspensión ✅ (24-09-2026: despertó sola a los 2 s de la alarma); el resultado desde S5 queda documentado ⏳ (pendiente de la prueba de apagado).
 
 ### M6 — Disparadores por condición y guardas
 - [ ] `idle`, `process_exit`, `cpu_below`, `net_below` (media móvil + `for`), `battery`, `power_source`, `startup`

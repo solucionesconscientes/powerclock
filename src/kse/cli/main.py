@@ -596,7 +596,7 @@ def _test_wake(seconds: int) -> None:
     for left in range(HANDS_OFF, 0, -1):  # a touchpad or a pointing stick can wake it up
         console.print(
             _("Suspending in {seconds} s: hands off the keyboard, touchpad and stick…").format(
-                seconds=left
+                seconds=f"{left:2d}"  # fixed width: \r rewrites the line in place
             ),
             end="\r",
         )
