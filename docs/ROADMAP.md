@@ -74,7 +74,7 @@ Marca `[x]` al completar. Cada hito termina con ruff + pytest en verde y un comm
 - [x] Ventana de instalación (`powerclock-gui --setup`): casillas, una sola contraseña, abrir PowerClock al terminar
 - [x] Bienvenida la primera vez; Diagnóstico: versión, buscar/instalar actualizaciones, desinstalar
 - [x] Tests (lanzador con uv falso, pasos con fachadas falsas, ventana en offscreen) y README; la publicación en GitHub adjunta el lanzador
-**DoD:** en el Kubuntu del usuario, con el paquete local: doble clic en el lanzador → contraseña → PowerClock en la bandeja, en el menú y con el servicio en marcha; desinstalar lo deja todo como estaba. ⏳ (pendiente de la prueba del usuario)
+**DoD:** en el Kubuntu del usuario, con el paquete local: doble clic en el lanzador → contraseña → PowerClock en la bandeja, en el menú y con el servicio en marcha; desinstalar lo deja todo como estaba. ✅ (24-09-2026: probado por el usuario en su Latitude, en dry-run y desde el código local)
 
 ### M9 — Publicación 0.1.0
 - [x] README (es/en) con capturas; `examples/` documentados (`README.md`, `README.es.md`; capturas con `scripts/screenshots.py`. Al publicar en PyPI, las imágenes necesitan URL absolutas)
