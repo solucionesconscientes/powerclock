@@ -7,7 +7,15 @@ from dbus_fast import Variant
 
 from kse.platform.base import NotSupported, PowerAction
 from kse.platform.linux.commands import Commands
-from kse.platform.linux.dbus import PROPERTIES, Bus, DBusError, get_property, has_owner, list_names
+from kse.platform.linux.dbus import (
+    PROPERTIES,
+    Bus,
+    DBusError,
+    available,
+    get_property,
+    has_owner,
+    list_names,
+)
 from kse.platform.linux.wayland import find_socket
 
 log = logging.getLogger(__name__)
@@ -46,7 +54,7 @@ class Desktop:
     async def graceful_method(self) -> str | None:
         """Which session manager can log out asking applications to save (None: none)."""
         try:
-            if await has_owner(self._bus, KDE_SHUTDOWN):
+            if await available(self._bus, KDE_SHUTDOWN):  # D-Bus activated: rarely running
                 return f"KDE ({KDE_SHUTDOWN})"
             if await has_owner(self._bus, GNOME_SESSION) and self._commands.which(
                 "gnome-session-quit"
@@ -71,7 +79,7 @@ class Desktop:
         return True
 
     async def screen_off_method(self) -> str | None:
-        if self._commands.which("kscreen-doctor") and await self._owned(KDE_SHUTDOWN):
+        if self._commands.which("kscreen-doctor") and await self._available(KDE_SHUTDOWN):
             return "kscreen-doctor --dpms off"
         if await self._owned(MUTTER_DISPLAY):
             return "GNOME DisplayConfig"
@@ -137,5 +145,11 @@ class Desktop:
     async def _owned(self, name: str) -> bool:
         try:
             return await has_owner(self._bus, name)
+        except DBusError:
+            return False
+
+    async def _available(self, name: str) -> bool:
+        try:
+            return await available(self._bus, name)
         except DBusError:
             return False

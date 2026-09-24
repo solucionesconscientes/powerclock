@@ -18,6 +18,7 @@ NOTIFICATIONS = "org.freedesktop.Notifications"
 class FakeBus:
     def __init__(self) -> None:
         self.owners: set[str] = set()
+        self.activatable: set[str] = set()  # started by D-Bus on the first call
         self.properties: dict[Key, Any] = {}
         self.methods: dict[Key, Any] = {}  # reply body, exception or callable(body)
         self.calls: list[tuple[str, str, str, str, list[Any]]] = []
@@ -32,6 +33,11 @@ class FakeBus:
     def prop(self, destination: str, path: str, interface: str, name: str, value: Any) -> None:
         self.owners.add(destination)
         self.properties[(destination, path, interface, name)] = value
+
+    def only_activatable(self, name: str) -> None:
+        """Like org.kde.Shutdown: not running until something calls it."""
+        self.owners.discard(name)
+        self.activatable.add(name)
 
     def called(self, member: str) -> list[list[Any]]:
         return [body for *_, name, body in self.calls if name == member]
@@ -52,6 +58,10 @@ class FakeBus:
             return [args[0] in self.owners]
         if destination == DBUS and member == "ListNames":
             return [sorted(self.owners)]
+        if destination == DBUS and member == "ListActivatableNames":
+            return [sorted(self.activatable)]
+        if destination in self.activatable:
+            self.owners.add(destination)  # D-Bus activation
         self.calls.append((destination, path, interface, member, args))
         if interface == PROPERTIES and member == "Get":
             key = (destination, path, args[0], args[1])

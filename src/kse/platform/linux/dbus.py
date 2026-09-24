@@ -59,6 +59,15 @@ async def has_owner(bus: Bus, name: str) -> bool:
     return bool(owned)
 
 
+async def available(bus: Bus, name: str) -> bool:
+    """Running now, or started by D-Bus on the first call (like KDE's org.kde.Shutdown,
+    which is not running until someone logs out)."""
+    if await has_owner(bus, name):
+        return True
+    [names] = await bus.call(DBUS, DBUS_PATH, DBUS, "ListActivatableNames")
+    return name in names
+
+
 async def list_names(bus: Bus) -> list[str]:
     [names] = await bus.call(DBUS, DBUS_PATH, DBUS, "ListNames")
     return list(names)

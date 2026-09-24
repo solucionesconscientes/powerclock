@@ -32,6 +32,17 @@ async def test_kde_graceful(
     assert session.called(method) == [[]]
 
 
+async def test_kde_services_that_are_not_running_yet(session: FakeBus, tmp_path: Path) -> None:
+    """org.kde.Shutdown is D-Bus activated: it only runs once someone calls it."""
+    session.only_activatable("org.kde.Shutdown")
+    commands = FakeCommands(available=["kscreen-doctor"])
+    kde = desktop(session, commands, tmp_path)
+    assert await kde.graceful_method() == "KDE (org.kde.Shutdown)"
+    assert await kde.screen_off_method() == "kscreen-doctor --dpms off"
+    assert await kde.graceful(PowerAction.SHUTDOWN)
+    assert session.called("logoutAndShutdown") == [[]]
+
+
 async def test_gnome_graceful(tmp_path: Path) -> None:
     session = FakeBus()
     session.owners.add("org.gnome.SessionManager")
