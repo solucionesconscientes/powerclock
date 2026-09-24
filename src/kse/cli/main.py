@@ -21,7 +21,7 @@ from rich.table import Table
 
 from kse import __version__
 from kse.cli import client as api
-from kse.cli.format import local, relative, span, trigger
+from kse.cli.format import local, relative, span, trigger, watch_detail
 from kse.config import Paths
 from kse.doctor import WakeTest, collect, run_wake_test
 from kse.i18n import _, power_action_label
@@ -114,6 +114,50 @@ InOption = Annotated[str | None, typer.Option("--in", help="After a delay: 30s, 
 AtOption = Annotated[
     str | None, typer.Option("--at", help="At a time: 23:30 or '2026-09-24 07:30'.")
 ]
+WhenIdleOption = Annotated[
+    str | None,
+    typer.Option("--when-idle", help="When nobody has used the computer for this long: 20m."),
+]
+WhenExitsOption = Annotated[
+    str | None,
+    typer.Option("--when-exits", help="When this program ends (a process name or a PID)."),
+]
+WhenCpuOption = Annotated[
+    float | None,
+    typer.Option("--when-cpu-below", help="When the average CPU usage stays below this %."),
+]
+WhenNetOption = Annotated[
+    float | None,
+    typer.Option("--when-net-below", help="When network traffic stays below this many kbit/s."),
+]
+ForOption = Annotated[
+    str | None,
+    typer.Option("--for", help="How long CPU or network must stay below (default: 5m)."),
+]
+
+
+def _when(
+    payload: dict[str, Any],
+    in_: str | None,
+    at: str | None,
+    when_idle: str | None,
+    when_exits: str | None,
+    when_cpu_below: float | None,
+    when_net_below: float | None,
+    for_: str | None,
+) -> dict[str, Any]:
+    """Add the chosen moment (--in, --at or --when-*) to a /quick request."""
+    options = {
+        "in": in_,
+        "at": at,
+        "when_idle": when_idle,
+        "when_exits": when_exits,
+        "when_cpu_below": when_cpu_below,
+        "when_net_below": when_net_below,
+        "for": for_,
+    }
+    payload.update({key: value for key, value in options.items() if value is not None})
+    return payload
 
 
 def _quick(ctx: typer.Context, payload: dict[str, Any]) -> None:
@@ -126,9 +170,31 @@ def _quick(ctx: typer.Context, payload: dict[str, Any]) -> None:
     if when:
         line += f" — {local(when)} ({relative(when)})"
     console.print(line)
+    watched = rule["trigger"]["type"] not in ("at", "countdown", "manual")
+    if watched:
+        _show_watch(rule["id"])
     if rule.get("wake") or payload.get("wake_at"):
         _show_wake()
-    console.print(_("  cancel: kse cancel · postpone: kse postpone 10m"), style="dim")
+    hint = (
+        _("  cancel: kse cancel")
+        if watched
+        else _("  cancel: kse cancel · postpone: kse postpone 10m")
+    )
+    console.print(hint, style="dim")
+
+
+def _show_watch(rule_id: str, wait: float = 3.0) -> None:
+    """The daemon checks a new condition right away: show what it sees."""
+    deadline = time.monotonic() + wait
+    with _daemon() as client:
+        while True:
+            watching = client.get("/pending")["watching"]
+            item = next((w for w in watching if w["rule_id"] == rule_id), None)
+            if item is None or item["checked_at"] or time.monotonic() > deadline:
+                break
+            time.sleep(0.2)
+    if item is not None and item["checked_at"]:
+        console.print(f"  👁 {watch_detail(item)}")
 
 
 def _show_wake(wait: float = 3.0) -> None:
@@ -162,6 +228,11 @@ def _power_command(action: PowerAction) -> Callable[..., None]:
         ctx: typer.Context,
         in_: InOption = None,
         at: AtOption = None,
+        when_idle: WhenIdleOption = None,
+        when_exits: WhenExitsOption = None,
+        when_cpu_below: WhenCpuOption = None,
+        when_net_below: WhenNetOption = None,
+        for_: ForOption = None,
         force: Annotated[
             bool, typer.Option("--force", help="Do not let applications ask to save.")
         ] = False,
@@ -180,10 +251,7 @@ def _power_command(action: PowerAction) -> Callable[..., None]:
         }
         if wake:
             payload["wake_at"] = wake
-        if in_:
-            payload["in"] = in_
-        if at:
-            payload["at"] = at
+        _when(payload, in_, at, when_idle, when_exits, when_cpu_below, when_net_below, for_)
         _quick(ctx, payload)
 
     return command
@@ -192,7 +260,11 @@ def _power_command(action: PowerAction) -> Callable[..., None]:
 for _action in PowerAction:
     app.command(
         name=_action.value.replace("_", "-"),
-        help=f"{power_action_label(_action)}: now, after a delay (--in) or at a time (--at).",
+        help=(
+            f"{power_action_label(_action)}: now, after a delay (--in), at a time (--at) "
+            "or when a condition is met (--when-idle, --when-exits, --when-cpu-below, "
+            "--when-net-below)."
+        ),
     )(_power_command(_action))
 
 
@@ -202,16 +274,19 @@ def run_command(
     command: Annotated[list[str], typer.Argument(help="The program and its arguments, after --.")],
     in_: InOption = None,
     at: AtOption = None,
+    when_idle: WhenIdleOption = None,
+    when_exits: WhenExitsOption = None,
+    when_cpu_below: WhenCpuOption = None,
+    when_net_below: WhenNetOption = None,
+    for_: ForOption = None,
     wake: Annotated[
         bool, typer.Option("--wake", help="Wake the computer up to run it (needs --in/--at).")
     ] = False,
 ) -> None:
-    """Run a program now, after a delay or at a time: kse run --at 03:00 --wake -- backup.sh"""
+    """Run a program now, after a delay, at a time or when a condition is met:
+    kse run --at 03:00 --wake -- backup.sh"""
     payload: dict[str, Any] = {"command": command, "wake": wake}
-    if in_:
-        payload["in"] = in_
-    if at:
-        payload["at"] = at
+    _when(payload, in_, at, when_idle, when_exits, when_cpu_below, when_net_below, for_)
     _quick(ctx, payload)
 
 
@@ -237,7 +312,7 @@ def status() -> None:
         console.print(f"[red]✘ {_('wake-up alarm')}:[/] {wake['error']}")
     elif wake["at"]:
         console.print(f"⏰ {_('wake-up alarm')}: {local(wake['at'])} ({relative(wake['at'])})")
-    active, upcoming = pending["active"], pending["next"]
+    active, upcoming, watching = pending["active"], pending["next"], pending["watching"]
     if active:
         table = Table(title=_("Running"), title_justify="left", header_style="bold")
         for column in (_("Rule"), _("State"), _("Detail"), _("Run")):
@@ -257,7 +332,14 @@ def status() -> None:
         for item in upcoming:
             table.add_row(local(item["at"]), relative(item["at"]), item["name"], item["rule_id"])
         console.print(table)
-    if not active and not upcoming:
+    if watching:
+        table = Table(title=_("Watching"), title_justify="left", header_style="bold")
+        for column in (_("Rule"), _("Now"), _("Id")):
+            table.add_column(column)
+        for item in watching:
+            table.add_row(item["name"], watch_detail(item), item["rule_id"])
+        console.print(table)
+    if not active and not upcoming and not watching:
         console.print(_("Nothing scheduled."))
 
 
@@ -337,7 +419,9 @@ def rules_list() -> None:
     """All rules and when they fire next."""
     with _daemon() as client:
         rules = client.get("/rules")
-        upcoming = {item["rule_id"]: item["at"] for item in client.get("/pending")["next"]}
+        pending = client.get("/pending")
+    upcoming = {item["rule_id"]: item["at"] for item in pending["next"]}
+    watched = {item["rule_id"]: item for item in pending["watching"]}
     if not rules:
         console.print(_("No rules yet: kse rules add FILE.json (see examples/)."))
         return
@@ -345,13 +429,17 @@ def rules_list() -> None:
     for column in (_("Id"), _("Name"), _("Trigger"), _("On"), _("Next")):
         table.add_column(column)
     for rule in rules:
-        when = upcoming.get(rule["id"])
+        when, watch = upcoming.get(rule["id"]), watched.get(rule["id"])
+        if when:
+            next_ = f"{local(when)} ({relative(when)})"
+        else:
+            next_ = f"👁 {watch_detail(watch)}" if watch else ""
         table.add_row(
             rule["id"],
             rule["name"],
             trigger(rule),
             "[green]✔[/]" if rule["enabled"] else "[dim]✘[/]",
-            f"{local(when)} ({relative(when)})" if when else "",
+            next_,
         )
     console.print(table)
 

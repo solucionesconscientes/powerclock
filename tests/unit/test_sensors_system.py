@@ -4,8 +4,10 @@ from typing import Any
 import psutil
 import pytest
 
+from kse.platform.fake import FakePlatform
 from kse.sensors import system
-from kse.sensors.system import NetMeter, NetRate
+from kse.sensors.base import PowerState, ProcessInfo
+from kse.sensors.system import NetMeter, NetRate, SystemReadings
 
 BatteryInfo = namedtuple("BatteryInfo", "percent secsleft power_plugged")
 User = namedtuple("User", "name terminal host started pid")
@@ -15,10 +17,10 @@ Io = namedtuple("Io", "bytes_sent bytes_recv")
 def test_battery_and_ac(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(psutil, "sensors_battery", lambda: BatteryInfo(71.0, 3600, False))
     assert system.battery() == system.Battery(percent=71.0, plugged=False)
-    assert system.on_ac() is False
+    assert system.power_state() == PowerState(percent=71.0, on_ac=False)
     monkeypatch.setattr(psutil, "sensors_battery", lambda: None)  # desktop or server
     assert system.battery() is None
-    assert system.on_ac() is True
+    assert system.power_state() == PowerState(percent=None, on_ac=True)
 
 
 def test_ssh_sessions(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -33,15 +35,40 @@ def test_ssh_sessions(monkeypatch: pytest.MonkeyPatch) -> None:
     assert system.ssh_sessions() == 2
 
 
-def test_process_names(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_process_table(monkeypatch: pytest.MonkeyPatch) -> None:
     class Proc:
-        def __init__(self, name: str | None) -> None:
-            self.info = {"name": name}
+        def __init__(self, pid: int, name: str | None, started: float | None) -> None:
+            self.pid = pid
+            self.info = {"name": name, "create_time": started}
 
-    monkeypatch.setattr(
-        psutil, "process_iter", lambda attrs: [Proc("ffmpeg"), Proc(None), Proc("bash")]
-    )
-    assert system.process_names() == {"ffmpeg", "bash"}
+    procs = [Proc(10, "ffmpeg", 5.0), Proc(11, None, 6.0), Proc(12, "bash", None)]
+    monkeypatch.setattr(psutil, "process_iter", lambda attrs: procs)
+    assert system.process_table() == [
+        ProcessInfo(pid=10, name="ffmpeg", started=5.0),
+        ProcessInfo(pid=12, name="bash", started=0.0),
+    ]
+
+
+async def test_system_readings(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(psutil, "sensors_battery", lambda: BatteryInfo(40.0, 3600, True))
+    monkeypatch.setattr(psutil, "users", lambda: [User("pc", "pts/3", "10.0.0.2", 0.0, 4)])
+    readings = SystemReadings(FakePlatform(idle=12.0, media=True, ssid=None))
+    assert await readings.idle() == 12.0
+    assert await readings.media_playing() is True
+    assert await readings.wifi() == ""  # not on Wi-Fi
+    assert await readings.power() == PowerState(percent=40.0, on_ac=True)
+    assert await readings.ssh_sessions() == 1
+    assert 0 <= (await readings.cpu() or 0) <= 100
+    assert await readings.net() is None  # the first sample only primes the meter
+
+
+async def test_system_readings_without_backend_support() -> None:
+    class Bare(FakePlatform):
+        async def idle_seconds(self) -> float | None:
+            self._unsupported("idle_seconds")
+
+    readings = SystemReadings(Bare())
+    assert await readings.idle() is None
 
 
 def test_net_meter(monkeypatch: pytest.MonkeyPatch) -> None:

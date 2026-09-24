@@ -8,6 +8,7 @@ from kse.config import Paths
 from kse.daemon.core import Daemon
 from kse.engine.clock import FakeClock
 from kse.platform.fake import FakePlatform
+from kse.sensors.fake import FakeReadings
 from support import MADRID
 
 MakeDaemon = Callable[..., Awaitable[Daemon]]
@@ -20,20 +21,20 @@ def paths(tmp_path: Path) -> Paths:
 
 @pytest.fixture
 async def make_daemon(
-    paths: Paths, clock: FakeClock, fake: FakePlatform
+    paths: Paths, clock: FakeClock, fake: FakePlatform, readings: FakeReadings
 ) -> AsyncIterator[MakeDaemon]:
     """Start daemons on the same files (to test restarts); all are stopped at the end."""
     started: list[Daemon] = []
 
     async def make(dry_run: bool = False) -> Daemon:
-        daemon = Daemon(fake, paths=paths, clock=clock, dry_run=dry_run)
+        daemon = Daemon(fake, paths=paths, clock=clock, dry_run=dry_run, readings=readings)
         await daemon.start()
         started.append(daemon)
         return daemon
 
     yield make
     for daemon in started:
-        if daemon.engine._loop is not None:  # not stopped by the test itself
+        if daemon.engine.running:  # not stopped by the test itself
             await daemon.stop()
 
 

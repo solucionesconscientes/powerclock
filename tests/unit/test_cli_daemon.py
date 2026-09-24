@@ -15,6 +15,7 @@ from kse.config import Paths
 from kse.daemon.core import Daemon
 from kse.models import RunStep
 from kse.platform.fake import FakePlatform
+from kse.sensors.fake import FakeReadings
 from support import MADRID
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -29,7 +30,12 @@ def _wide_terminal(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.fixture
 def daemon(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Daemon]:
     backend = FakePlatform(timezone=MADRID)
-    daemon = Daemon(backend, paths=Paths(tmp_path / "c", tmp_path / "d"), dry_run=True)
+    daemon = Daemon(
+        backend,
+        paths=Paths(tmp_path / "c", tmp_path / "d"),
+        dry_run=True,
+        readings=FakeReadings(),
+    )
     headers = {"Authorization": f"Bearer {daemon.token}"}
     with TestClient(daemon.app, headers=headers) as http:
         monkeypatch.setattr(api, "connect", lambda paths=None: api.Client(http))
@@ -162,3 +168,32 @@ def test_wake_commands(daemon: Daemon) -> None:
     kse("run", "--at", "03:00", "--wake", "--", "backup.sh")
     wake_rules = [rule for rule in daemon.engine.rules.values() if rule.wake]
     assert len(wake_rules) == 3
+
+
+def test_shutdown_when_a_program_exits(daemon: Daemon) -> None:
+    output = kse("shutdown", "--when-exits", "ffmpeg")
+    assert "Shut down when ffmpeg exits" in output
+    assert "ffmpeg is not running yet: waiting for it to start" in output
+    assert "postpone" not in output
+    status = kse("status")
+    assert "Watching" in status
+    assert "Shut down when ffmpeg exits" in status
+    assert "Cancelled: Shut down when ffmpeg exits" in kse("cancel")
+    assert "Nothing scheduled." in kse("status")
+
+
+def test_when_options(daemon: Daemon) -> None:
+    kse("reboot", "--when-cpu-below", "10", "--for", "2m")
+    kse("suspend", "--when-idle", "20m")
+    kse("run", "--when-net-below", "50", "--", "notify-send", "done")
+    names = sorted(rule.name for rule in daemon.engine.rules.values())
+    assert names == [
+        "Restart when the CPU is below 10 % for 2m",
+        "Run notify-send when the network is below 50 kbit/s for 5m",
+        "Suspend when idle for 20m",
+    ]
+    status = kse("status")
+    assert "measuring…" in status
+    assert "idle for 0s" in status
+    assert "cancel it instead" in kse_fails("postpone")
+    kse_fails("shutdown", "--when-idle", "20m", "--in", "5m")

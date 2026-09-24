@@ -12,7 +12,7 @@ RunState = Literal[
 ]
 FINAL_STATES = frozenset({"done", "failed", "cancelled", "skipped"})
 StepStatus = Literal["running", "ok", "dry_run", "skipped", "failed", "cancelled"]
-RunCause = Literal["schedule", "manual"]
+RunCause = Literal["schedule", "trigger", "manual"]  # trigger: a state or startup trigger
 EventType = Literal[
     "run_started",
     "warning_started",

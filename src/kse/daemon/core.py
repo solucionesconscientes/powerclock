@@ -25,17 +25,24 @@ from kse.i18n import _, power_action_label
 from kse.models import (
     AtTrigger,
     CountdownTrigger,
+    CpuBelow,
     Duration,
+    Idle,
     ManualTrigger,
+    NetBelow,
     NotifyStep,
     PositiveDuration,
     PowerStep,
+    ProcessExitTrigger,
     Rule,
     RunStep,
+    Trigger,
     format_duration,
 )
 from kse.platform import dry_run_requested
 from kse.platform.base import NotSupported, PlatformBackend, PowerAction, PowerMode
+from kse.sensors.base import Readings
+from kse.sensors.system import SystemReadings
 from kse.timeparse import resolve_at
 
 log = logging.getLogger(__name__)
@@ -44,6 +51,7 @@ QUICK_PREFIX = "quick-"  # one-shot rules created by quick actions; removed once
 HEARTBEAT = 60.0  # seconds between "still alive" marks, used to detect missed fires
 RELOAD_POLL = 2.0  # seconds between checks of rules.json for hand edits
 POSTPONE = timedelta(minutes=10)
+SUSTAIN = timedelta(minutes=5)  # default `for` of --when-cpu-below / --when-net-below
 
 
 class DaemonError(Exception):
@@ -54,7 +62,8 @@ class DaemonError(Exception):
 
 
 class QuickRequest(BaseModel):
-    """A KShutdown-style action: now, in a while (`in`) or at a time (`at`)."""
+    """A KShutdown-style action: now, in a while (`in`), at a time (`at`) or when a
+    condition is met (`when_*`)."""
 
     model_config = ConfigDict(extra="forbid", validate_by_name=True, serialize_by_alias=True)
 
@@ -67,13 +76,23 @@ class QuickRequest(BaseModel):
     dry_run: bool = False
     wake: bool = False  # wake the machine up for this action (needs `in` or `at`)
     wake_at: str | None = None  # and/or wake it up at another time (suspend --wake 07:30)
+    when_idle: PositiveDuration | None = None
+    when_exits: str | None = Field(default=None, min_length=1)  # a process name or a PID
+    when_cpu_below: float | None = Field(default=None, gt=0, le=100)  # percent
+    when_net_below: float | None = Field(default=None, gt=0)  # kbit/s
+    for_: PositiveDuration | None = Field(default=None, alias="for")  # with cpu/net: 5m
 
     @model_validator(mode="after")
     def _consistent(self) -> Self:
         if (self.action is None) == (self.command is None):
             raise ValueError("set exactly one of: action, command")
-        if self.in_ is not None and self.at is not None:
-            raise ValueError("set at most one of: in, at")
+        when = ("in_", "at", "when_idle", "when_exits", "when_cpu_below", "when_net_below")
+        if sum(getattr(self, name) is not None for name in when) > 1:
+            raise ValueError(
+                "set at most one of: in, at, when_idle, when_exits, when_cpu_below, when_net_below"
+            )
+        if self.for_ is not None and self.when_cpu_below is None and self.when_net_below is None:
+            raise ValueError("for only applies to when_cpu_below and when_net_below")
         return self
 
 
@@ -98,6 +117,7 @@ class Daemon:
         settings: Settings | None = None,
         clock: Clock | None = None,
         dry_run: bool | None = None,
+        readings: Readings | None = None,
     ) -> None:
         self.paths = paths
         self.settings = settings or Settings()
@@ -114,6 +134,7 @@ class Daemon:
             backend,
             tz=self.tz,
             clock=clock,
+            readings=readings or SystemReadings(backend),
             dry_run=self.dry_run,
             emit=self._on_event,
             request_wake=self._request_wake,  # the set_wake action
@@ -217,19 +238,8 @@ class Daemon:
             assert request.command is not None
             step = RunStep(cmd=request.command)
             label = _("Run {program}").format(program=request.command[0].rsplit("/", 1)[-1])
-        trigger: CountdownTrigger | AtTrigger | ManualTrigger
-        if request.in_ is not None:
-            trigger = CountdownTrigger(duration=request.in_)
-            name = _("{action} in {delay}").format(action=label, delay=format_duration(request.in_))
-        elif request.at is not None:
-            when = self._resolve(request.at, now)
-            trigger = AtTrigger(when=when)
-            local = when.astimezone(self.tz).strftime("%Y-%m-%d %H:%M")
-            name = _("{action} at {time}").format(action=label, time=local)
-        else:
-            trigger = ManualTrigger()
-            name = label
         try:
+            trigger, name = self._quick_trigger(request, label, now)
             rule = Rule(
                 id=f"{QUICK_PREFIX}{uuid.uuid4().hex[:6]}",
                 name=name,
@@ -249,6 +259,45 @@ class Daemon:
         if isinstance(trigger, ManualTrigger):
             self.engine.run_now(rule.id)
         return stored
+
+    def _quick_trigger(
+        self, request: QuickRequest, label: str, now: datetime
+    ) -> tuple[Trigger, str]:
+        """The trigger of a quick action and the rule name that describes it."""
+        sustain = request.for_ or SUSTAIN
+        if request.in_ is not None:
+            delay = format_duration(request.in_)
+            return CountdownTrigger(duration=request.in_), _("{action} in {delay}").format(
+                action=label, delay=delay
+            )
+        if request.at is not None:
+            when = self._resolve(request.at, now)
+            local = when.astimezone(self.tz).strftime("%Y-%m-%d %H:%M")
+            return AtTrigger(when=when), _("{action} at {time}").format(action=label, time=local)
+        if request.when_idle is not None:
+            delay = format_duration(request.when_idle)
+            return Idle(for_=request.when_idle), _("{action} when idle for {delay}").format(
+                action=label, delay=delay
+            )
+        if request.when_exits is not None:
+            target = request.when_exits
+            if target.isdigit():
+                trigger = ProcessExitTrigger(pid=int(target))
+                target = f"PID {target}"
+            else:
+                trigger = ProcessExitTrigger(name=target)
+            return trigger, _("{action} when {process} exits").format(action=label, process=target)
+        if request.when_cpu_below is not None:
+            name = _("{action} when the CPU is below {percent} % for {delay}").format(
+                action=label, percent=f"{request.when_cpu_below:g}", delay=format_duration(sustain)
+            )
+            return CpuBelow(percent=request.when_cpu_below, for_=sustain), name
+        if request.when_net_below is not None:
+            name = _("{action} when the network is below {kbps} kbit/s for {delay}").format(
+                action=label, kbps=f"{request.when_net_below:g}", delay=format_duration(sustain)
+            )
+            return NetBelow(kbps=request.when_net_below, for_=sustain), name
+        return ManualTrigger(), label
 
     def wake(self, request: WakeRequest) -> Rule:
         return self.create_wake(self._resolve(request.at, self.engine.clock.now()))
@@ -290,6 +339,7 @@ class Daemon:
                 for rule_id, at in upcoming
             ],
             "active": self.engine.executor.active,
+            "watching": self.engine.watching(),
             "wake": {"at": self.engine.wake.target, "error": self.engine.wake.error},
         }
 
@@ -356,6 +406,10 @@ class Daemon:
             trigger = trigger.model_copy(update={"duration": trigger.duration + delay})
         elif isinstance(trigger, AtTrigger):
             trigger = trigger.model_copy(update={"when": trigger.when + delay})
+        else:
+            raise DaemonError(
+                409, f"{rule.name!r} waits for a condition, not a time: cancel it instead"
+            )
         self._save(rule.model_copy(update={"trigger": trigger}), "updated")
         return {
             "postponed": "rule",
@@ -397,15 +451,19 @@ class Daemon:
             )
 
     def _next_quick(self) -> tuple[Rule | None, datetime | None]:
+        """The next timed quick action; else the latest one waiting for a condition."""
         upcoming = [
             (at, rule_id)
             for rule_id, at in self.engine.pending().items()
             if rule_id.startswith(QUICK_PREFIX)
         ]
-        if not upcoming:
-            return None, None
-        when, rule_id = min(upcoming)
-        return self.engine.rules[rule_id], when
+        if upcoming:
+            when, rule_id = min(upcoming)
+            return self.engine.rules[rule_id], when
+        watched = [w.rule_id for w in self.engine.watching() if w.rule_id.startswith(QUICK_PREFIX)]
+        if watched:
+            return self.engine.rules[watched[-1]], None
+        return None, None
 
     def _on_event(self, event: Event) -> None:
         if event.type == "run_finished" and event.run_id is not None:

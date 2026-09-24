@@ -9,7 +9,7 @@ from kse.engine.executor import Executor
 from kse.engine.processes import FakeProcesses
 from kse.engine.runs import Event
 from kse.platform.fake import FakePlatform
-from kse.sensors.fake import FakeSensors
+from kse.sensors.fake import FakeReadings, FakeSensors
 from support import MADRID, START
 
 
@@ -56,6 +56,11 @@ def sensors() -> FakeSensors:
 
 
 @pytest.fixture
+def readings() -> FakeReadings:
+    return FakeReadings()
+
+
+@pytest.fixture
 def processes() -> FakeProcesses:
     return FakeProcesses()
 
@@ -87,12 +92,12 @@ async def executor(
 async def engine(
     fake: FakePlatform,
     clock: FakeClock,
-    sensors: FakeSensors,
+    readings: FakeReadings,
     processes: FakeProcesses,
     events: list[Event],
 ) -> AsyncIterator[Engine]:
     engine = Engine(
-        fake, tz=MADRID, clock=clock, sensors=sensors, processes=processes, emit=events.append
+        fake, tz=MADRID, clock=clock, readings=readings, processes=processes, emit=events.append
     )
     await engine.start()
     yield engine

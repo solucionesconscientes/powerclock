@@ -53,11 +53,11 @@ Marca `[x]` al completar. Cada hito termina con ruff + pytest en verde y un comm
 **DoD:** el usuario verifica en su Latitude el despertar desde suspensión ✅ (24-09-2026: despertó sola a los 2 s de la alarma); el resultado desde S5 queda documentado ✅ (24-09-2026: con AC, se encendió sola; el kernel arrancó 14 s después de la alarma).
 
 ### M6 — Disparadores por condición y guardas
-- [ ] `idle`, `process_exit`, `cpu_below`, `net_below` (media móvil + `for`), `battery`, `power_source`, `startup`
-- [ ] Sensores bajo demanda (solo los usados por reglas activas)
-- [ ] Guardas: `process_running`, `media_playing`, `ssh_session`, `time_window`, `weekday`
-- [ ] CLI: `--when-idle`, `--when-exits`, `--when-cpu-below`, `--when-net-below`
-**DoD:** tests con sensores falsos para cada disparador y guarda.
+- [x] `idle`, `process_exit`, `cpu_below`, `net_below` (media móvil + `for`), `battery`, `power_source`, `startup`
+- [x] Sensores bajo demanda (solo los usados por reglas activas)
+- [x] Guardas: `process_running`, `media_playing`, `ssh_session`, `time_window`, `weekday`
+- [x] CLI: `--when-idle`, `--when-exits`, `--when-cpu-below`, `--when-net-below`
+**DoD:** tests con sensores falsos para cada disparador y guarda ✅ (`FakeReadings` + reloj falso: `test_sensor_hub.py`, `test_watcher.py`, `test_watch_api.py`). Probado además en dry-run en el Latitude con sensores reales (CPU, red y un `ffmpeg` falso).
 
 ### M7 — GUI PySide6
 - [ ] Bandeja con estado y menú

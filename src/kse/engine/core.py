@@ -1,21 +1,25 @@
-"""Engine: wires the scheduler, the evaluator and the executor around one backend."""
+"""Engine: wires the scheduler, the watcher, the evaluator and the executor around one
+backend."""
 
 import asyncio
 import contextlib
 import logging
-from datetime import datetime, tzinfo
+from datetime import datetime, timedelta, tzinfo
+from typing import Literal
 from zoneinfo import ZoneInfo
 
 from kse.engine.clock import Clock, SystemClock
 from kse.engine.evaluator import Evaluator
 from kse.engine.executor import Executor, RequestWake
 from kse.engine.processes import ProcessManager
-from kse.engine.runs import Event, EventSink, Run
+from kse.engine.runs import Event, EventSink, Run, RunCause
 from kse.engine.scheduler import Scheduler
 from kse.engine.wake import WakePlanner
-from kse.models import CountdownTrigger, Rule
+from kse.engine.watcher import STATE_TRIGGERS, Watcher, WatchStatus, sensor_predicates
+from kse.models import CountdownTrigger, Rule, StartupTrigger
 from kse.platform.base import NotSupported, PlatformBackend, PowerEvent
-from kse.sensors.base import SensorReader, UnknownSensors
+from kse.sensors.base import NoReadings, Readings
+from kse.sensors.registry import SensorHub, Watched, needs_polling
 
 log = logging.getLogger(__name__)
 
@@ -35,7 +39,7 @@ class Engine:
         *,
         tz: tzinfo,
         clock: Clock | None = None,
-        sensors: SensorReader | None = None,
+        readings: Readings | None = None,
         processes: ProcessManager | None = None,
         dry_run: bool = False,
         emit: EventSink | None = None,
@@ -45,7 +49,8 @@ class Engine:
         self._backend = backend
         self._tz = tz  # for rules without their own `timezone`
         self._sink = emit
-        self.evaluator = Evaluator(sensors or UnknownSensors(), self.clock)
+        self.sensors = SensorHub(readings or NoReadings(), self.clock)
+        self.evaluator = Evaluator(self.sensors, self.clock)
         self.executor = Executor(
             backend,
             self.evaluator,
@@ -56,10 +61,11 @@ class Engine:
             request_wake=request_wake,
         )
         self.scheduler = Scheduler(self.clock, self._on_due)
+        self.watcher = Watcher(self.sensors, self.clock, self._on_state, self._demand)
         self.wake = WakePlanner(backend, self.clock, self._wake_times, emit=emit)
         self._rules: dict[str, Rule] = {}
-        self._loop: asyncio.Task[None] | None = None
-        self._wake_loop: asyncio.Task[None] | None = None
+        self._loops: list[asyncio.Task[None]] = []
+        self._delayed: set[asyncio.Task[None]] = set()  # startup rules waiting for their delay
 
     @property
     def rules(self) -> dict[str, Rule]:
@@ -70,17 +76,24 @@ class Engine:
             await self._backend.subscribe_power_events(self._on_power_event)
         except NotSupported:
             log.info("no power events on this platform; relying on periodic re-checks")
-        self._loop = asyncio.create_task(self.scheduler.run(), name="kse-scheduler")
-        self._wake_loop = asyncio.create_task(self.wake.run(), name="kse-wake")
+        self._loops = [
+            asyncio.create_task(self.scheduler.run(), name="kse-scheduler"),
+            asyncio.create_task(self.watcher.run(), name="kse-watcher"),
+            asyncio.create_task(self.wake.run(), name="kse-wake"),
+        ]
         self.wake.request_sync()
+        self._startup("daemon_start")
+
+    @property
+    def running(self) -> bool:
+        return bool(self._loops)
 
     async def stop(self) -> None:
-        for task in (self._loop, self._wake_loop):
-            if task is not None:
-                task.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await task
-        self._loop = self._wake_loop = None
+        for task in [*self._loops, *self._delayed]:
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
+        self._loops = []
         await self.executor.shutdown()
 
     def upsert(self, rule: Rule, since: datetime | None = None) -> Rule:
@@ -91,13 +104,14 @@ class Engine:
         """
         rule = self._arm(rule, self._rules.get(rule.id))
         self._rules[rule.id] = rule
-        self.scheduler.schedule(rule, self._tz_for(rule), since)
+        self._install(rule, since)
         self.wake.request_sync()
         return rule
 
     def remove(self, rule_id: str) -> None:
         self._rules.pop(rule_id, None)
         self.scheduler.unschedule(rule_id)
+        self.watcher.unwatch(rule_id)
         self.wake.request_sync()
 
     def run_now(self, rule_id: str) -> Run:
@@ -106,6 +120,10 @@ class Engine:
 
     def pending(self) -> dict[str, datetime]:
         return self.scheduler.pending()
+
+    def watching(self) -> list[WatchStatus]:
+        """Enabled rules with a state trigger and what they are waiting for."""
+        return self.watcher.status()
 
     def _arm(self, rule: Rule, previous: Rule | None) -> Rule:
         """A countdown starts counting when its rule is enabled."""
@@ -120,12 +138,29 @@ class Engine:
         self._rule_changed(armed)
         return armed
 
+    def _install(self, rule: Rule, since: datetime | None = None) -> None:
+        self.scheduler.schedule(rule, self._tz_for(rule), since)
+        self.watcher.watch(rule)
+
     def _on_due(self, rule: Rule, scheduled_for: datetime, missed: bool) -> None:
+        self._fire(rule, "schedule", scheduled_for=scheduled_for, missed=missed)
+
+    def _on_state(self, rule: Rule) -> None:
+        self._fire(rule, "trigger")
+
+    def _fire(
+        self,
+        rule: Rule,
+        cause: RunCause,
+        *,
+        scheduled_for: datetime | None = None,
+        missed: bool = False,
+    ) -> None:
         tz = self._tz_for(rule)
         if rule.one_shot:  # before running: listeners may remove the rule once the run ends
             finished = rule.model_copy(update={"enabled": False})
             self._rules[rule.id] = finished
-            self.scheduler.schedule(finished, tz)
+            self._install(finished)
             self._rule_changed(finished)
         self.wake.request_sync()  # the next occurrence may need another wake-up
         if missed and rule.on_missed == "skip":
@@ -138,13 +173,39 @@ class Engine:
                 missed=True,
             )
         else:
-            self.executor.start(
-                rule, tz, cause="schedule", scheduled_for=scheduled_for, missed=missed
-            )
+            self.executor.start(rule, tz, cause=cause, scheduled_for=scheduled_for, missed=missed)
+
+    def _startup(self, event: Literal["daemon_start", "resume"]) -> None:
+        for rule in self._rules.values():
+            trigger = rule.trigger
+            if rule.enabled and isinstance(trigger, StartupTrigger) and event in trigger.on:
+                task = asyncio.create_task(self._fire_after(rule, trigger.delay))
+                self._delayed.add(task)
+                task.add_done_callback(self._delayed.discard)
+
+    async def _fire_after(self, rule: Rule, delay: timedelta) -> None:
+        await self.clock.sleep(delay.total_seconds())
+        current = self._rules.get(rule.id)
+        if current is not None and current.enabled and current.trigger == rule.trigger:
+            self._fire(current, "trigger")
+
+    def _demand(self) -> list[Watched]:
+        """What the sensors must sample all along: the triggers of watched rules and the
+        predicates with a `for` of enabled rules and of rules with a run in progress."""
+        active = {run.rule_id for run in self.executor.active}
+        items: list[Watched] = []
+        for rule in self._rules.values():
+            if rule.enabled and isinstance(rule.trigger, STATE_TRIGGERS):
+                items.append(rule.trigger)
+            if rule.enabled or rule.id in active:
+                items.extend(p for p in sensor_predicates(rule) if needs_polling(p))
+        return items
 
     async def _on_power_event(self, event: PowerEvent) -> None:
         if event is PowerEvent.AFTER_RESUME:
             self.scheduler.poke()
+            self.watcher.poke()
+            self._startup("resume")
         await self.wake.on_power_event(event)
 
     def _wake_times(self) -> list[datetime]:

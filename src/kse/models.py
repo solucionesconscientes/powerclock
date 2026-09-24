@@ -231,7 +231,11 @@ class CronTrigger(_Tagged):
 
 
 class ProcessExitTrigger(_Tagged):
-    """When a process ends, matched by name or by PID (exactly one)."""
+    """When a process ends, matched by name or by PID (exactly one).
+
+    Only a process seen running counts: if it is not running yet, the rule waits for it
+    to start. With a name, it fires once no process of that name is left.
+    """
 
     type: Literal["process_exit"] = "process_exit"
     name: str | None = Field(default=None, min_length=1)

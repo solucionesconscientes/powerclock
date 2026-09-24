@@ -3,6 +3,9 @@
 from datetime import UTC, datetime
 from typing import Any
 
+from kse.i18n import _
+from kse.models import parse_duration
+
 
 def moment(value: str | datetime | None) -> datetime | None:
     if value is None:
@@ -52,3 +55,61 @@ def trigger(rule: dict[str, Any]) -> str:
             return "manual"
     details = " ".join(f"{key}={value}" for key, value in data.items() if value is not None)
     return f"{kind} {details}".strip()
+
+
+def watch_detail(item: dict[str, Any]) -> str:
+    """What a rule with a state trigger sees now (an item of /pending "watching")."""
+    trigger_ = item["trigger"]
+    value, measured = item.get("value"), item.get("measured")
+    window = trigger_.get("for")
+    match trigger_["type"]:
+        case "process_exit":
+            target = trigger_.get("name") or f"PID {trigger_.get('pid')}"
+            if value == "running":
+                text = _("{process} is running").format(process=target)
+            elif trigger_.get("pid"):
+                text = _("{process} is not running: it may have ended already").format(
+                    process=target
+                )
+            else:
+                text = _("{process} is not running yet: waiting for it to start").format(
+                    process=target
+                )
+        case "idle":
+            text = (
+                _("idle for {time}").format(time=span(round(value)))
+                if isinstance(value, int | float)
+                else _("idle time unknown")
+            )
+        case "cpu_below" | "net_below":
+            text = _average(trigger_["type"], value, measured, window)
+        case "battery":
+            text = (
+                _("battery at {percent} %").format(percent=round(value))
+                if isinstance(value, int | float)
+                else _("battery level unknown")
+            )
+        case "power_source":
+            text = {"ac": _("on AC"), "battery": _("on battery")}.get(str(value), _("unknown"))
+        case _:
+            text = ""
+    if not item.get("armed", True):
+        text += " · " + _("done: waits until the condition is over")
+    return text
+
+
+def _average(kind: str, value: Any, measured: float | None, window: str | None) -> str:
+    if not isinstance(value, int | float):
+        return _("measuring…")
+    text = f"CPU {value:.0f} %" if kind == "cpu_below" else f"{value:.0f} kbit/s"
+    if measured is None or window is None:
+        return text
+    if measured < parse_duration(window).total_seconds():
+        return (
+            text
+            + " · "
+            + _("measuring: {elapsed} of {window}").format(
+                elapsed=span(round(measured)), window=window
+            )
+        )
+    return text + " · " + _("average of the last {window}").format(window=window)

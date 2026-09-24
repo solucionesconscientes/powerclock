@@ -92,6 +92,10 @@ Semántica:
 - `on_missed`: `skip` | `run_once` (el instante pasó con el equipo apagado). Un disparo con más de 2 min de retraso cuenta como perdido; si se perdieron varios, se registra uno solo.
 - Sensor que no se puede leer → valor **desconocido** (lógica de tres valores en `all`/`any`/`not`). Condiciones desconocidas → skip; guardas desconocidas → no bloquean; `wait_until` desconocido → sigue esperando.
 - Una regla no se solapa consigo misma: si se dispara mientras su ejecución anterior sigue activa, el nuevo disparo se registra como skip.
+- **Disparadores de estado** (`idle`, `process_exit`, `cpu_below`, `net_below`, `battery`, `power_source`): la regla se dispara cuando el estado se cumple (sostenido su `for`) y **una sola vez**; se rearma cuando el estado vuelve a ser falso (desconocido ni dispara ni rearma). Si ya se cumple al activarla, se dispara (p. ej. batería ya por debajo del umbral). Seguir inactivo no repite la regla de inactividad; volver a usar el equipo la rearma.
+- `process_exit` solo cuenta un proceso **visto en marcha**: si aún no corre, espera a que arranque (nunca lo da por terminado; así una errata en el nombre no apaga el equipo). Con `name` se dispara cuando no queda ninguno con ese nombre; con `pid`, cuando ese proceso desaparece o su PID pasa a otro proceso (se distingue por su hora de inicio).
+- `startup`: al arrancar el demonio (`daemon_start`) y/o tras reanudar (`resume`), pasado `delay`. Una regla añadida con el demonio ya en marcha espera al siguiente arranque o reanudación.
+- Las ejecuciones de disparadores de estado y `startup` llevan `cause: "trigger"` (las de tiempo, `schedule`; las manuales, `manual`).
 
 **Disparadores** — MVP: `at`, `countdown`, `cron`, `idle`, `process_exit`, `cpu_below`, `net_below`, `battery`, `power_source`, `startup` (arranque del demonio o tras despertar), `manual`. Más adelante: `file`, `wifi_ssid`, `usb`, `temperature`, `webhook`, `telegram`, `calendar`, `sunrise`/`sunset`.
 Los disparadores de estado llevan `for` (condición sostenida N tiempo), p. ej. `{"type":"cpu_below","percent":10,"for":"5m"}`.
@@ -119,8 +123,10 @@ Los disparadores de estado llevan `for` (condición sostenida N tiempo), p. ej. 
 
 ## 5. Motor
 - **Scheduler**: bucle asyncio. Los disparadores de tiempo calculan `next_fire` (croniter + zoneinfo). Duerme hasta el más cercano, como mucho 30 s, para resincronizar tras suspensiones, saltos de reloj y cambios de horario.
-- **Sensores bajo demanda**: solo se sondean los que usa alguna regla activa (idle 5 s, CPU/red 5 s con media móvil, procesos 3 s).
-- **Evaluator**: evalúa conditions/guards/wait_until. `time_window` y `weekday` los resuelve él con el reloj y la zona de la regla; el resto se lo pregunta a un `SensorReader` (`sensors/base.py`), que es quien aplica `for` con su historial (M6).
+- **Sensores bajo demanda** (`SensorHub`, `sensors/registry.py`): se sondean de continuo solo los que hacen falta: los disparadores de estado de las reglas activas y los predicados con `for` de las reglas activas o con una ejecución en curso. Intervalos: inactividad, CPU, red, batería/AC y multimedia 5 s; procesos 3 s; SSH 10 s; Wi-Fi 30 s. El resto (p. ej. una guarda `process_running` de un cron diario) se lee solo cuando se pregunta y la lectura se reutiliza mientras tiene menos del 90 % de su intervalo. Sin reglas que lo usen, no se lee nada.
+- **`for` e historial**: `cpu_below` y `net_below` comparan la **media** de las muestras de los últimos `for` con el umbral (un pico de 5 s no rompe una media de 5 min; una carga real sí). `battery`/`power_source` con `for`: todas las muestras de ese tiempo deben cumplirlo. `idle` no necesita historial (el SO ya cuenta el tiempo inactivo). Hasta que el historial cubre todo el `for`, el valor es **desconocido**; un hueco entre muestras de más de 3 intervalos (suspensión, salto de reloj) lo reinicia. Consecuencia: una guarda con `for` de una regla recién creada no bloquea hasta tener historial. `net_below` con `direction: both` suma bajada y subida; sin `interface`, el total de las interfaces físicas (sin `lo`, `docker*`, `veth*`, `br-*`, `virbr*`).
+- **Watcher** (`engine/watcher.py`): un bucle que pide al hub las muestras que tocan, evalúa los disparadores de estado y dispara las reglas (semántica en §4). Duerme hasta la siguiente muestra; si nada se sondea, hasta que cambien las reglas o el equipo reanude.
+- **Evaluator**: evalúa conditions/guards/wait_until. `time_window` y `weekday` los resuelve él con el reloj y la zona de la regla; el resto se lo pregunta al `SensorHub`, que aplica `for` con su historial. Las lecturas en bruto llegan por `Readings` (`sensors/base.py`): psutil para CPU, red, procesos, batería/AC y SSH, y el backend para inactividad, multimedia y Wi-Fi (`sensors/system.py`); en los tests, `FakeReadings`.
 - **Executor**: cada ejecución es un `Run` (id, estado: `warning|running|waiting|done|failed|cancelled|skipped|postponed`, pasos con su resultado y motivo), cancelable por API. Solo una acción de energía activa a la vez (la segunda espera en `waiting`), así "la cuenta atrás actual" está siempre bien definida. Durante la cuenta atrás, notificación con botones Cancelar / Posponer 10 min. `notify` es de mejor esfuerzo: sin escritorio queda como skip, no como fallo. `run` guarda los últimos 4000 caracteres de la salida; al cancelar o agotar `timeout`, el comando recibe SIGTERM y, 5 s después, SIGKILL.
 - **Reloj**: todo el motor lee la hora y duerme a través de `Clock` (`engine/clock.py`); los tests usan `FakeClock`, que distingue el reloj de pared (`jump`, como una suspensión) del monótono (`advance`).
 - **Cron y cambio de hora**: cron sigue la hora local de la regla. En el hueco de primavera la ejecución se desplaza (02:30 → 03:30); en la hora repetida de otoño cada hora local se ejecuta una sola vez, en su primera aparición.
@@ -191,7 +197,7 @@ class PlatformBackend(ABC):
 | POST | `/rules/{id}/enable` · `/disable` · `/run` | |
 | POST | `/quick` | acción rápida estilo KShutdown → regla `one_shot` |
 | POST | `/wake` | `{"at": "07:30"}` → regla de despertar de un solo uso |
-| GET | `/pending` | próximos disparos + ejecuciones activas + `wake: {at, error}` |
+| GET | `/pending` | próximos disparos + ejecuciones activas + `watching` (reglas con disparador de estado: estado, si está armada y lo que mide su sensor) + `wake: {at, error}` |
 | GET | `/runs/{id}` | una ejecución (activa o del historial) |
 | POST | `/runs/{id}/cancel` · `/cancel` | cancelar ejecución · la cuenta atrás actual, si no la acción rápida en curso, si no la próxima acción rápida (queda en el historial como `cancelled`) |
 | POST | `/runs/{id}/postpone` · `/postpone` | posponer `{"delay": "10m"}` (10 min por defecto) · la cuenta atrás actual, si no la próxima acción rápida (se retrasa su disparador) |
@@ -202,7 +208,7 @@ class PlatformBackend(ABC):
 
 Solo escucha en 127.0.0.1. El acceso remoto (fase 5) será opt-in. Sin `/docs` ni `/openapi.json`. El WebSocket acepta el token en la cabecera o en `?token=` (para clientes que no pueden poner cabeceras). Todas las rutas son `async` para ejecutarse en el bucle del motor.
 
-`/quick` recibe `{"action" | "command", "in" | "at", "mode", "warning", "dry_run"}`; `at` admite `"23:30"` (su próxima aparición), `"2026-09-24 07:30"` (hora local del demonio) o ISO con zona. Crea una regla `one_shot` con id `quick-…` que se borra sola al terminar (o al cancelarse); sin `in`/`at` se ejecuta ya.
+`/quick` recibe `{"action" | "command", "in" | "at" | "when_idle" | "when_exits" | "when_cpu_below" | "when_net_below", "for", "mode", "warning", "dry_run", "wake", "wake_at"}`; `at` admite `"23:30"` (su próxima aparición), `"2026-09-24 07:30"` (hora local del demonio) o ISO con zona. `when_exits` es un nombre de proceso o un PID (solo dígitos); `for` solo vale con CPU/red (por defecto `5m`). Crea una regla `one_shot` con id `quick-…` que se borra sola al terminar (o al cancelarse); sin momento se ejecuta ya. `/cancel` elige la cuenta atrás en curso, luego la acción rápida en marcha, luego la próxima con hora y, si no hay, la última que espera una condición. Posponer una que espera una condición → 409 (no tiene hora que retrasar).
 
 ## 9. CLI
 ```
@@ -212,6 +218,7 @@ kse shutdown --when-idle 20m
 kse shutdown --when-exits ffmpeg
 kse reboot --when-cpu-below 10 --for 5m
 kse shutdown --when-net-below 50 --for 5m        # descarga terminada
+kse run --when-exits ffmpeg -- notify-send "Render terminado"
 kse wake --at "2026-09-24 07:30"
 kse run --at 03:00 --wake -- /home/pc/bin/backup.sh
 kse status | kse cancel | kse postpone 10m
@@ -221,7 +228,7 @@ kse service install [--linger] | uninstall | status
 kse helper install [--unattended] [--print] | uninstall [--print]
 kse gui
 ```
-Los comandos rápidos crean reglas `one_shot` vía API (`kse shutdown|reboot|suspend|hibernate|hybrid-sleep|lock|logout|screen-off [--in|--at] [--force] [--warning]`). Si el demonio no está activo, lo indican y sugieren `kse service install`. Opción global `--dry-run`. `kse service install --dry-run` instala el servicio en modo dry-run (pruebas). `--wake` (M5) y `--when-*` (M6) llegan en sus hitos.
+Los comandos rápidos crean reglas `one_shot` vía API (`kse shutdown|reboot|suspend|hibernate|hybrid-sleep|lock|logout|screen-off|run [--in|--at|--when-idle|--when-exits|--when-cpu-below|--when-net-below [--for]] [--force] [--warning] [--wake]`). Con `--when-*` muestran al momento lo que ve el sensor (p. ej. "ffmpeg is not running yet: waiting for it to start"); `kse status` las lista en **Watching** y `kse rules list` lo muestra en su columna "Next". Si el demonio no está activo, lo indican y sugieren `kse service install`. Opción global `--dry-run`. `kse service install --dry-run` instala el servicio en modo dry-run (pruebas).
 
 ## 10. GUI (PySide6)
 - **Bandeja**: icono según estado (inactivo / programado / cuenta atrás); menú con acciones rápidas, próxima acción, cancelar y abrir.
@@ -262,8 +269,8 @@ KSHUTDOWN-EVOLUTION/
 │   ├── timeparse.py     # "23:30" / "2026-09-24 07:30" → instante
 │   ├── doctor.py        # kse doctor: informe del backend + comprobaciones genéricas
 │   ├── i18n.py          # textos traducibles (catálogos es/en en M7)
-│   ├── engine/          # core.py (Engine) clock.py scheduler.py evaluator.py executor.py runs.py processes.py wake.py (M5)
-│   ├── sensors/         # base.py (SensorReader) system.py (psutil) fake.py registry.py (M6)
+│   ├── engine/          # core.py (Engine) clock.py scheduler.py watcher.py evaluator.py executor.py runs.py processes.py wake.py
+│   ├── sensors/         # base.py (SensorReader, Readings) system.py (psutil + SystemReadings) fake.py registry.py (SensorHub)
 │   ├── platform/        # __init__.py (get_backend) base.py fake.py dryrun.py
 │   │   ├── linux/       # backend.py logind.py idle.py wayland.py desktop.py notify.py network.py dbus.py commands.py host.py capabilities.py service.py (systemd)
 │   │   ├── windows/     # fase 3
