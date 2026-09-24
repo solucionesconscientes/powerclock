@@ -12,7 +12,7 @@ pytest.importorskip("PySide6", reason="the GUI extra is not installed")
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 import httpx
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtWidgets import QApplication, QDialog, QWidget
 
 from guisupport import pump
 from powerclock.config import Paths
@@ -31,6 +31,16 @@ def qapp() -> QApplication:
     app = QApplication.instance() or QApplication(["powerclock-gui-tests"])
     assert isinstance(app, QApplication)
     return app
+
+
+@pytest.fixture(autouse=True)
+def _close_dialogs(qapp: QApplication) -> Iterator[None]:
+    """A message box or dialog left open by one test must not be found by the next."""
+    yield
+    for widget in QApplication.topLevelWidgets():
+        if isinstance(widget, QDialog) and widget.isVisible():
+            widget.done(0)
+            widget.close()
 
 
 @pytest.fixture

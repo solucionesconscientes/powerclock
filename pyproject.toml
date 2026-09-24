@@ -37,6 +37,13 @@ dependencies = [
     "websockets>=17.1",
 ]
 
+[project.urls]
+Homepage = "https://github.com/solucionesconscientes/powerclock"
+Documentation = "https://github.com/solucionesconscientes/powerclock#readme"
+Repository = "https://github.com/solucionesconscientes/powerclock"
+Issues = "https://github.com/solucionesconscientes/powerclock/issues"
+Changelog = "https://github.com/solucionesconscientes/powerclock/blob/main/CHANGELOG.md"
+
 [project.scripts]
 powerclock = "powerclock.cli.main:app"
 powerclock-daemon = "powerclock.daemon.main:main"

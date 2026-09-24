@@ -71,8 +71,8 @@ Marca `[x]` al completar. Cada hito termina con ruff + pytest en verde y un comm
 ### M8 — Publicación 0.1.0
 - [x] README (es/en) con capturas; `examples/` documentados (`README.md`, `README.es.md`; capturas con `scripts/screenshots.py`. Al publicar en PyPI, las imágenes necesitan URL absolutas)
 - [ ] Comprobar el nombre en PyPI (PowerClock ✅, libre); `pipx install .` limpio en Kubuntu y en el VPS (sin GUI)
-- [ ] GitHub Actions: lint + tests (Linux), build sdist/wheel
-- [ ] CHANGELOG; licencia definitiva (GPL-3.0-or-later ✅, `LICENSE`)
+- [ ] GitHub Actions: lint + tests (Linux), build sdist/wheel (`ci.yml` con Python 3.11–3.14 y `release.yml`, que publica en PyPI con Trusted Publishing al etiquetar `vX.Y.Z`; falta verlos en verde en GitHub)
+- [x] CHANGELOG; licencia definitiva (GPL-3.0-or-later, `LICENSE`)
 
 ## Empaquetado (opcional, cuando se decida)
 De momento la distribución es `pipx` en los tres SO. Opciones estudiadas, por ganancia:

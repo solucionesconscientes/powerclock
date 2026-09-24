@@ -1,4 +1,4 @@
-<p align="center"><img src="src/powerclock/gui/icons/powerclock.svg" width="96" alt=""></p>
+<p align="center"><img src="https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/src/powerclock/gui/icons/powerclock.svg" width="96" alt=""></p>
 
 # PowerClock
 
@@ -21,7 +21,7 @@ sin nadie con la sesión iniciada. Puedes manejarlo desde un **icono en la bande
 (al estilo de KShutdown), desde la **línea de comandos** o desde cualquier programa a través de un
 **API local**.
 
-![La pestaña Rápido](docs/images/es/quick.png)
+![La pestaña Rápido](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/quick.png)
 
 ---
 
@@ -99,10 +99,10 @@ un **icono en la bandeja** · la interfaz en **español e inglés**.
 
 | | |
 |---|---|
-| ![Pestaña Rápido](docs/images/es/quick.png) **Rápido**: una acción, cuándo, Aceptar. Debajo, lo que está en espera. | ![Pestaña Reglas](docs/images/es/rules.png) **Reglas**: todas las reglas y lo próximo. |
-| ![Editor: condiciones](docs/images/es/editor-conditions.png) **Editor de reglas**: condiciones y guardas. | ![Editor: pasos](docs/images/es/editor-steps.png) **Editor de reglas**: los pasos, en orden. |
-| ![Historial](docs/images/es/history.png) **Historial**: resultado y motivo de cada ejecución. | ![Diagnóstico](docs/images/es/diagnostics.png) **Diagnóstico**: qué funciona aquí y cómo arreglar el resto. |
-| ![Cuenta atrás](docs/images/es/countdown.png) La **cuenta atrás** antes de una acción de energía. | ![Menú de la bandeja](docs/images/es/tray-menu.png) El **menú de la bandeja**. |
+| ![Pestaña Rápido](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/quick.png) **Rápido**: una acción, cuándo, Aceptar. Debajo, lo que está en espera. | ![Pestaña Reglas](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/rules.png) **Reglas**: todas las reglas y lo próximo. |
+| ![Editor: condiciones](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/editor-conditions.png) **Editor de reglas**: condiciones y guardas. | ![Editor: pasos](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/editor-steps.png) **Editor de reglas**: los pasos, en orden. |
+| ![Historial](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/history.png) **Historial**: resultado y motivo de cada ejecución. | ![Diagnóstico](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/diagnostics.png) **Diagnóstico**: qué funciona aquí y cómo arreglar el resto. |
+| ![Cuenta atrás](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/countdown.png) La **cuenta atrás** antes de una acción de energía. | ![Menú de la bandeja](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/tray-menu.png) El **menú de la bandeja**. |
 
 ## Requisitos
 

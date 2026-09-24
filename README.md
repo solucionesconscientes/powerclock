@@ -1,4 +1,4 @@
-<p align="center"><img src="src/powerclock/gui/icons/powerclock.svg" width="96" alt=""></p>
+<p align="center"><img src="https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/src/powerclock/gui/icons/powerclock.svg" width="96" alt=""></p>
 
 # PowerClock
 
@@ -20,7 +20,7 @@ keep working with the window closed, after a restart, and even with nobody logge
 drive it from a **tray icon and a window** (in the spirit of KShutdown), from the **command
 line**, or from any program through a **local API**.
 
-![The Quick tab](docs/images/en/quick.png)
+![The Quick tab](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/quick.png)
 
 ---
 
@@ -97,10 +97,10 @@ interface in **English and Spanish**.
 
 | | |
 |---|---|
-| ![Quick tab](docs/images/en/quick.png) **Quick**: an action, when, OK. Below, what is waiting. | ![Rules tab](docs/images/en/rules.png) **Rules**: every rule and what comes next. |
-| ![Rule editor: conditions](docs/images/en/editor-conditions.png) **Rule editor**: conditions and guards. | ![Rule editor: steps](docs/images/en/editor-steps.png) **Rule editor**: the steps, in order. |
-| ![History](docs/images/en/history.png) **History**: result and reason of every run. | ![Diagnostics](docs/images/en/diagnostics.png) **Diagnostics**: what works here and how to fix the rest. |
-| ![Countdown](docs/images/en/countdown.png) The **countdown** before a power action. | ![Tray menu](docs/images/en/tray-menu.png) The **tray menu**. |
+| ![Quick tab](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/quick.png) **Quick**: an action, when, OK. Below, what is waiting. | ![Rules tab](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/rules.png) **Rules**: every rule and what comes next. |
+| ![Rule editor: conditions](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/editor-conditions.png) **Rule editor**: conditions and guards. | ![Rule editor: steps](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/editor-steps.png) **Rule editor**: the steps, in order. |
+| ![History](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/history.png) **History**: result and reason of every run. | ![Diagnostics](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/diagnostics.png) **Diagnostics**: what works here and how to fix the rest. |
+| ![Countdown](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/countdown.png) The **countdown** before a power action. | ![Tray menu](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/tray-menu.png) The **tray menu**. |
 
 ## Requirements
 

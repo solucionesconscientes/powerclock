@@ -1,5 +1,6 @@
 """Rules, History and Diagnostics tabs, the window and the controller."""
 
+import asyncio
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -32,6 +33,16 @@ RULE = {
 
 def answer(box: QMessageBox, button: QMessageBox.StandardButton) -> None:
     box.done(button)
+
+
+async def boxes(count: int = 1, seconds: float = 3.0) -> list[QMessageBox]:
+    """The message boxes open once `count` of them are (some wait for a worker thread)."""
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + seconds
+    while len(open_boxes()) < count and loop.time() < deadline:
+        await pump(10)
+        await asyncio.sleep(0.01)
+    return open_boxes()
 
 
 def open_boxes() -> list[QMessageBox]:
@@ -67,7 +78,7 @@ async def test_rules_tab(link: DaemonLink, errors: list[Exception]) -> None:
 
     tab.table.selectRow(0)
     tab.delete()
-    [box] = open_boxes()
+    [box] = await boxes()
     answer(box, QMessageBox.StandardButton.Yes)
     await pump()
     assert await link.api.get("/rules") == []
@@ -185,14 +196,17 @@ async def test_start_the_service(link: DaemonLink, monkeypatch: pytest.MonkeyPat
     installed = FakeService(installed=True)
     tab = diagnostics(link, service=installed)
     tab.start_daemon()
-    await pump()
+    for _ in range(100):  # the service is asked in a worker thread
+        if installed.calls:
+            break
+        await asyncio.sleep(0.01)
     assert installed.calls == [("start", None)]
 
     missing = FakeService(installed=False)
     tab = diagnostics(link, service=missing)
     tab.start_daemon()
     await pump()
-    [box] = open_boxes()  # installing asks first
+    [box] = await boxes()  # installing asks first
     assert "starts now and every time you log in" in box.text()
     answer(box, QMessageBox.StandardButton.Yes)
     await pump()
@@ -232,7 +246,7 @@ async def test_wake_test_in_dry_run_does_nothing(link: DaemonLink) -> None:
 
     tab = diagnostics(link, wake_tester=tester)
     tab.confirm_wake_test()
-    [box] = open_boxes()
+    [box] = await boxes()
     assert "Dry run" in box.text()
     box.close()
     assert called == []
@@ -249,7 +263,7 @@ async def test_wake_test_asks_counts_down_and_reports(
 
     tab = diagnostics(link, wake_tester=tester)
     tab.confirm_wake_test()
-    [box] = open_boxes()
+    [box] = await boxes()
     assert "suspends the computer now" in box.text()
     answer(box, QMessageBox.StandardButton.Yes)
     hands_off = tab.dialog
@@ -258,7 +272,7 @@ async def test_wake_test_asks_counts_down_and_reports(
     for _ in range(10):
         hands_off.tick()
     await pump()
-    [report] = open_boxes()
+    [report] = await boxes()
     assert report.text().startswith("✔ Woke up by itself")
     report.close()
 
