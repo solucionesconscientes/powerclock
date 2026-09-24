@@ -5,7 +5,7 @@ from typing import Annotated, Any, get_args, get_origin
 import pytest
 from pydantic import ValidationError
 
-from kse.models import (
+from powerclock.models import (
     Action,
     AllOf,
     AnyOf,
@@ -17,7 +17,7 @@ from kse.models import (
     SshSession,
     Trigger,
 )
-from kse.platform.base import PowerAction, PowerMode
+from powerclock.platform.base import PowerAction, PowerMode
 
 # One valid sample per type. test_every_type_has_a_sample fails when a new type is
 # added to a union without a sample here.
@@ -57,7 +57,7 @@ ACTIONS: dict[str, dict[str, Any]] = {
     "run": {"type": "run", "cmd": ["echo", "hola"], "timeout": "1m"},
     "open": {"type": "open", "target": "https://example.org"},
     "close_app": {"type": "close_app", "name": "firefox"},
-    "notify": {"type": "notify", "title": "KSE", "body": "hola"},
+    "notify": {"type": "notify", "title": "PowerClock", "body": "hola"},
     "wait": {"type": "wait", "duration": "10s"},
     "wait_until": {"type": "wait_until", "condition": {"type": "idle", "for": "1m"}},
     "set_wake": {"type": "set_wake", "after": "8h"},
@@ -69,7 +69,7 @@ def make_rule(**overrides: Any) -> dict[str, Any]:
         "id": "test-rule",
         "name": "Test",
         "trigger": {"type": "manual"},
-        "actions": [{"type": "notify", "title": "KSE"}],
+        "actions": [{"type": "notify", "title": "PowerClock"}],
     }
     rule.update(overrides)
     return rule
@@ -177,7 +177,7 @@ def test_python_construction_by_field_name() -> None:
 
 
 def test_actions_may_follow_suspend_but_not_shutdown() -> None:
-    notify = {"type": "notify", "title": "KSE", "body": "back"}
+    notify = {"type": "notify", "title": "PowerClock", "body": "back"}
     Rule.model_validate(make_rule(actions=[{"type": "power", "action": "suspend"}, notify]))
     Rule.model_validate(make_rule(actions=[notify, {"type": "power", "action": "shutdown"}]))
     with pytest.raises(ValidationError, match="must be the last action"):

@@ -2,7 +2,7 @@
 
 import pytest
 
-from kse.labels import describe_predicate, describe_trigger, reason_label
+from powerclock.labels import describe_predicate, describe_trigger, reason_label
 
 
 @pytest.mark.parametrize(

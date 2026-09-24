@@ -8,7 +8,7 @@ from datetime import timedelta
 import psutil
 import pytest
 
-from kse.engine.processes import PsutilProcesses
+from powerclock.engine.processes import PsutilProcesses
 
 
 def running_names() -> set[str]:
@@ -17,7 +17,7 @@ def running_names() -> set[str]:
 
 @pytest.mark.skipif(not sys.platform.startswith("linux"), reason="renames itself via /proc")
 async def test_closes_our_uniquely_named_process() -> None:
-    name = f"kse{uuid.uuid4().hex[:8]}"  # under 16 characters: fits /proc/<pid>/comm
+    name = f"pclk{uuid.uuid4().hex[:8]}"  # under 16 characters: fits /proc/<pid>/comm
     script = f"open('/proc/self/comm', 'w').write({name!r}); import time; time.sleep(60)"
     process = await asyncio.create_subprocess_exec(sys.executable, "-c", script)
     try:
@@ -36,5 +36,5 @@ async def test_closes_our_uniquely_named_process() -> None:
 
 
 async def test_nothing_to_close() -> None:
-    name = f"kse{uuid.uuid4().hex[:8]}"
+    name = f"pclk{uuid.uuid4().hex[:8]}"
     assert await PsutilProcesses().close(name, timedelta(seconds=1)) == 0

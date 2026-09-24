@@ -2,12 +2,12 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from kse.engine import Engine
-from kse.engine.clock import FakeClock, settle
-from kse.engine.runs import Event
-from kse.models import CountdownTrigger
-from kse.platform.base import PowerAction, PowerEvent
-from kse.platform.fake import FakePlatform
+from powerclock.engine import Engine
+from powerclock.engine.clock import FakeClock, settle
+from powerclock.engine.runs import Event
+from powerclock.models import CountdownTrigger
+from powerclock.platform.base import PowerAction, PowerEvent
+from powerclock.platform.fake import FakePlatform
 from support import MADRID, START, rule
 
 SHUTDOWN = {"type": "power", "action": "shutdown"}
@@ -121,7 +121,7 @@ async def test_stop_cancels_active_runs(engine: Engine) -> None:
 
 
 async def test_engine_without_power_events(clock: FakeClock) -> None:
-    from kse.platform.base import Capability, PlatformBackend, PowerMode
+    from powerclock.platform.base import Capability, PlatformBackend, PowerMode
 
     class Minimal(PlatformBackend):
         name = "minimal"

@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from kse.platform.linux.host import Host
+from powerclock.platform.linux.host import Host
 
 
 def write(root: Path, relative: str, text: str) -> None:

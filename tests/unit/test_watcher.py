@@ -6,12 +6,12 @@ from typing import Any
 
 import pytest
 
-from kse.engine import Engine
-from kse.engine.clock import FakeClock, settle
-from kse.platform.base import PowerEvent
-from kse.platform.fake import FakePlatform
-from kse.sensors.base import PowerState
-from kse.sensors.fake import FakeReadings
+from powerclock.engine import Engine
+from powerclock.engine.clock import FakeClock, settle
+from powerclock.platform.base import PowerEvent
+from powerclock.platform.fake import FakePlatform
+from powerclock.sensors.base import PowerState
+from powerclock.sensors.fake import FakeReadings
 from support import MADRID, rule
 
 IDLE_20M = {"type": "idle", "for": "20m"}

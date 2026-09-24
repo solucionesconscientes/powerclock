@@ -1,18 +1,25 @@
 [project]
-name = "kse"
+name = "powerclock"
 dynamic = ["version"]
-description = "KShutdown Evolution: power and task automation (shutdown, suspend, wake-up, scripts) driven by persistent rules."
+description = "Shutdown, wake-up and task scheduler: power off, suspend, turn on and run tasks at a time or when something happens, with persistent rules."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
-keywords = ["shutdown", "suspend", "wake", "rtcwake", "scheduler", "automation", "power-management"]
+keywords = ["shutdown", "suspend", "hibernate", "wake", "wake-up", "power-on", "rtcwake", "scheduler", "timer", "automation", "power-management", "kde", "linux"]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Environment :: Console",
+    "Environment :: X11 Applications :: Qt",
     "Intended Audience :: End Users/Desktop",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Natural Language :: English",
+    "Natural Language :: Spanish",
     "Topic :: System :: Power (UPS)",
     "Topic :: Utilities",
 ]
@@ -31,11 +38,11 @@ dependencies = [
 ]
 
 [project.scripts]
-kse = "kse.cli.main:app"
-kse-daemon = "kse.daemon.main:main"
+powerclock = "powerclock.cli.main:app"
+powerclock-daemon = "powerclock.daemon.main:main"
 
 [project.gui-scripts]
-kse-gui = "kse.gui.app:main"  # no console window on Windows
+powerclock-gui = "powerclock.gui.app:main"  # no console window on Windows
 
 [project.optional-dependencies]
 gui = [
@@ -48,10 +55,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
-path = "src/kse/__init__.py"
+path = "src/powerclock/__init__.py"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/kse"]
+packages = ["src/powerclock"]
 
 [tool.ruff]
 line-length = 100
@@ -62,7 +69,7 @@ extend-exclude = ["*.md"]  # docs keep their own layout
 select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF", "ASYNC", "PT", "PTH"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["kse"]
+known-first-party = ["powerclock"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -2,9 +2,9 @@ from datetime import UTC, datetime
 
 import pytest
 
-import kse.platform
-from kse.platform import dry_run_requested, get_backend
-from kse.platform.base import (
+import powerclock.platform
+from powerclock.platform import dry_run_requested, get_backend
+from powerclock.platform.base import (
     Capability,
     NotSupported,
     PlatformBackend,
@@ -12,8 +12,8 @@ from kse.platform.base import (
     PowerEvent,
     PowerMode,
 )
-from kse.platform.dryrun import DryRunPlatform
-from kse.platform.fake import FakeCall, FakePlatform
+from powerclock.platform.dryrun import DryRunPlatform
+from powerclock.platform.fake import FakeCall, FakePlatform
 
 WHEN = datetime(2026, 9, 24, 5, 30, tzinfo=UTC)
 
@@ -29,7 +29,7 @@ class MinimalBackend(PlatformBackend):
 
 
 def test_get_backend_uses_environment() -> None:
-    # conftest sets KSE_BACKEND=fake and KSE_DRY_RUN=1
+    # conftest sets POWERCLOCK_BACKEND=fake and POWERCLOCK_DRY_RUN=1
     backend = get_backend()
     assert isinstance(backend, DryRunPlatform)
     assert isinstance(backend.inner, FakePlatform)
@@ -49,7 +49,7 @@ def test_get_backend_by_name_is_forgiving() -> None:
     [("1", True), ("true", True), (" YES ", True), ("on", True), ("0", False), ("", False)],
 )
 def test_dry_run_flag(monkeypatch: pytest.MonkeyPatch, value: str, expected: bool) -> None:
-    monkeypatch.setenv("KSE_DRY_RUN", value)
+    monkeypatch.setenv("POWERCLOCK_DRY_RUN", value)
     assert dry_run_requested() is expected
     assert isinstance(get_backend(), DryRunPlatform) is expected
 
@@ -61,8 +61,8 @@ def test_get_backend_unknown_name() -> None:
 
 
 def test_get_backend_defaults_to_current_os(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("KSE_BACKEND")
-    monkeypatch.setattr(kse.platform, "current_os", lambda: "plan9")
+    monkeypatch.delenv("POWERCLOCK_BACKEND")
+    monkeypatch.setattr(powerclock.platform, "current_os", lambda: "plan9")
     with pytest.raises(NotSupported, match="'plan9'"):
         get_backend()
 
@@ -125,11 +125,11 @@ async def test_fake_sensors_reflect_simulated_state() -> None:
 
 async def test_fake_notify() -> None:
     fake = FakePlatform(notify_response="cancel")
-    assert await fake.notify("KSE", "plain") is None
+    assert await fake.notify("PowerClock", "plain") is None
     buttons = {"cancel": "Cancel", "postpone": "Postpone"}
-    assert await fake.notify("KSE", "countdown", actions=buttons) == "cancel"
+    assert await fake.notify("PowerClock", "countdown", actions=buttons) == "cancel"
     assert fake.calls_to("notify")[1] == FakeCall(
-        "notify", ("KSE", "countdown", ("cancel", "postpone"))
+        "notify", ("PowerClock", "countdown", ("cancel", "postpone"))
     )
 
 
@@ -166,3 +166,16 @@ async def test_fake_capabilities() -> None:
     assert len(ids) == len(set(ids))
     assert all(capability.supported for capability in capabilities)
     assert {f"power.{action}" for action in PowerAction} <= set(ids)
+
+
+def test_old_variable_names_still_count(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The working name was kse: $KSE_DRY_RUN must never silently stop meaning dry run."""
+    from powerclock.platform import dry_run_requested
+
+    monkeypatch.delenv("POWERCLOCK_DRY_RUN")
+    monkeypatch.setenv("KSE_DRY_RUN", "1")
+    assert dry_run_requested()
+    monkeypatch.setenv("POWERCLOCK_DRY_RUN", "0")
+    assert dry_run_requested()  # either one asking for it is enough
+    monkeypatch.delenv("KSE_DRY_RUN")
+    assert not dry_run_requested()

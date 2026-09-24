@@ -2,18 +2,18 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from kse.engine.clock import FakeClock, settle
-from kse.engine.evaluator import Evaluator
-from kse.engine.executor import Executor
-from kse.engine.processes import FakeProcesses
-from kse.engine.runs import Event, Run
-from kse.platform.base import NotSupported, PowerAction, PowerMode
-from kse.platform.fake import FakeCall, FakePlatform
-from kse.sensors.fake import FakeSensors
+from powerclock.engine.clock import FakeClock, settle
+from powerclock.engine.evaluator import Evaluator
+from powerclock.engine.executor import Executor
+from powerclock.engine.processes import FakeProcesses
+from powerclock.engine.runs import Event, Run
+from powerclock.platform.base import NotSupported, PowerAction, PowerMode
+from powerclock.platform.fake import FakeCall, FakePlatform
+from powerclock.sensors.fake import FakeSensors
 from support import MADRID, START, rule
 
 SHUTDOWN = {"type": "power", "action": "shutdown"}
-NOTIFY = {"type": "notify", "title": "KSE", "body": "hola"}
+NOTIFY = {"type": "notify", "title": "PowerClock", "body": "hola"}
 
 
 def power_calls(fake: FakePlatform) -> list[FakeCall]:
@@ -148,7 +148,7 @@ async def test_countdown_notification_offers_cancel_and_postpone(
     await clock.advance(1)
     [call] = fake.calls_to("notify")
     title, body, buttons = call.args
-    assert title == "KSE"
+    assert title == "PowerClock"
     assert "Backup" in body
     assert "60" in body
     assert buttons == ("cancel", "postpone")

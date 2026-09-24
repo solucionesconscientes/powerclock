@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from kse.models import Rule
+from powerclock.models import Rule
 
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES = sorted((ROOT / "examples").glob("*.json"))

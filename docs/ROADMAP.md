@@ -1,25 +1,25 @@
-# Roadmap — KShutdown Evolution
+# Roadmap — PowerClock
 
 Marca `[x]` al completar. Cada hito termina con ruff + pytest en verde y un commit.
 
 ## Fase 1 — Linux MVP (v0.1.0)
 
 ### M1 — Esqueleto y modelos
-- [x] `pyproject.toml` (hatchling, src/, entry points kse/kse-daemon/kse-gui, extra `gui` + grupo `dev`, marcadores de plataforma)
+- [x] `pyproject.toml` (hatchling, src/, entry points powerclock/powerclock-daemon/powerclock-gui, extra `gui` + grupo `dev`, marcadores de plataforma)
 - [x] `uv sync --all-extras` funciona; ruff y pytest configurados (marker `real` excluido por defecto)
 - [x] `models.py`: Rule, disparadores, predicados (all/any/not), guardas, acciones (uniones discriminadas pydantic), `parse_duration`
 - [x] `platform/base.py` (PlatformBackend, Capability, NotSupported, enums) y `platform/fake.py`
-- [x] `get_backend()` con override `KSE_BACKEND=fake`
+- [x] `get_backend()` con override `POWERCLOCK_BACKEND=fake`
 - [x] `examples/` con 5 reglas de ejemplo válidas
 - [x] Tests: reglas válidas/inválidas, round-trip JSON, exportación de JSON Schema, ejemplos validan
-**DoD:** `uv run pytest` verde; `uv run kse --version` funciona.
+**DoD:** `uv run pytest` verde; `uv run powerclock --version` funciona.
 
 ### M2 — Motor
 - [x] Scheduler: `at`, `countdown`, `cron` (zoneinfo + croniter), `next_fire`, resincronización ≤ 30 s, saltos de reloj
 - [x] Evaluator: conditions y guards con retry/max_wait
 - [x] Executor: secuencias, `on_error`, `Run` con estados, cuenta atrás cancelable/posponible, una sola acción de energía a la vez
 - [x] Acciones: `run`, `notify`, `wait`, `wait_until`, `power` (vía backend), `open`, `close_app`
-- [x] Dry-run global (`KSE_DRY_RUN`) y por regla; `on_missed`
+- [x] Dry-run global (`POWERCLOCK_DRY_RUN`) y por regla; `on_missed`
 - [x] Tests con reloj falso + FakePlatform (cancelar cuenta atrás, guardas que posponen, cron a través del cambio de hora DST)
 **DoD:** tests verdes para cada disparador de tiempo y cada acción.
 
@@ -30,26 +30,26 @@ Marca `[x]` al completar. Cada hito termina con ruff + pytest en verde y un comm
 - [x] `idle_seconds` con cadena de estrategias (Wayland ext-idle-notify → GNOME → logind → xprintidle)
 - [x] `media_playing` (MPRIS); notificaciones con acción "Cancelar"
 - [x] `sensors/` con psutil: CPU, red, procesos, batería, AC, sesiones SSH
-- [x] `capabilities()` completo (ver ARCHITECTURE §7) y `kse doctor` con tabla rich
+- [x] `capabilities()` completo (ver ARCHITECTURE §7) y `powerclock doctor` con tabla rich
 - [x] Zona horaria IANA del sistema (para reglas sin `timezone`; en Linux, `/etc/localtime`)
 - [x] Tests con D-Bus simulado; tests reales marcados `real`
-**DoD:** `KSE_DRY_RUN=1 uv run kse doctor` da un informe correcto en Kubuntu/KDE Wayland.
+**DoD:** `POWERCLOCK_DRY_RUN=1 uv run powerclock doctor` da un informe correcto en Kubuntu/KDE Wayland.
 
 ### M4 — Demonio, API, almacenamiento, CLI
 - [x] Store: rules.json (validación, escritura atómica, recarga en caliente), history.sqlite, token 0600
 - [x] Demonio asyncio + FastAPI/uvicorn en 127.0.0.1, auth por token, WS `/events`
 - [x] Todos los endpoints de ARCHITECTURE §8
 - [x] CLI typer completo (comandos rápidos, rules, status, cancel, postpone, doctor)
-- [x] `kse service install/uninstall/status` (systemd --user) con `--linger` opcional
+- [x] `powerclock service install/uninstall/status` (systemd --user) con `--linger` opcional
 - [x] Tests de API (TestClient + FakePlatform)
-**DoD:** con el servicio en dry-run: `kse shutdown --in 2m` crea la regla, `kse status` la muestra, `kse cancel` la cancela y el historial lo registra.
+**DoD:** con el servicio en dry-run: `powerclock shutdown --in 2m` crea la regla, `powerclock status` la muestra, `powerclock cancel` la cancela y el historial lo registra.
 
 ### M5 — Encendido/despertar ⚠ requiere sudo del usuario
 - [x] Helper stdlib: wake-set/clear/get con `rtcwake -m no` (alternativa sysfs con valor relativo `+<segundos>`) y validación estricta
-- [x] Política polkit `allow_active=yes`; `kse helper install/uninstall` (muestra los comandos sudo y pide confirmación)
-- [x] Regla polkit opcional `--unattended` (login1 power-* y acción del helper `org.kse.helper.wake`, sin sesión activa)
+- [x] Política polkit `allow_active=yes`; `powerclock helper install/uninstall` (muestra los comandos sudo y pide confirmación)
+- [x] Regla polkit opcional `--unattended` (login1 power-* y acción del helper `org.powerclock.helper.wake`, sin sesión activa)
 - [x] WakePlanner: próximo despertar, margen, reprogramación (cambios, disparos, PrepareForSleep/Shutdown con inhibidor delay)
-- [x] `kse wake --at`, `kse doctor --test-wake 120` (solo con confirmación explícita)
+- [x] `powerclock wake --at`, `powerclock doctor --test-wake 120` (solo con confirmación explícita)
 **DoD:** el usuario verifica en su Latitude el despertar desde suspensión ✅ (24-09-2026: despertó sola a los 2 s de la alarma); el resultado desde S5 queda documentado ✅ (24-09-2026: con AC, se encendió sola; el kernel arrancó 14 s después de la alarma).
 
 ### M6 — Disparadores por condición y guardas
@@ -70,16 +70,16 @@ Marca `[x]` al completar. Cada hito termina con ruff + pytest en verde y un comm
 
 ### M8 — Publicación 0.1.0
 - [x] README (es/en) con capturas; `examples/` documentados (`README.md`, `README.es.md`; capturas con `scripts/screenshots.py`. Al publicar en PyPI, las imágenes necesitan URL absolutas)
-- [ ] Comprobar el nombre en PyPI; `pipx install .` limpio en Kubuntu y en el VPS (sin GUI)
+- [ ] Comprobar el nombre en PyPI (PowerClock ✅, libre); `pipx install .` limpio en Kubuntu y en el VPS (sin GUI)
 - [ ] GitHub Actions: lint + tests (Linux), build sdist/wheel
 - [ ] CHANGELOG; licencia definitiva (GPL-3.0-or-later ✅, `LICENSE`)
 
 ## Empaquetado (opcional, cuando se decida)
 De momento la distribución es `pipx` en los tres SO. Opciones estudiadas, por ganancia:
-- Instalador de un comando con `uv` (`install.sh` / `install.ps1`: instala uv, que trae su propio Python, luego `uv tool install "kse[gui]"` y `kse setup`), con `kse setup|update|uninstall`.
+- Instalador de un comando con `uv` (`install.sh` / `install.ps1`: instala uv, que trae su propio Python, luego `uv tool install "powerclock[gui]"` y `powerclock setup`), con `powerclock setup|update|uninstall`.
 - Windows: instalador firmado + winget (evita instalar Python antes).
 - macOS: `.app` firmada vía Homebrew cask (necesaria para notificaciones con botones y un icono propio en el Dock).
-- Linux: paquetes `kse` + `kse-gui` (PPA, AUR, COPR/OBS): instalación en un paso, actualizaciones del sistema y Breeze nativo. Ubuntu 26.04 tiene todas las dependencias, pero más antiguas que los mínimos actuales: habría que bajar los mínimos y probarlas, o llevar las propias dentro del paquete.
+- Linux: paquetes `powerclock` + `powerclock-gui` (PPA, AUR, COPR/OBS): instalación en un paso, actualizaciones del sistema y Breeze nativo. Ubuntu 26.04 tiene todas las dependencias, pero más antiguas que los mínimos actuales: habría que bajar los mínimos y probarlas, o llevar las propias dentro del paquete.
 
 ## Fase 2 — Workflows y más disparadores (v0.2)
 `file`, `wifi_ssid`, `usb`, `temperature`; webhook de entrada y salida; Telegram (notificar); editor visual de condiciones; plantillas/recetas; estadísticas de uso y ahorro.

@@ -17,7 +17,7 @@
   "actions": [
     {"type": "run", "cmd": ["/home/pc/bin/backup.sh"], "timeout": "2h", "wait": true},
     {"type": "wait_until", "condition": {"type": "net_below", "kbps": 50, "for": "5m"}, "timeout": "1h"},
-    {"type": "notify", "title": "KSE", "body": "Backup terminado"},
+    {"type": "notify", "title": "PowerClock", "body": "Backup terminado"},
     {"type": "power", "action": "shutdown", "mode": "graceful"}
   ],
   "warning": "60s",

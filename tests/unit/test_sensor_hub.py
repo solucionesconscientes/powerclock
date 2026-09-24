@@ -5,11 +5,11 @@ from typing import Any
 import pytest
 from pydantic import TypeAdapter
 
-from kse.engine.clock import FakeClock
-from kse.models import Predicate
-from kse.sensors.base import NetRate, PowerState, ProcessInfo
-from kse.sensors.fake import FakeReadings
-from kse.sensors.registry import SensorHub
+from powerclock.engine.clock import FakeClock
+from powerclock.models import Predicate
+from powerclock.sensors.base import NetRate, PowerState, ProcessInfo
+from powerclock.sensors.fake import FakeReadings
+from powerclock.sensors.registry import SensorHub
 
 PREDICATE: TypeAdapter[Predicate] = TypeAdapter(Predicate)
 

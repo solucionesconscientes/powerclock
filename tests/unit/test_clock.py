@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from kse.engine.clock import FakeClock, settle
+from powerclock.engine.clock import FakeClock, settle
 from support import START
 
 

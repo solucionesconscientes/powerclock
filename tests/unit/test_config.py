@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from kse.config import (
+from powerclock.config import (
     DEFAULT_PORT,
     Paths,
     Settings,
@@ -14,21 +14,21 @@ from kse.config import (
     load_settings,
     read_token,
 )
-from kse.timeparse import resolve_at
+from powerclock.timeparse import resolve_at
 from support import MADRID
 
 
-def test_paths_follow_kse_home(tmp_path: Path) -> None:
-    paths = Paths.default()  # conftest points KSE_HOME to a temporary directory
-    assert paths.config == paths.data == tmp_path / "kse-home"
+def test_paths_follow_the_home_variable(tmp_path: Path) -> None:
+    paths = Paths.default()  # conftest points POWERCLOCK_HOME to a temporary directory
+    assert paths.config == paths.data == tmp_path / "powerclock-home"
     assert paths.rules.name == "rules.json"
     assert paths.history.name == "history.sqlite"
 
 
 def test_paths_default_to_the_xdg_directories(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("KSE_HOME")
+    monkeypatch.delenv("POWERCLOCK_HOME")
     paths = Paths.default()
-    assert paths.config.name == paths.data.name == "kse"
+    assert paths.config.name == paths.data.name == "powerclock"
     assert paths.config != paths.data
 
 

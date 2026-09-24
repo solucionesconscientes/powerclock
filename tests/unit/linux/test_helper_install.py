@@ -3,34 +3,35 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from kse.cli.main import app
-from kse.platform.linux import helper
+from powerclock.cli.main import app
+from powerclock.platform.linux import helper
 
 
 def test_install_commands(tmp_path: Path) -> None:
-    rules = tmp_path / "50-kse-unattended.rules"
+    rules = tmp_path / "50-powerclock-unattended.rules"
     commands = helper.install_commands(unattended_user=None, rules_file=rules)
     assert commands == [
         [
             "sudo", "install", "-D", "-o", "root", "-g", "root", "-m", "0755",
-            str(helper.packaged("kse_helper_linux.py")), "/usr/local/libexec/kse-helper",
+            str(helper.packaged("powerclock_helper_linux.py")),
+            "/usr/local/libexec/powerclock-helper",
         ],
         [
             "sudo", "install", "-D", "-o", "root", "-g", "root", "-m", "0644",
-            str(helper.packaged("org.kse.helper.policy")),
-            "/usr/share/polkit-1/actions/org.kse.helper.policy",
+            str(helper.packaged("org.powerclock.helper.policy")),
+            "/usr/share/polkit-1/actions/org.powerclock.helper.policy",
         ],
     ]  # fmt: skip
     assert not rules.exists()
 
 
 def test_unattended_rule_is_generated_for_the_user(tmp_path: Path) -> None:
-    rules = tmp_path / "50-kse-unattended.rules"
+    rules = tmp_path / "50-powerclock-unattended.rules"
     commands = helper.install_commands(unattended_user="pc", rules_file=rules)
-    assert commands[-1][-2:] == [str(rules), "/etc/polkit-1/rules.d/50-kse-unattended.rules"]
+    assert commands[-1][-2:] == [str(rules), "/etc/polkit-1/rules.d/50-powerclock-unattended.rules"]
     text = rules.read_text()
     assert 'subject.user !== "pc"' in text
-    assert '"org.kse.helper.wake"' in text
+    assert '"org.powerclock.helper.wake"' in text
     assert "@USER@" not in text
 
 
@@ -42,11 +43,11 @@ def test_odd_user_names_are_refused(tmp_path: Path, user: str) -> None:
 
 def test_uninstall_commands() -> None:
     assert helper.uninstall_commands(helper_present=True) == [
-        ["sudo", "/usr/local/libexec/kse-helper", "wake-clear"],
+        ["sudo", "/usr/local/libexec/powerclock-helper", "wake-clear"],
         [
-            "sudo", "rm", "-f", "/usr/local/libexec/kse-helper",
-            "/usr/share/polkit-1/actions/org.kse.helper.policy",
-            "/etc/polkit-1/rules.d/50-kse-unattended.rules",
+            "sudo", "rm", "-f", "/usr/local/libexec/powerclock-helper",
+            "/usr/share/polkit-1/actions/org.powerclock.helper.policy",
+            "/etc/polkit-1/rules.d/50-powerclock-unattended.rules",
         ],
     ]  # fmt: skip
     assert len(helper.uninstall_commands(helper_present=False)) == 1
@@ -65,11 +66,11 @@ def test_run_all_stops_at_the_first_failure() -> None:
 
 
 def test_policy_file() -> None:
-    policy = helper.packaged("org.kse.helper.policy").read_text()
-    assert '<action id="org.kse.helper.wake">' in policy
+    policy = helper.packaged("org.powerclock.helper.policy").read_text()
+    assert '<action id="org.powerclock.helper.wake">' in policy
     assert "<allow_active>yes</allow_active>" in policy
     assert "<allow_any>auth_admin</allow_any>" in policy
-    assert ">/usr/local/libexec/kse-helper</annotate>" in policy
+    assert ">/usr/local/libexec/powerclock-helper</annotate>" in policy
 
 
 def test_cli_prints_and_asks(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -89,7 +90,7 @@ def test_cli_prints_and_asks(monkeypatch: pytest.MonkeyPatch) -> None:
     accepted = runner.invoke(app, ["helper", "install", "--unattended"], input="y\n")
     assert accepted.exit_code == 0, accepted.output
     assert "Helper installed." in accepted.output
-    assert "kse service install --linger" in accepted.output
+    assert "powerclock service install --linger" in accepted.output
     assert len(ran) == 3
 
 

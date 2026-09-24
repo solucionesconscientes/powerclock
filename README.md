@@ -1,11 +1,16 @@
-# KShutdown Evolution (`kse`)
+<p align="center"><img src="src/powerclock/gui/icons/powerclock.svg" width="96" alt=""></p>
+
+# PowerClock
+
+**Shutdown, wake-up and task scheduler**
 
 **English** · [Español](README.es.md)
 
-> **Status:** pre-release (0.1.0 in preparation). Linux is supported today; Windows and macOS are planned.
-> Not affiliated with [KShutdown](https://kshutdown.sourceforge.io/), which inspired it.
+> **Status:** pre-release (0.1.0 in preparation). Linux is supported today; Windows and macOS are
+> planned. Its Quick tab was inspired by [KShutdown](https://kshutdown.sourceforge.io/); it is a
+> separate program, written from scratch and not affiliated with it.
 
-KSE shuts down, restarts, suspends, hibernates, locks, logs out and **turns your computer on**
+PowerClock shuts down, restarts, suspends, hibernates, locks, logs out and **turns your computer on**
 by itself, and runs your programs and scripts, **at a time, on a schedule or when something
 happens**: nobody is using the computer, a render or a download has finished, the battery is low,
 the laptop was unplugged…
@@ -72,7 +77,7 @@ met, and program the next wake-up.
 - **When something happens**: nobody has used the computer for a while · a program exits (render,
   compression, copy…) · CPU usage stays low for a while · network traffic stays low for a while
   (a download finished) · the battery goes below/above a level · the laptop is unplugged or
-  plugged in · KSE starts or the computer resumes from sleep.
+  plugged in · PowerClock starts or the computer resumes from sleep.
 - **By hand**: from the window, the tray, the command line or the API.
 
 **Only if / wait while**:
@@ -84,7 +89,7 @@ met, and program the next wake-up.
 
 **Around it**: a cancellable **countdown** before any power action (with *Cancel* and *Postpone
 10 minutes* in a notification and a dialog) · a **dry-run** mode to try everything without
-turning anything off · a **history** of every run with its result and reason · `kse doctor`, which
+turning anything off · a **history** of every run with its result and reason · `powerclock doctor`, which
 checks what works on your computer and says how to fix what does not · a **tray icon** · an
 interface in **English and Spanish**.
 
@@ -103,14 +108,14 @@ interface in **English and Spanish**.
   supports GNOME and X11, and any desktop for the basics (power actions go through logind).
 - **Python 3.11 or newer** (every current distribution has it) and **pipx** to install it.
 - For the window and the tray: a graphical session. On GNOME, the tray icon needs the
-  *AppIndicator* extension (Ubuntu enables it by default); without it KSE works from its window.
+  *AppIndicator* extension (Ubuntu enables it by default); without it PowerClock works from its window.
 - To **turn the computer on** at a time: an RTC wake alarm (almost every PC) and, to power on from
-  *off*, a BIOS/UEFI that allows it (usually only on AC power for laptops). `kse doctor` tells you.
+  *off*, a BIOS/UEFI that allows it (usually only on AC power for laptops). `powerclock doctor` tells you.
 - A server without a desktop (a VPS) can run the daemon and the command line alone.
 
 ## Installation
 
-KSE is installed for your user with [pipx](https://pipx.pypa.io/), which keeps it and its
+PowerClock is installed for your user with [pipx](https://pipx.pypa.io/), which keeps it and its
 libraries apart from the rest of the system.
 
 ```bash
@@ -118,36 +123,36 @@ libraries apart from the rest of the system.
 sudo apt install pipx
 pipx ensurepath          # then open a new terminal
 
-# 2. KSE with its window and tray icon
-pipx install "kse[gui]"
+# 2. PowerClock with its window and tray icon
+pipx install "powerclock[gui]"
 #    …or, until it is published, from a copy of this repository:
-#    pipx install "/path/to/KSHUTDOWN-EVOLUTION[gui]"
+#    pipx install "/path/to/powerclock[gui]"
 
 # 3. The daemon as a service of your user: starts now and at every login
-kse service install
+powerclock service install
 
 # 4. Check what works on this computer
-kse doctor
+powerclock doctor
 
 # 5. Optional: turning the computer on at a time (asks for your password once)
-kse helper install
+powerclock helper install
 ```
 
-Then open the window with `kse gui` (or from the applications menu once you tick *Show KSE in
+Then open the window with `powerclock gui` (or from the applications menu once you tick *Show PowerClock in
 the applications menu* in the Diagnostics tab).
 
-On a server, install it without the window: `pipx install kse` (see
+On a server, install it without the window: `pipx install powerclock` (see
 [Using it on a server](#using-it-on-a-server)).
 
-To update: `pipx upgrade kse`.
+To update: `pipx upgrade powerclock`.
 
 ## Getting started in five minutes
 
 Everything below can be tried safely first with **dry run**: add `--dry-run` to a quick command,
-or install the service with `kse service install --dry-run`. Power actions are then only written
+or install the service with `powerclock service install --dry-run`. Power actions are then only written
 to the log.
 
-**From the window** (`kse gui`), *Quick* tab: pick an *Action* (e.g. *Shut down*), pick *When*
+**From the window** (`powerclock gui`), *Quick* tab: pick an *Action* (e.g. *Shut down*), pick *When*
 (e.g. *After a delay* → `30m`) and press **OK**. It appears under *Waiting to act* with its time,
 and the tray icon turns blue. Cancel or postpone it from there, from the tray menu or from the
 countdown window that appears one minute before acting.
@@ -155,23 +160,23 @@ countdown window that appears one minute before acting.
 **From the command line**:
 
 ```bash
-kse shutdown --in 30m                   # shut down in 30 minutes
-kse suspend --at 23:30 --wake 07:30     # suspend at 23:30 and wake up at 07:30
-kse shutdown --when-exits ffmpeg        # shut down when the render ends
-kse suspend --when-idle 20m             # suspend after 20 minutes without use
-kse shutdown --when-net-below 50 --for 5m   # shut down when the download is over
-kse reboot --when-cpu-below 10 --for 5m # restart when the CPU calms down
-kse run --at 03:00 --wake -- /home/me/bin/backup.sh   # turn on at 03:00 to run a backup
-kse wake --at "2026-10-01 07:30"        # just turn the computer on at that time
+powerclock shutdown --in 30m                   # shut down in 30 minutes
+powerclock suspend --at 23:30 --wake 07:30     # suspend at 23:30 and wake up at 07:30
+powerclock shutdown --when-exits ffmpeg        # shut down when the render ends
+powerclock suspend --when-idle 20m             # suspend after 20 minutes without use
+powerclock shutdown --when-net-below 50 --for 5m   # shut down when the download is over
+powerclock reboot --when-cpu-below 10 --for 5m # restart when the CPU calms down
+powerclock run --at 03:00 --wake -- /home/me/bin/backup.sh   # turn on at 03:00 to run a backup
+powerclock wake --at "2026-10-01 07:30"        # just turn the computer on at that time
 
-kse status      # what is scheduled, running and being watched
-kse cancel      # cancel the countdown in progress or the next quick action
-kse postpone 10m
-kse history     # what ran and why
+powerclock status      # what is scheduled, running and being watched
+powerclock cancel      # cancel the countdown in progress or the next quick action
+powerclock postpone 10m
+powerclock history     # what ran and why
 ```
 
 **With a rule** (for anything that repeats): put this in `nightly.json` and add it with
-`kse rules add nightly.json` (or create it in the *Rules* tab):
+`powerclock rules add nightly.json` (or create it in the *Rules* tab):
 
 ```json
 {
@@ -183,7 +188,7 @@ kse history     # what ran and why
   "guards": {"any": [{"type": "media_playing"}, {"type": "ssh_session"}], "retry": "5m", "max_wait": "2h"},
   "actions": [
     {"type": "run", "cmd": ["/home/me/bin/backup.sh"], "timeout": "2h"},
-    {"type": "notify", "title": "KSE", "body": "Backup done"},
+    {"type": "notify", "title": "PowerClock", "body": "Backup done"},
     {"type": "power", "action": "shutdown"}
   ]
 }
@@ -195,17 +200,17 @@ notifies you and shuts down after a one-minute countdown you can cancel.
 
 ## How it works: the main ideas
 
-- **The daemon** (`kse-daemon`) does everything: it keeps the rules, watches the time and the
+- **The daemon** (`powerclock-daemon`) does everything: it keeps the rules, watches the time and the
   sensors, runs the actions and records the history. It runs as **your user** (never as root), as
-  a systemd user service installed by `kse service install`. The window, the tray and the command
+  a systemd user service installed by `powerclock service install`. The window, the tray and the command
   line are only clients: closing them changes nothing.
 - **A rule** is: a **trigger** (when) + optional **conditions** (only if) + optional **guards**
   (wait while) + **steps** (what to do, in order) + options (countdown, only once, wake up…).
 - **A quick action** is a rule made for you by the Quick tab, the tray or commands such as
-  `kse shutdown --in 30m`. It runs once and then disappears (its run stays in the history).
+  `powerclock shutdown --in 30m`. It runs once and then disappears (its run stays in the history).
 - **The countdown**: before any power action there is a cancellable countdown (60 seconds by
   default, configurable per rule, `0s` to skip it). During it you get a notification and a window
-  with **Cancel** and **Postpone 10 minutes**, and `kse cancel` / `kse postpone` work too.
+  with **Cancel** and **Postpone 10 minutes**, and `powerclock cancel` / `powerclock postpone` work too.
 - **The history** records every run: when, why it started (*scheduled*, *condition* or *by
   hand*), how it ended (*done*, *failed*, *cancelled*, *skipped*) and why, with each step's result
   and the last lines of each command's output.
@@ -217,7 +222,7 @@ notifies you and shuts down after a one-minute countdown you can cancel.
 
 ## The graphical interface
 
-Open it with `kse gui` or from the applications menu. Only **one** copy runs: opening it again
+Open it with `powerclock gui` or from the applications menu. Only **one** copy runs: opening it again
 brings up the window that is already running. Closing the window leaves the tray icon; *Close the
 tray icon* in its menu quits the interface (your rules keep running in the daemon).
 
@@ -226,7 +231,7 @@ tray icon* in its menu quits the interface (your rules keep running in the daemo
 daemon is not running). Hover it to see what comes next. Its menu has: what comes next,
 **Cancel**, **Postpone 10 minutes**, **Now ▸** (shut down, restart, suspend, hibernate, lock, log
 out, turn off the screen; the first ones with their countdown, locking and screen off at once),
-**Schedule…**, **Open KSE** and **Close the tray icon**. A left click opens the window.
+**Schedule…**, **Open PowerClock** and **Close the tray icon**. A left click opens the window.
 
 **Quick tab** (like KShutdown): choose an **Action** (any power action or *Run a program*),
 **When** (now, at a date and time, after a delay, when nobody uses the computer for…, when a
@@ -253,9 +258,9 @@ step).
 select one to see its steps and their output.
 
 **Diagnostics tab.** Whether the daemon is running (and a button to start it or install it as a
-service), everything `kse doctor` checks with how to fix what does not work, the next wake-up
+service), everything `powerclock doctor` checks with how to fix what does not work, the next wake-up
 alarm, **Install the helper…** (shows the exact commands and runs them asking for your password in
-a desktop window), **Test a wake-up in 2 minutes…** and two checkboxes: *Show KSE in the
+a desktop window), **Test a wake-up in 2 minutes…** and two checkboxes: *Show PowerClock in the
 applications menu* and *Start the tray icon when the session starts*.
 
 **Countdown window.** Appears on top of the others when a power action is about to happen: which
@@ -267,7 +272,7 @@ Qt draws the controls in its own *Fusion* style; see
 
 ## The command line
 
-`kse --help` and `kse COMMAND --help` explain every option. Times accept `23:30` (its next
+`powerclock --help` and `powerclock COMMAND --help` explain every option. Times accept `23:30` (its next
 occurrence), `"2026-10-01 07:30"` (local time) or ISO 8601 with a time zone. Durations are written
 as `30s`, `5m`, `2h`, `1d` or combined (`1h30m`).
 
@@ -280,7 +285,7 @@ as `30s`, `5m`, `2h`, `1d` or combined (`1h30m`).
 | `--in 30m` | After a delay. |
 | `--at 23:30` | At a time. |
 | `--when-idle 20m` | When nobody has used the computer for that long. |
-| `--when-exits NAME\|PID` | When that program ends. If it is not running yet, KSE waits for it to start: a mistyped name never shuts the computer down. |
+| `--when-exits NAME\|PID` | When that program ends. If it is not running yet, PowerClock waits for it to start: a mistyped name never shuts the computer down. |
 | `--when-cpu-below 10` | When the average CPU usage stays below 10 % … |
 | `--when-net-below 50` | … or the network traffic below 50 kbit/s … |
 | `--for 5m` | … for this long (default `5m`). |
@@ -288,30 +293,30 @@ as `30s`, `5m`, `2h`, `1d` or combined (`1h30m`).
 | `--force` | Do not let applications ask to save. |
 | `--wake 07:30` | (power actions) Also turn the computer on at that time — e.g. suspend now, wake up in the morning. |
 | `--wake` | (`run`) Turn the computer on to run it (with `--in`/`--at`). |
-| `--dry-run` | Global option (`kse --dry-run shutdown …`): only log the power action. |
+| `--dry-run` | Global option (`powerclock --dry-run shutdown …`): only log the power action. |
 
 **Other commands**
 
 | Command | What it does |
 |---|---|
-| `kse wake --at TIME` | Turn the computer on at that time (from suspend, or from off if the BIOS allows it). |
-| `kse status` | What is running, what comes next, what is being watched, and the next wake-up alarm. |
-| `kse cancel [RUN_ID]` | Cancel the countdown in progress; otherwise the quick action running, the next timed one, or the last one waiting for a condition. |
-| `kse postpone [10m] [--run RUN_ID]` | Postpone the countdown in progress or the next timed quick action. |
-| `kse history [-n 20] [--rule ID]` | Past runs, their result and why. |
-| `kse rules list` | Every rule and when it fires next (or what it is watching). |
-| `kse rules show ID` | A rule as JSON. |
-| `kse rules add FILE.json` | Add the rules in a file (one rule or a list). |
-| `kse rules edit ID` | Edit a rule in your `$EDITOR`. |
-| `kse rules enable\|disable ID` | Turn a rule on or off (it stays saved). |
-| `kse rules run ID` | Run a rule now (its conditions, guards and countdown still apply). |
-| `kse rules rm ID` | Delete a rule. |
-| `kse rules export [FILE]` / `kse rules import FILE [--replace]` | Back up and restore rules. |
-| `kse doctor [--json]` | What works on this computer and how to fix what does not. |
-| `kse doctor --test-wake 120` | Program a wake-up in N seconds (60–3600) and **suspend now**, then say whether it woke up by itself and what woke it. Asks first and gives 10 seconds to take your hands off. |
-| `kse service install [--linger] [--dry-run]` · `uninstall` · `status` | The daemon as a systemd user service. `--linger` keeps it running without a login. |
-| `kse helper install [--unattended] [--print]` · `uninstall` | The small root helper that programs the wake alarm (shows the `sudo` commands and asks before running them). |
-| `kse gui [--tray]` | Open the window (or only the tray icon). |
+| `powerclock wake --at TIME` | Turn the computer on at that time (from suspend, or from off if the BIOS allows it). |
+| `powerclock status` | What is running, what comes next, what is being watched, and the next wake-up alarm. |
+| `powerclock cancel [RUN_ID]` | Cancel the countdown in progress; otherwise the quick action running, the next timed one, or the last one waiting for a condition. |
+| `powerclock postpone [10m] [--run RUN_ID]` | Postpone the countdown in progress or the next timed quick action. |
+| `powerclock history [-n 20] [--rule ID]` | Past runs, their result and why. |
+| `powerclock rules list` | Every rule and when it fires next (or what it is watching). |
+| `powerclock rules show ID` | A rule as JSON. |
+| `powerclock rules add FILE.json` | Add the rules in a file (one rule or a list). |
+| `powerclock rules edit ID` | Edit a rule in your `$EDITOR`. |
+| `powerclock rules enable\|disable ID` | Turn a rule on or off (it stays saved). |
+| `powerclock rules run ID` | Run a rule now (its conditions, guards and countdown still apply). |
+| `powerclock rules rm ID` | Delete a rule. |
+| `powerclock rules export [FILE]` / `powerclock rules import FILE [--replace]` | Back up and restore rules. |
+| `powerclock doctor [--json]` | What works on this computer and how to fix what does not. |
+| `powerclock doctor --test-wake 120` | Program a wake-up in N seconds (60–3600) and **suspend now**, then say whether it woke up by itself and what woke it. Asks first and gives 10 seconds to take your hands off. |
+| `powerclock service install [--linger] [--dry-run]` · `uninstall` · `status` | The daemon as a systemd user service. `--linger` keeps it running without a login. |
+| `powerclock helper install [--unattended] [--print]` · `uninstall` | The small root helper that programs the wake alarm (shows the `sudo` commands and asks before running them). |
+| `powerclock gui [--tray]` | Open the window (or only the tray icon). |
 
 ## Rules in detail
 
@@ -354,7 +359,7 @@ rules.
 | `net_below` | `kbps`, `for`, `direction` (`down`, `up`, `both`), `interface` (optional) | When the **average** network traffic over the last `for` is below `kbps` kilobits per second. |
 | `battery` | `below` or `above` (%), `for` (optional) | When the battery level crosses that threshold (held for `for`). |
 | `power_source` | `is` (`ac` or `battery`), `for` (optional) | When the computer is on that power source (held for `for`). |
-| `startup` | `on` (`daemon_start`, `resume`), `delay` | When KSE starts (e.g. at boot) and/or after resuming from sleep, after `delay`. |
+| `startup` | `on` (`daemon_start`, `resume`), `delay` | When PowerClock starts (e.g. at boot) and/or after resuming from sleep, after `delay`. |
 | `manual` | — | Only when run by hand. |
 
 **Triggers that watch a state** (`idle`, `process_exit`, `cpu_below`, `net_below`, `battery`,
@@ -432,37 +437,37 @@ same time, and only one power action (and one countdown) happens at a time.
 ## Turning the computer on and waking it up
 
 Computers have a hardware clock (RTC) with **one** alarm that can wake them from suspend and, if
-the BIOS/UEFI allows it, power them on from off. KSE manages that alarm for you:
+the BIOS/UEFI allows it, power them on from off. PowerClock manages that alarm for you:
 
-- It works out the next wake-up needed by your rules (`"wake": true`, `--wake`, `kse wake`) and
+- It works out the next wake-up needed by your rules (`"wake": true`, `--wake`, `powerclock wake`) and
   programs it **2 minutes early**, so the daemon is ready on time. It reprograms it whenever rules
   change, after each run and right before the computer suspends or shuts down.
 - It never moves an earlier alarm that is not its own, and it leaves its alarm in place when the
   daemon stops (it must still turn the computer on).
-- Writing the alarm needs root, so a **tiny helper** does only that: `kse helper install` copies it
-  to `/usr/local/libexec/kse-helper` with a polkit policy. It asks for your password **once**;
+- Writing the alarm needs root, so a **tiny helper** does only that: `powerclock helper install` copies it
+  to `/usr/local/libexec/powerclock-helper` with a polkit policy. It asks for your password **once**;
   after that wake-ups need no password while you are logged in (even with the screen locked). It
   only accepts "set / clear / read the alarm", validates the time strictly and runs `rtcwake`
   with an absolute path and a clean environment.
 - **Unattended mode** (turn on → run → shut down with nobody logged in):
-  `kse helper install --unattended` adds a polkit rule for your user, and
-  `kse service install --linger` keeps the daemon running without a login.
+  `powerclock helper install --unattended` adds a polkit rule for your user, and
+  `powerclock service install --linger` keeps the daemon running without a login.
 
-**Try it**: `kse doctor --test-wake 120` (or *Test a wake-up in 2 minutes* in Diagnostics)
+**Try it**: `powerclock doctor --test-wake 120` (or *Test a wake-up in 2 minutes* in Diagnostics)
 suspends the computer and checks that it wakes up by itself; it also tells you what woke it if it
 was something else. Things learnt on a Dell Latitude 5480:
 
 - A touchpad or pointing stick can wake a laptop the moment it suspends: keep your hands off
-  during the test (KSE gives you 10 seconds).
+  during the test (PowerClock gives you 10 seconds).
 - Waking from suspend worked out of the box (2 s after the alarm).
 - Powering on from **off** worked too, on AC power, with the BIOS defaults (the kernel was
   starting 14 s after the alarm). Many laptops need AC for this, and some BIOSes need
-  *Power Management → Auto On Time* (Dell) or a similar option; `kse doctor` gives a hint for
+  *Power Management → Auto On Time* (Dell) or a similar option; `powerclock doctor` gives a hint for
   your brand.
 
 ## Conditions and sensors
 
-KSE only reads the sensors your rules use: with no rule watching the CPU, it never reads the CPU.
+PowerClock only reads the sensors your rules use: with no rule watching the CPU, it never reads the CPU.
 
 - **Idle time** comes from the desktop: on Wayland through `ext-idle-notify` (KDE Plasma, Sway,
   Hyprland…), on GNOME through Mutter, otherwise from logind, and on X11 with `xprintidle`. On
@@ -470,24 +475,24 @@ KSE only reads the sensors your rules use: with no rule watching the CPU, it nev
   use", so add a `media_playing` guard to idle rules (as the examples do).
 - **CPU and network** are sampled every 5 seconds; `cpu_below` and `net_below` use the **average**
   of the last `for`, so a 5-second spike does not break a 5-minute average, but real work does.
-  Until KSE has measured the whole `for` (e.g. the first 5 minutes after you create the rule), the
+  Until PowerClock has measured the whole `for` (e.g. the first 5 minutes after you create the rule), the
   value is unknown; a gap in the samples (a suspend) starts the measurement again. `net_below`
   without `interface` adds up the physical interfaces (not `lo`, Docker or virtual bridges); with
   `direction: both`, download + upload.
 - **Programs** are listed every 3 seconds; **battery and AC** every 5; **SSH sessions** every 10.
 - **Media** comes from MPRIS (any player that shows up in your desktop's media controls) and
   **Wi-Fi** from NetworkManager.
-- `kse status` and the window show what each watching rule sees right now.
+- `powerclock status` and the window show what each watching rule sees right now.
 
 ## Safety
 
 - **Nothing turns off without warning**: every power action has a cancellable countdown (unless
-  you set `warning: 0s`), with buttons in a notification and in a window, plus `kse cancel`.
+  you set `warning: 0s`), with buttons in a notification and in a window, plus `powerclock cancel`.
 - **Graceful by default**: on KDE and GNOME, shutting down, restarting and logging out go through
   the session manager so applications can ask to save. `force` is only used when you ask for it.
 - **Dry run** everywhere: per quick action (`--dry-run`), per rule (`"dry_run": true`), for the
-  whole daemon (`kse service install --dry-run`, `"dry_run": true` in `daemon.json`, or
-  `KSE_DRY_RUN=1`). Power actions and alarms are then only logged; the rest still runs.
+  whole daemon (`powerclock service install --dry-run`, `"dry_run": true` in `daemon.json`, or
+  `POWERCLOCK_DRY_RUN=1`). Power actions and alarms are then only logged; the rest still runs.
 - **Guards** prevent acting at a bad moment (a render, a video, an SSH session…).
 - **Least privilege**: the daemon runs as your user. Only the wake helper runs as root, it only
   touches the RTC alarm, and it is installed by you with the exact commands shown first.
@@ -501,13 +506,13 @@ KSE only reads the sensors your rules use: with no rule watching the CPU, it nev
 On a computer without a desktop (a VPS, a home server):
 
 ```bash
-pipx install kse                   # without the window
-kse service install --linger       # the daemon keeps running without anyone logged in
-kse doctor
+pipx install powerclock                   # without the window
+powerclock service install --linger       # the daemon keeps running without anyone logged in
+powerclock doctor
 ```
 
 Everything works from the command line; notifications are skipped. Examples: restart every Sunday
-at 05:00 with a cron rule, restart when a long job finishes (`kse reboot --when-exits
+at 05:00 with a cron rule, restart when a long job finishes (`powerclock reboot --when-exits
 my-job`), run maintenance scripts on a schedule. Waking up from off is usually not available on
 virtual machines.
 
@@ -515,26 +520,26 @@ virtual machines.
 
 | File | What it is |
 |---|---|
-| `~/.config/kse/rules.json` | Your rules (`{"version": 1, "rules": [ … ]}`). You can edit it by hand: the daemon reloads it within 2 seconds. If it has an error, the daemon keeps the last good rules, shows the error in `kse status` and does not write the file until you fix it, so your edit is never lost. |
-| `~/.config/kse/daemon.json` | Daemon settings: `port` (default `47831`), `dry_run` (`false`), `log_level` (`info`). |
-| `~/.config/kse/api.token` | The API's secret token (readable only by you). |
-| `~/.local/share/kse/history.sqlite` | The history of runs. |
-| `~/.config/systemd/user/kse.service` | The user service (`kse service install`). |
-| `~/.local/share/applications/kse.desktop`, `~/.config/autostart/kse-gui.desktop` | Menu entry and login start (Diagnostics tab). |
+| `~/.config/powerclock/rules.json` | Your rules (`{"version": 1, "rules": [ … ]}`). You can edit it by hand: the daemon reloads it within 2 seconds. If it has an error, the daemon keeps the last good rules, shows the error in `powerclock status` and does not write the file until you fix it, so your edit is never lost. |
+| `~/.config/powerclock/daemon.json` | Daemon settings: `port` (default `47831`), `dry_run` (`false`), `log_level` (`info`). |
+| `~/.config/powerclock/api.token` | The API's secret token (readable only by you). |
+| `~/.local/share/powerclock/history.sqlite` | The history of runs. |
+| `~/.config/systemd/user/powerclock.service` | The user service (`powerclock service install`). |
+| `~/.local/share/applications/powerclock.desktop`, `~/.config/autostart/powerclock-gui.desktop` | Menu entry and login start (Diagnostics tab). |
 
-Environment variables: `KSE_DRY_RUN=1` (dry run), `KSE_HOME=/some/dir` (keep every file in one
-folder, handy to experiment without touching your rules) and `KSE_BACKEND=fake` (a simulated
+Environment variables: `POWERCLOCK_DRY_RUN=1` (dry run), `POWERCLOCK_HOME=/some/dir` (keep every file in one
+folder, handy to experiment without touching your rules) and `POWERCLOCK_BACKEND=fake` (a simulated
 computer, used by the tests).
 
-Logs: `journalctl --user -u kse -f`.
+Logs: `journalctl --user -u powerclock -f`.
 
 ## The local API
 
-Other programs can drive KSE through its HTTP API on `http://127.0.0.1:47831` with the header
-`Authorization: Bearer <token>` (the token is in `~/.config/kse/api.token`).
+Other programs can drive PowerClock through its HTTP API on `http://127.0.0.1:47831` with the header
+`Authorization: Bearer <token>` (the token is in `~/.config/powerclock/api.token`).
 
 ```bash
-TOKEN=$(cat ~/.config/kse/api.token)
+TOKEN=$(cat ~/.config/powerclock/api.token)
 curl -s -H "Authorization: Bearer $TOKEN" http://127.0.0.1:47831/pending
 curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
      -d '{"action": "suspend", "in": "30m"}' http://127.0.0.1:47831/quick
@@ -553,56 +558,56 @@ curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
 | POST | `/runs/{id}/cancel` · `/cancel` | Cancel a run · the current countdown or next quick action. |
 | POST | `/runs/{id}/postpone` · `/postpone` | Postpone (`{"delay": "10m"}`). |
 | GET | `/history?limit=&offset=&rule_id=` | Past runs. |
-| GET | `/capabilities` | The `kse doctor` report. |
+| GET | `/capabilities` | The `powerclock doctor` report. |
 | GET | `/schema/rule` | The JSON Schema of a rule. |
 | WebSocket | `/events` | Live events: `run_started`, `warning_started`, `tick`, `postponed`, `cancelled`, `run_finished`, `rule_changed`, `wake_changed` (the token can also go in `?token=`). |
 
 ## Troubleshooting
 
-- **"The kse daemon is not running"** — `kse service install` (or `kse service status`; logs:
-  `journalctl --user -u kse`). To try it in the foreground: `KSE_DRY_RUN=1 kse-daemon`.
-- **A power action does nothing** — `kse doctor`: each `power.*` line says whether your system
+- **"The powerclock daemon is not running"** — `powerclock service install` (or `powerclock service status`; logs:
+  `journalctl --user -u powerclock`). To try it in the foreground: `POWERCLOCK_DRY_RUN=1 powerclock-daemon`.
+- **A power action does nothing** — `powerclock doctor`: each `power.*` line says whether your system
   allows it (e.g. hibernation needs swap and `resume=`). If a rule has `dry_run` or the daemon runs
-  in dry run, `kse status` says so.
-- **Applications are not asked to save** — `kse doctor` → `power.graceful` shows the method found
+  in dry run, `powerclock status` says so.
+- **Applications are not asked to save** — `powerclock doctor` → `power.graceful` shows the method found
   (KDE's `org.kde.Shutdown`, GNOME's `gnome-session-quit`); without one, logind is used directly.
-- **The computer does not wake up** — run `kse doctor --test-wake 120` and read what woke it (or
-  that it did not suspend). Check `wake.helper` and `wake.authorized` in `kse doctor`; from off,
+- **The computer does not wake up** — run `powerclock doctor --test-wake 120` and read what woke it (or
+  that it did not suspend). Check `wake.helper` and `wake.authorized` in `powerclock doctor`; from off,
   check the BIOS option and use AC power.
 - **It woke up right after suspending** — a touchpad, pointing stick, mouse or keyboard set as a
-  wake-up device; `kse doctor --test-wake` names it.
-- **An idle or CPU rule never fires** — look at `kse status` (*Watching*): it shows what the sensor
+  wake-up device; `powerclock doctor --test-wake` names it.
+- **An idle or CPU rule never fires** — look at `powerclock status` (*Watching*): it shows what the sensor
   reads and how much of the `for` has been measured. If idle time is "unknown", your desktop does
   not expose it (see [Conditions and sensors](#conditions-and-sensors)).
-- **`--when-exits` does nothing** — KSE waits until it sees the program running (`kse status`
+- **`--when-exits` does nothing** — PowerClock waits until it sees the program running (`powerclock status`
   says "not running yet"). Check the exact process name with `ps -e`.
 - **No tray icon on GNOME** — install/enable the *AppIndicator and KStatusNotifierItem Support*
   extension, or use the window.
-- **My hand edit of `rules.json` is ignored** — `kse status` shows the error; fix it and the
+- **My hand edit of `rules.json` is ignored** — `powerclock status` shows the error; fix it and the
   daemon loads it within 2 seconds.
 
 ### Native look on KDE
 
-With pipx, KSE brings its own copy of Qt, which cannot load KDE's Breeze style, so controls are
+With pipx, PowerClock brings its own copy of Qt, which cannot load KDE's Breeze style, so controls are
 drawn with Qt's *Fusion* style (colours, icons and dark mode still follow Plasma). For the exact
 Breeze look, use your system's Qt:
 
 ```bash
 sudo apt install python3-pyside6.qtwidgets python3-pyside6.qtnetwork python3-qasync qt6-svg-plugins
-pipx install --system-site-packages kse    # without [gui]
+pipx install --system-site-packages powerclock    # without [gui]
 ```
 
 ## Uninstalling
 
 ```bash
-kse helper uninstall      # clears the alarm and removes the helper (asks for your password)
-kse service uninstall     # stops and removes the service (keeps rules and history)
-pipx uninstall kse
-rm -r ~/.config/kse ~/.local/share/kse    # only if you also want to delete rules and history
+powerclock helper uninstall      # clears the alarm and removes the helper (asks for your password)
+powerclock service uninstall     # stops and removes the service (keeps rules and history)
+pipx uninstall powerclock
+rm -r ~/.config/powerclock ~/.local/share/powerclock    # only if you also want to delete rules and history
 ```
 
 Untick the menu and login options in the Diagnostics tab before uninstalling, or delete
-`~/.local/share/applications/kse.desktop` and `~/.config/autostart/kse-gui.desktop`.
+`~/.local/share/applications/powerclock.desktop` and `~/.config/autostart/powerclock-gui.desktop`.
 
 ## Development
 
@@ -610,15 +615,15 @@ Untick the menu and login options in the Diagnostics tab before uninstalling, or
 uv sync --all-extras                     # everything, including the GUI and the dev tools
 uv run pytest                            # tests (never touch the real system)
 uv run ruff check --fix . && uv run ruff format .
-KSE_DRY_RUN=1 uv run kse-daemon --foreground    # a daemon that turns nothing off
-uv run kse-gui
+POWERCLOCK_DRY_RUN=1 uv run powerclock-daemon --foreground    # a daemon that turns nothing off
+uv run powerclock-gui
 uv run python scripts/i18n.py update     # new texts into the translation catalogues
 uv run python scripts/i18n.py compile
 uv run python scripts/screenshots.py     # regenerate the README images
 ```
 
 The design is described in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and the plan in
-[docs/ROADMAP.md](docs/ROADMAP.md). The code is in `src/kse/`: `models.py` (rules; the source of
+[docs/ROADMAP.md](docs/ROADMAP.md). The code is in `src/powerclock/`: `models.py` (rules; the source of
 truth, also for the JSON Schema), `engine/` (scheduler, watcher of states, evaluator, executor,
 wake planner), `sensors/`, `daemon/` (API, storage), `cli/`, `gui/` and `platform/linux/`
 (everything specific to Linux). Tests run against a simulated computer and a fake clock; the few
@@ -635,5 +640,5 @@ that read the real system are marked `real` and skipped by default.
 
 ## License
 
-[GPL-3.0-or-later](LICENSE). KSE is free software: you can use, study, share and improve it; if
+[GPL-3.0-or-later](LICENSE). PowerClock is free software: you can use, study, share and improve it; if
 you distribute a modified version, it must stay free under the same license.

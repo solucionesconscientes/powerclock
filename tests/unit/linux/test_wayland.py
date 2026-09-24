@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from fakewayland import FakeCompositor
-from kse.platform.linux.wayland import IdleMonitor, WaylandError, find_socket
+from powerclock.platform.linux.wayland import IdleMonitor, WaylandError, find_socket
 
 FULL = {"wl_compositor": 6, "wl_seat": 10, "ext_idle_notifier_v1": 2}
 

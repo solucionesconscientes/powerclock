@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pytest
 
-from kse.daemon.events import EventHub
-from kse.daemon.store import History, RulesFileError, RuleStore, parse_rules
-from kse.engine.runs import Event, Run
+from powerclock.daemon.events import EventHub
+from powerclock.daemon.store import History, RulesFileError, RuleStore, parse_rules
+from powerclock.engine.runs import Event, Run
 from support import START, rule
 
 

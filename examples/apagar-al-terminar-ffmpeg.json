@@ -3,7 +3,7 @@
   "name": "Apagar cuando ffmpeg termine el render",
   "trigger": {"type": "process_exit", "name": "ffmpeg"},
   "actions": [
-    {"type": "notify", "title": "KSE", "body": "ffmpeg ha terminado: apagando el equipo"},
+    {"type": "notify", "title": "PowerClock", "body": "ffmpeg ha terminado: apagando el equipo"},
     {"type": "power", "action": "shutdown", "mode": "graceful"}
   ],
   "warning": "2m",

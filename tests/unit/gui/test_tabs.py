@@ -11,22 +11,22 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from guisupport import pump
-from kse.daemon.core import Daemon
-from kse.doctor import WakeTest
-from kse.engine.clock import FakeClock
-from kse.gui.client import DaemonLink
-from kse.gui.controller import Controller
-from kse.gui.diagnostics import DiagnosticsTab, HandsOffDialog, HelperDialog
-from kse.gui.history import HistoryTab
-from kse.gui.rules import RulesTab
-from kse.gui.window import MainWindow
-from kse.platform.linux import helper
+from powerclock.daemon.core import Daemon
+from powerclock.doctor import WakeTest
+from powerclock.engine.clock import FakeClock
+from powerclock.gui.client import DaemonLink
+from powerclock.gui.controller import Controller
+from powerclock.gui.diagnostics import DiagnosticsTab, HandsOffDialog, HelperDialog
+from powerclock.gui.history import HistoryTab
+from powerclock.gui.rules import RulesTab
+from powerclock.gui.window import MainWindow
+from powerclock.platform.linux import helper
 
 RULE = {
     "id": "backup",
     "name": "Backup",
     "trigger": {"type": "cron", "expr": "0 3 * * *"},
-    "actions": [{"type": "notify", "title": "KSE"}],
+    "actions": [{"type": "notify", "title": "PowerClock"}],
 }
 
 
@@ -167,7 +167,7 @@ async def test_capabilities_and_status(link: DaemonLink) -> None:
     await pump()
     assert tab.table.rowCount() > 5
     assert tab.table.item(0, 0).text() == "✔ power.shutdown"
-    assert "kse " in tab.daemon.text()
+    assert "powerclock " in tab.daemon.text()
     assert tab.alarm.text() == "No wake-up alarm programmed."
     assert tab.start_service.isHidden()
 
@@ -196,7 +196,9 @@ async def test_start_the_service(link: DaemonLink, monkeypatch: pytest.MonkeyPat
     assert "starts now and every time you log in" in box.text()
     answer(box, QMessageBox.StandardButton.Yes)
     await pump()
-    assert missing.calls == [("install", True)]  # KSE_DRY_RUN=1 in the tests: a dry-run service
+    assert missing.calls == [
+        ("install", True)
+    ]  # POWERCLOCK_DRY_RUN=1 in the tests: a dry-run service
 
 
 async def test_helper_dialog_shows_and_runs_the_commands(link: DaemonLink, tmp_path: Path) -> None:
@@ -209,9 +211,9 @@ async def test_helper_dialog_shows_and_runs_the_commands(link: DaemonLink, tmp_p
     dialog = HelperDialog(helper, elevate)
     text = dialog.commands.toPlainText()
     assert "sudo install" in text
-    assert "/usr/local/libexec/kse-helper" in text
+    assert "/usr/local/libexec/powerclock-helper" in text
     dialog.unattended.setChecked(True)
-    assert "50-kse-unattended.rules" in dialog.commands.toPlainText()
+    assert "50-powerclock-unattended.rules" in dialog.commands.toPlainText()
     dialog.install()
     await pump()
     [command] = ran
@@ -239,7 +241,7 @@ async def test_wake_test_in_dry_run_does_nothing(link: DaemonLink) -> None:
 async def test_wake_test_asks_counts_down_and_reports(
     link: DaemonLink, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.delenv("KSE_DRY_RUN")
+    monkeypatch.delenv("POWERCLOCK_DRY_RUN")
     alarm = datetime(2026, 9, 24, 10, 2, tzinfo=UTC)
 
     async def tester(announce: Any) -> WakeTest:
@@ -278,7 +280,7 @@ async def test_window_tabs_and_offline_banner(link: DaemonLink) -> None:
     assert window.tabs.currentWidget() is window.history
     link._offline("gone")
     assert not window.banner.isHidden()
-    assert window.statusBar().currentMessage() == "The KSE daemon is not running"
+    assert window.statusBar().currentMessage() == "The PowerClock daemon is not running"
     window.close()
 
 

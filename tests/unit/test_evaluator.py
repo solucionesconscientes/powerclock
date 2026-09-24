@@ -4,10 +4,10 @@ from typing import Any
 import pytest
 from pydantic import TypeAdapter
 
-from kse.engine.clock import FakeClock
-from kse.engine.evaluator import Evaluator
-from kse.models import Predicate
-from kse.sensors.fake import FakeSensors
+from powerclock.engine.clock import FakeClock
+from powerclock.engine.evaluator import Evaluator
+from powerclock.models import Predicate
+from powerclock.sensors.fake import FakeSensors
 from support import MADRID
 
 PREDICATE = TypeAdapter(Predicate)

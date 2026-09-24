@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from typing import Any
 
-from kse.gui.summary import quick_items, summarize, when_text
+from powerclock.gui.summary import quick_items, summarize, when_text
 
 NOW = datetime(2026, 9, 24, 8, 0, tzinfo=UTC)
 

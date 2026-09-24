@@ -4,8 +4,8 @@ from datetime import UTC, datetime
 import pytest
 
 from fakebus import LOGIND, MANAGER, MANAGER_PATH, SESSION_PATH, FakeBus, kde_laptop
-from kse.platform.base import NotSupported, PowerAction, PowerEvent
-from kse.platform.linux.logind import Logind
+from powerclock.platform.base import NotSupported, PowerAction, PowerEvent
+from powerclock.platform.linux.logind import Logind
 
 
 @pytest.fixture
@@ -69,7 +69,7 @@ async def test_inhibitor_releases_its_file_descriptor(logind: Logind, system: Fa
     system.on(LOGIND, MANAGER_PATH, MANAGER, "Inhibit", [write_end])
     async with logind.inhibitor("shutdown:sleep", "testing"):
         os.fstat(write_end)  # still open
-    assert system.called("Inhibit") == [["shutdown:sleep", "kse", "testing", "delay"]]
+    assert system.called("Inhibit") == [["shutdown:sleep", "powerclock", "testing", "delay"]]
     with pytest.raises(OSError, match="Bad file descriptor"):
         os.fstat(write_end)
 

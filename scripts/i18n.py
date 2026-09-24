@@ -1,10 +1,11 @@
-"""Translations of kse (stdlib only; no gettext tools needed).
+"""Translations of powerclock (stdlib only; no gettext tools needed).
 
     uv run python scripts/i18n.py update    # new texts from the code into every .po
-    uv run python scripts/i18n.py compile   # .po → .mo (the files kse loads)
+    uv run python scripts/i18n.py compile   # .po → .mo (the files powerclock loads)
 
-Texts are the literal arguments of `_()` calls under src/kse. Each language lives in
-src/kse/locale/<lang>/LC_MESSAGES/kse.po; the .mo next to it is generated and committed.
+Texts are the literal arguments of `_()` calls under src/powerclock. Each language lives in
+src/powerclock/locale/<lang>/LC_MESSAGES/powerclock.po; the .mo next to it is generated and
+committed.
 """
 
 import ast
@@ -13,13 +14,13 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "src" / "kse"
+SOURCE = ROOT / "src" / "powerclock"
 LOCALE = SOURCE / "locale"
-DOMAIN = "kse"
+DOMAIN = "powerclock"
 
 
 def extract(source: Path = SOURCE) -> dict[str, list[str]]:
-    """msgid → where it is used ("kse/gui/tray.py:42")."""
+    """msgid → where it is used ("powerclock/gui/tray.py:42")."""
     found: dict[str, list[str]] = {}
     for file in sorted(source.rglob("*.py")):
         tree = ast.parse(file.read_text(encoding="utf-8"), str(file))

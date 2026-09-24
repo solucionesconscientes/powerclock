@@ -3,10 +3,10 @@ import asyncio
 import pytest
 
 from fakebus import NM, NOTIFICATIONS, FakeBus, kde_laptop
-from kse.engine.clock import settle
-from kse.platform.base import NotSupported
-from kse.platform.linux.network import wifi_ssid
-from kse.platform.linux.notify import Notifier
+from powerclock.engine.clock import settle
+from powerclock.platform.base import NotSupported
+from powerclock.platform.linux.network import wifi_ssid
+from powerclock.platform.linux.notify import Notifier
 
 BUTTONS = {"cancel": "Cancel", "postpone": "Postpone 10 min"}
 
@@ -17,15 +17,15 @@ def session() -> FakeBus:
 
 
 async def test_plain_notification(session: FakeBus) -> None:
-    assert await Notifier(session).notify("KSE", "hola") is None
+    assert await Notifier(session).notify("PowerClock", "hola") is None
     [[app, replaces, icon, title, body, actions, hints, expire]] = session.called("Notify")
-    assert (app, replaces, icon) == ("KSE", 0, "")
-    assert (title, body, actions, hints, expire) == ("KSE", "hola", [], {}, -1)
+    assert (app, replaces, icon) == ("PowerClock", 0, "")
+    assert (title, body, actions, hints, expire) == ("PowerClock", "hola", [], {}, -1)
 
 
 async def test_button_answer(session: FakeBus) -> None:
     notifier = Notifier(session)
-    answer = asyncio.create_task(notifier.notify("KSE", "Shut down in 60 s", BUTTONS))
+    answer = asyncio.create_task(notifier.notify("PowerClock", "Shut down in 60 s", BUTTONS))
     await settle()
     [[*_, actions, hints, expire]] = session.called("Notify")
     assert actions == ["cancel", "Cancel", "postpone", "Postpone 10 min"]
@@ -38,14 +38,14 @@ async def test_button_answer(session: FakeBus) -> None:
 
 
 async def test_closed_without_answer(session: FakeBus) -> None:
-    answer = asyncio.create_task(Notifier(session).notify("KSE", "x", BUTTONS))
+    answer = asyncio.create_task(Notifier(session).notify("PowerClock", "x", BUTTONS))
     await settle()
     await session.emit(NOTIFICATIONS, "NotificationClosed", [42, 2])
     assert await answer is None
 
 
 async def test_cancelling_removes_the_notification(session: FakeBus) -> None:
-    answer = asyncio.create_task(Notifier(session).notify("KSE", "x", BUTTONS))
+    answer = asyncio.create_task(Notifier(session).notify("PowerClock", "x", BUTTONS))
     await settle()
     answer.cancel()
     with pytest.raises(asyncio.CancelledError):
@@ -59,7 +59,7 @@ async def test_server_information(session: FakeBus) -> None:
 
 async def test_no_notification_server() -> None:
     with pytest.raises(NotSupported, match="no notification server"):
-        await Notifier(FakeBus()).notify("KSE", "x")
+        await Notifier(FakeBus()).notify("PowerClock", "x")
 
 
 async def test_wifi_ssid() -> None:

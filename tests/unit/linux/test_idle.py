@@ -6,9 +6,9 @@ import pytest
 
 from fakebus import LOGIND, MANAGER, MANAGER_PATH, FakeBus, FakeCommands, kde_laptop
 from fakewayland import FakeCompositor
-from kse.platform.linux.idle import GNOME, WAYLAND, XPRINTIDLE, IdleProbe
-from kse.platform.linux.idle import LOGIND as LOGIND_STRATEGY
-from kse.platform.linux.logind import Logind
+from powerclock.platform.linux.idle import GNOME, WAYLAND, XPRINTIDLE, IdleProbe
+from powerclock.platform.linux.idle import LOGIND as LOGIND_STRATEGY
+from powerclock.platform.linux.logind import Logind
 
 MUTTER = "org.gnome.Mutter.IdleMonitor"
 

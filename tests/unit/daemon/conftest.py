@@ -4,11 +4,11 @@ from pathlib import Path
 import httpx
 import pytest
 
-from kse.config import Paths
-from kse.daemon.core import Daemon
-from kse.engine.clock import FakeClock
-from kse.platform.fake import FakePlatform
-from kse.sensors.fake import FakeReadings
+from powerclock.config import Paths
+from powerclock.daemon.core import Daemon
+from powerclock.engine.clock import FakeClock
+from powerclock.platform.fake import FakePlatform
+from powerclock.sensors.fake import FakeReadings
 from support import MADRID
 
 MakeDaemon = Callable[..., Awaitable[Daemon]]
@@ -48,7 +48,7 @@ async def daemon(make_daemon: MakeDaemon, fake: FakePlatform) -> Daemon:
 async def http(daemon: Daemon) -> AsyncIterator[httpx.AsyncClient]:
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=daemon.app),
-        base_url="http://kse",
+        base_url="http://powerclock",
         headers={"Authorization": f"Bearer {daemon.token}"},
     ) as client:
         yield client

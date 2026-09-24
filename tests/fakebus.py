@@ -4,7 +4,7 @@ import inspect
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
-from kse.platform.linux.dbus import DBUS, PROPERTIES, DBusError, SignalCallback
+from powerclock.platform.linux.dbus import DBUS, PROPERTIES, DBusError, SignalCallback
 
 Key = tuple[str, str, str, str]
 LOGIND = "org.freedesktop.login1"

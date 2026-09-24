@@ -4,12 +4,12 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from kse.engine import Engine
-from kse.engine.clock import FakeClock, settle
-from kse.engine.runs import Event
-from kse.engine.wake import WakePlanner
-from kse.platform.base import NotSupported, PowerEvent
-from kse.platform.fake import FakePlatform
+from powerclock.engine import Engine
+from powerclock.engine.clock import FakeClock, settle
+from powerclock.engine.runs import Event
+from powerclock.engine.wake import WakePlanner
+from powerclock.platform.base import NotSupported, PowerEvent
+from powerclock.platform.fake import FakePlatform
 from support import MADRID, START, rule
 
 
@@ -84,7 +84,7 @@ async def test_clears_only_its_own_alarm(
 async def test_keeps_an_earlier_foreign_alarm(
     planner: WakePlanner, fake: FakePlatform, times: Times
 ) -> None:
-    fake.wake = START + timedelta(minutes=2)  # kse doctor --test-wake
+    fake.wake = START + timedelta(minutes=2)  # powerclock doctor --test-wake
     times.values = [START + timedelta(hours=1)]
     await planner.sync()
     assert fake.wake == START + timedelta(minutes=2)
@@ -98,13 +98,15 @@ async def test_errors_are_kept_and_retried(
     planner: WakePlanner, fake: FakePlatform, times: Times, events: list[Event]
 ) -> None:
     async def refuse(when: datetime) -> None:
-        raise NotSupported("wake", "kse-helper is not installed", fix_hint="kse helper install")
+        raise NotSupported(
+            "wake", "powerclock-helper is not installed", fix_hint="powerclock helper install"
+        )
 
     original = fake.wake_set
     fake.wake_set = refuse  # type: ignore[method-assign]
     times.values = [START + timedelta(hours=1)]
     await planner.sync()
-    assert planner.error == "wake: kse-helper is not installed (kse helper install)"
+    assert planner.error == "wake: powerclock-helper is not installed (powerclock helper install)"
     assert planner.target is None
     assert events[-1].data["error"] == planner.error
     fake.wake_set = original  # type: ignore[method-assign]

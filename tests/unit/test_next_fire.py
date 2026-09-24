@@ -2,8 +2,8 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from kse.engine.scheduler import next_fire
-from kse.models import AtTrigger, CountdownTrigger, CronTrigger, Idle, ManualTrigger
+from powerclock.engine.scheduler import next_fire
+from powerclock.models import AtTrigger, CountdownTrigger, CronTrigger, Idle, ManualTrigger
 from support import MADRID, START
 
 

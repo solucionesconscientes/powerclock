@@ -8,12 +8,12 @@ from typing import Any
 import httpx
 import pytest
 
-from kse.config import Paths
-from kse.daemon.core import Daemon
-from kse.daemon.store import History
-from kse.engine.clock import FakeClock, settle
-from kse.platform.base import PowerAction
-from kse.platform.fake import FakePlatform
+from powerclock.config import Paths
+from powerclock.daemon.core import Daemon
+from powerclock.daemon.store import History
+from powerclock.engine.clock import FakeClock, settle
+from powerclock.platform.base import PowerAction
+from powerclock.platform.fake import FakePlatform
 from support import MADRID, START
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -26,7 +26,7 @@ def a_rule(**fields: Any) -> dict[str, Any]:
         "id": "test",
         "name": "Test",
         "trigger": {"type": "manual"},
-        "actions": [{"type": "notify", "title": "KSE"}],
+        "actions": [{"type": "notify", "title": "PowerClock"}],
         **fields,
     }
 
@@ -47,7 +47,7 @@ async def runs(http: httpx.AsyncClient, **params: Any) -> list[dict[str, Any]]:
 async def test_a_valid_token_is_required(daemon: Daemon, header: str | None) -> None:
     headers = {"Authorization": header} if header else {}
     async with httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=daemon.app), base_url="http://kse", headers=headers
+        transport=httpx.ASGITransport(app=daemon.app), base_url="http://powerclock", headers=headers
     ) as client:
         response = await client.get("/rules")
     assert response.status_code == 401
@@ -261,7 +261,7 @@ async def test_dry_run_daemon(make_daemon: Any, fake: FakePlatform) -> None:
     daemon = await make_daemon(dry_run=True)
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=daemon.app),
-        base_url="http://kse",
+        base_url="http://powerclock",
         headers={"Authorization": f"Bearer {daemon.token}"},
     ) as http:
         assert (await http.get("/health")).json()["dry_run"] is True
@@ -384,13 +384,15 @@ async def test_wake_to_run_a_program(http: httpx.AsyncClient, fake: FakePlatform
 
 async def test_wake_errors_are_visible(http: httpx.AsyncClient, fake: FakePlatform) -> None:
     async def refuse(when: datetime) -> None:
-        from kse.platform.base import NotSupported
+        from powerclock.platform.base import NotSupported
 
-        raise NotSupported("wake", "kse-helper is not installed", fix_hint="kse helper install")
+        raise NotSupported(
+            "wake", "powerclock-helper is not installed", fix_hint="powerclock helper install"
+        )
 
     fake.wake_set = refuse  # type: ignore[method-assign]
     await http.post("/wake", json={"at": "07:30"})
     await settle()
     wake = (await http.get("/pending")).json()["wake"]
     assert wake["at"] is None
-    assert "kse helper install" in wake["error"]
+    assert "powerclock helper install" in wake["error"]

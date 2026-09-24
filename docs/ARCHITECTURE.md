@@ -1,4 +1,4 @@
-# Arquitectura — KShutdown Evolution (nombre de trabajo · paquete `kse`)
+# Arquitectura — PowerClock (paquete `powerclock`)
 
 ## 1. Objetivo y principios
 App multiplataforma (Linux → Windows → macOS) para automatizar energía y tareas: apagar, suspender, hibernar, **encender/despertar**, y ejecutar programas o scripts por hora o por condición. Las reglas son persistentes y funcionan aunque la GUI esté cerrada.
@@ -7,19 +7,19 @@ App multiplataforma (Linux → Windows → macOS) para automatizar energía y ta
 2. Demonio de usuario persistente; GUI, CLI y control remoto son clientes.
 3. Privilegios mínimos: el demonio NUNCA corre como root; solo un helper diminuto con operaciones en lista blanca.
 4. Seguro por defecto: cuenta atrás cancelable antes de acciones de energía, modo graceful, dry-run, guardas anti pérdida de datos.
-5. Honesto con el hardware: `kse doctor` detecta qué funciona, qué no y cómo arreglarlo.
+5. Honesto con el hardware: `powerclock doctor` detecta qué funciona, qué no y cómo arreglarlo.
 6. Sencillo para el 80 %: modo rápido estilo KShutdown; reglas avanzadas para el resto.
 
 ## 2. Componentes
 ```
    ┌──────────┐   ┌──────────┐   ┌────────────────────┐
-   │ kse-gui  │   │ kse CLI  │   │ remoto (fase 5)    │
+   │ powerclock-gui  │   │ powerclock CLI  │   │ remoto (fase 5)    │
    │ PySide6  │   │ typer    │   │ Telegram / web     │
    └────┬─────┘   └────┬─────┘   └─────────┬──────────┘
         └──── HTTP + WebSocket 127.0.0.1 + token ────┘
                           │
              ┌────────────▼────────────┐
-             │       kse-daemon         │  usuario · asyncio
+             │       powerclock-daemon         │  usuario · asyncio
              │ API · Store · Scheduler  │
              │ Sensors · Evaluator      │
              │ Executor · WakePlanner   │
@@ -29,16 +29,16 @@ App multiplataforma (Linux → Windows → macOS) para automatizar energía y ta
    linux/        windows/        macos/         fake/
  logind D-Bus   Win32/schtasks  pmset/osascript  (tests)
      │                              │
- kse-helper (root, polkit)      kse-helper (LaunchDaemon)
+ powerclock-helper (root, polkit)      powerclock-helper (LaunchDaemon)
  solo: wake set/clear/get       solo: pmset schedule
 ```
 
 | Componente | Qué es |
 |---|---|
-| `kse-daemon` | Servicio de usuario (systemd --user / tarea al iniciar sesión / LaunchAgent). Tiene todo el estado. |
-| `kse` | CLI: acciones rápidas, gestión de reglas, `doctor`, instalación de servicio y helper. |
-| `kse-gui` | Bandeja + ventana. Cliente del API. Muestra la cuenta atrás. |
-| `kse-helper` | Script stdlib que corre como root. Solo `wake-set <epoch>`, `wake-clear`, `wake-get`. |
+| `powerclock-daemon` | Servicio de usuario (systemd --user / tarea al iniciar sesión / LaunchAgent). Tiene todo el estado. |
+| `powerclock` | CLI: acciones rápidas, gestión de reglas, `doctor`, instalación de servicio y helper. |
+| `powerclock-gui` | Bandeja + ventana. Cliente del API. Muestra la cuenta atrás. |
+| `powerclock-helper` | Script stdlib que corre como root. Solo `wake-set <epoch>`, `wake-clear`, `wake-get`. |
 
 ## 3. Stack y dependencias permitidas
 - Python ≥ 3.11 · `pyproject.toml` + hatchling · layout `src/` · desarrollo con `uv`.
@@ -47,7 +47,7 @@ App multiplataforma (Linux → Windows → macOS) para automatizar energía y ta
 - Solo Windows (fase 3): `pywin32`.
 - Extra `[gui]`: `PySide6-Essentials` (QtCore/Gui/Widgets/Network/Svg…, sin los Addons: 236 MB en disco en vez de 674 MB) y `qasync`. La GUI habla con el API como la CLI: `httpx` (async) y `websockets` para `/events`; nada de QtWebSockets (está en los Addons).
 - Dev (grupo `dev` de uv; no es un extra publicado): `pytest`, `pytest-asyncio`, `ruff`, `time-machine`.
-- Entry points: `kse`, `kse-daemon` y `kse-gui` (este en `[project.gui-scripts]`: en Windows se lanza sin ventana de consola).
+- Entry points: `powerclock`, `powerclock-daemon` y `powerclock-gui` (este en `[project.gui-scripts]`: en Windows se lanza sin ventana de consola).
 - Licencia: GPL-3.0-or-later (decidida el 24-09-2026; texto en `LICENSE`).
 
 ## 4. Modelo de reglas
@@ -73,7 +73,7 @@ Regla = disparador + condiciones + guardas + acciones (secuencia) + opciones. Du
   "actions": [
     {"type": "run", "cmd": ["/home/pc/bin/backup.sh"], "timeout": "2h", "wait": true},
     {"type": "wait_until", "condition": {"type": "net_below", "kbps": 50, "for": "5m"}, "timeout": "1h"},
-    {"type": "notify", "title": "KSE", "body": "Backup terminado"},
+    {"type": "notify", "title": "PowerClock", "body": "Backup terminado"},
     {"type": "power", "action": "shutdown", "mode": "graceful"}
   ],
   "warning": "60s",
@@ -104,7 +104,7 @@ Los disparadores de estado llevan `for` (condición sostenida N tiempo), p. ej. 
 
 **Acciones**: `power` (`shutdown|reboot|suspend|hibernate|hybrid_sleep|lock|logout|screen_off`, `mode: graceful|force`) · `run` (`cmd` lista, `cwd`, `env`, `shell` false por defecto, `timeout`, `wait`) · `open` (archivo/URL) · `close_app` (término limpio y kill tras timeout) · `notify` · `wait` · `wait_until` · `set_wake` (absoluto/relativo) · más adelante `webhook`, `telegram`.
 
-**Detalles fijados en M1** (referencia completa: el JSON Schema de `GET /schema/rule`, generado desde `src/kse/models.py`):
+**Detalles fijados en M1** (referencia completa: el JSON Schema de `GET /schema/rule`, generado desde `src/powerclock/models.py`):
 - Todo objeto rechaza campos desconocidos: una errata en `rules.json` da error en vez de ignorarse.
 - `id`: `[a-z0-9][a-z0-9_-]*` (máx. 64). Duraciones compuestas en orden d→h→m→s (`"1h30m"`), resolución 1 s.
 - Instantes (`at.when`, `set_wake.when`, `countdown.armed_at`) en ISO 8601 **con zona**: `"2026-09-24T07:30:00+02:00"`.
@@ -118,8 +118,8 @@ Los disparadores de estado llevan `for` (condición sostenida N tiempo), p. ej. 
 - `startup`: `on` (`daemon_start`, `resume`) y `delay`. `time_window`: `start`/`end` como `"22:00"`, cruza medianoche si start > end. `weekday.days`: `mon…sun`.
 - `run` con `shell: true` → `cmd` es una única línea de comando; `timeout` solo con `wait: true`.
 
-**Almacenamiento** (`platformdirs`; `KSE_HOME` lo concentra todo en un directorio, útil para tests y pruebas aisladas): `rules.json` en user_config_dir (`{"version": 1, "rules": [...]}`, editable a mano, validado al cargar, escritura atómica 0600, recarga en caliente cada 2 s) · `history.sqlite` en user_data_dir (0600; también guarda la última marca de vida del demonio, cada 60 s, para detectar disparos perdidos mientras estuvo parado) · `daemon.json` (`port`, `dry_run`, `log_level`) · `api.token` (0600).
-- Si `rules.json` tiene **cualquier** error (JSON roto, regla inválida, id duplicado): al arrancar se cargan las reglas válidas; en una recarga siguen funcionando las anteriores; en ambos casos el demonio **no escribe** el archivo hasta que se corrija (las escrituras del API responden 409), para no perder nunca una edición a mano. Los errores aparecen en `/health` y `kse status`.
+**Almacenamiento** (`platformdirs`; `POWERCLOCK_HOME` lo concentra todo en un directorio, útil para tests y pruebas aisladas): `rules.json` en user_config_dir (`{"version": 1, "rules": [...]}`, editable a mano, validado al cargar, escritura atómica 0600, recarga en caliente cada 2 s) · `history.sqlite` en user_data_dir (0600; también guarda la última marca de vida del demonio, cada 60 s, para detectar disparos perdidos mientras estuvo parado) · `daemon.json` (`port`, `dry_run`, `log_level`) · `api.token` (0600).
+- Si `rules.json` tiene **cualquier** error (JSON roto, regla inválida, id duplicado): al arrancar se cargan las reglas válidas; en una recarga siguen funcionando las anteriores; en ambos casos el demonio **no escribe** el archivo hasta que se corrija (las escrituras del API responden 409), para no perder nunca una edición a mano. Los errores aparecen en `/health` y `powerclock status`.
 
 ## 5. Motor
 - **Scheduler**: bucle asyncio. Los disparadores de tiempo calculan `next_fire` (croniter + zoneinfo). Duerme hasta el más cercano, como mucho 30 s, para resincronizar tras suspensiones, saltos de reloj y cambios de horario.
@@ -130,22 +130,22 @@ Los disparadores de estado llevan `for` (condición sostenida N tiempo), p. ej. 
 - **Executor**: cada ejecución es un `Run` (id, estado: `warning|running|waiting|done|failed|cancelled|skipped|postponed`, pasos con su resultado y motivo), cancelable por API. Solo una acción de energía activa a la vez (la segunda espera en `waiting`), así "la cuenta atrás actual" está siempre bien definida. Durante la cuenta atrás, notificación con botones Cancelar / Posponer 10 min. `notify` es de mejor esfuerzo: sin escritorio queda como skip, no como fallo. `run` guarda los últimos 4000 caracteres de la salida; al cancelar o agotar `timeout`, el comando recibe SIGTERM y, 5 s después, SIGKILL.
 - **Reloj**: todo el motor lee la hora y duerme a través de `Clock` (`engine/clock.py`); los tests usan `FakeClock`, que distingue el reloj de pared (`jump`, como una suspensión) del monótono (`advance`).
 - **Cron y cambio de hora**: cron sigue la hora local de la regla. En el hueco de primavera la ejecución se desplaza (02:30 → 03:30); en la hora repetida de otoño cada hora local se ejecuta una sola vez, en su primera aparición.
-- **Dry-run (kill-switch)**: con `KSE_DRY_RUN=1` se usa el backend **real** envuelto en `DryRunPlatform`: las lecturas (inactividad, multimedia, capacidades…) son reales, pero `power`, `wake_set` y `wake_clear` solo se registran. `dry_run: true` en una regla hace lo mismo con sus acciones `power`. `run`, `open`, `close_app` y `notify` sí se ejecutan.
+- **Dry-run (kill-switch)**: con `POWERCLOCK_DRY_RUN=1` se usa el backend **real** envuelto en `DryRunPlatform`: las lecturas (inactividad, multimedia, capacidades…) son reales, pero `power`, `wake_set` y `wake_clear` solo se registran. `dry_run: true` en una regla hace lo mismo con sus acciones `power`. `run`, `open`, `close_app` y `notify` sí se ejecutan.
 - **Resume/arranque**: tras `after_resume` (PrepareForSleep(false)) el scheduler revisa al momento; sin eventos de energía lo nota en ≤ 30 s. Al arrancar, el demonio pasa a cada regla la última vez que se revisó (`since`) para detectar lo perdido y aplicar `on_missed`.
 - **Reglas que cambia el motor**: armar un `countdown` (al crear o reactivar la regla) y desactivar una `one_shot` tras dispararse emiten `rule_changed` para que el demonio lo guarde.
 
 ## 6. Encendido/despertar — WakePlanner (diferenciador)
-- El RTC guarda UNA sola alarma. WakePlanner (`engine/wake.py`) calcula el próximo disparo de las reglas activas con `wake: true`, le resta un margen (120 s, para que el demonio esté listo), lo redondea a segundos (nunca a menos de 10 s vista) y lo programa. Las peticiones sueltas (`kse wake --at`, `--wake` de las acciones rápidas, la acción `set_wake`) se convierten en reglas `quick-…` de un solo uso con `wake: true` y un `notify`, así solo hay una fuente de verdad.
-- Nunca retrasa ni borra una alarma **ajena** que llegue antes (p. ej. la de `kse doctor --test-wake` o un `rtcwake` a mano): solo borra la suya. Al parar el demonio la alarma **se queda** (tiene que encender el equipo). Los errores (helper sin instalar, sin permiso) quedan en `/pending` → `wake.error` y en `kse status`, y se reintentan en el siguiente cambio.
+- El RTC guarda UNA sola alarma. WakePlanner (`engine/wake.py`) calcula el próximo disparo de las reglas activas con `wake: true`, le resta un margen (120 s, para que el demonio esté listo), lo redondea a segundos (nunca a menos de 10 s vista) y lo programa. Las peticiones sueltas (`powerclock wake --at`, `--wake` de las acciones rápidas, la acción `set_wake`) se convierten en reglas `quick-…` de un solo uso con `wake: true` y un `notify`, así solo hay una fuente de verdad.
+- Nunca retrasa ni borra una alarma **ajena** que llegue antes (p. ej. la de `powerclock doctor --test-wake` o un `rtcwake` a mano): solo borra la suya. Al parar el demonio la alarma **se queda** (tiene que encender el equipo). Los errores (helper sin instalar, sin permiso) quedan en `/pending` → `wake.error` y en `powerclock status`, y se reintentan en el siguiente cambio.
 - Se reprograma en tres momentos: (a) al cambiar reglas, (b) tras cada disparo, (c) justo antes de apagar/suspender. Para (c), el demonio toma un inhibidor logind `delay` (`shutdown:sleep`) **solo mientras hay una alarma que mantener**; en `PrepareForShutdown`/`PrepareForSleep(true)` reescribe la alarma y libera el inhibidor. Así se cubren también los apagados manuales del usuario. Tras reanudar, vuelve a leer la alarma (puede haberse consumido) y programa la siguiente.
-- Lectura: el backend lee `/sys/class/rtc/rtc0/wakealarm` directamente (es legible sin privilegios), convirtiendo si el RTC va en hora local. Escritura: `pkexec kse-helper wake-set|wake-clear`; códigos 126/127 de pkexec → `NotSupported` (sin permiso) con la pista de `--unattended`.
-- `kse doctor --test-wake N` (60–3600 s): tras confirmación explícita y 10 s para apartar las manos (un touchpad o un pointing stick pueden despertarlo), programa la alarma (si falla, **no suspende**), suspende y, al reanudar, dice si despertó sola (`ok`), antes de tiempo (¿a mano?), tarde o si no llegó a suspender, y **qué lo despertó** si el SO lo dice (`wakeup_source()`: en Linux `/sys/power/pm_wakeup_irq` + `/proc/interrupts` + nombres de `/sys/class/input`; solo se muestra si cambió durante la prueba, porque puede quedarse viejo). En dry-run no hace nada.
+- Lectura: el backend lee `/sys/class/rtc/rtc0/wakealarm` directamente (es legible sin privilegios), convirtiendo si el RTC va en hora local. Escritura: `pkexec powerclock-helper wake-set|wake-clear`; códigos 126/127 de pkexec → `NotSupported` (sin permiso) con la pista de `--unattended`.
+- `powerclock doctor --test-wake N` (60–3600 s): tras confirmación explícita y 10 s para apartar las manos (un touchpad o un pointing stick pueden despertarlo), programa la alarma (si falla, **no suspende**), suspende y, al reanudar, dice si despertó sola (`ok`), antes de tiempo (¿a mano?), tarde o si no llegó a suspender, y **qué lo despertó** si el SO lo dice (`wakeup_source()`: en Linux `/sys/power/pm_wakeup_irq` + `/proc/interrupts` + nombres de `/sys/class/input`; solo se muestra si cambió durante la prueba, porque puede quedarse viejo). En dry-run no hace nada.
 - Primera prueba en el Latitude 5480 (23-09-2026): suspensión S3 correcta, pero despertó a los ~11 s por la IRQ 51 = touchpad Alps `DLL07A7:01` / DualPoint Stick (wakeup habilitado), no por el RTC. De ahí la cuenta atrás y el diagnóstico anteriores.
 - Segunda prueba (24-09-2026, con las manos fuera): **despertó sola desde S3 a los 2 s de la alarma** (alarma 11:20:03, reanudación 11:20:05). El despertar desde suspensión funciona en el Latitude 5480.
-- Tercera prueba (24-09-2026, **desde S5**, con AC): `kse-helper wake-set` para las 11:31:06, apagado a las 11:26:12 y **se encendió sola**; el kernel leyó el RTC a las 11:31:20 (≈14 s de POST y arranque). El encendido programado desde apagado funciona en el Latitude 5480 con la BIOS de serie.
+- Tercera prueba (24-09-2026, **desde S5**, con AC): `powerclock-helper wake-set` para las 11:31:06, apagado a las 11:26:12 y **se encendió sola**; el kernel leyó el RTC a las 11:31:20 (≈14 s de POST y arranque). El encendido programado desde apagado funciona en el Latitude 5480 con la BIOS de serie.
 - Linux: el helper usa `rtcwake -m no -t <epoch>`, que respeta RTC en UTC o localtime según `/etc/adjtime`; si falla, recurre a `/sys/class/rtc/rtc0/wakealarm`: escribe `0` y después el valor **relativo** `+<segundos>`. Un valor absoluto el kernel lo interpreta en la hora del RTC, que puede ir en hora local (arranque dual con Windows) y desplazaría la alarma 1–2 h; el relativo no depende de eso. Para consultar: `rtcwake -m show`. Para borrar: `rtcwake -m disable`.
-- **Modo desatendido** (encender → ejecutar → apagar sin iniciar sesión): el servicio de usuario necesita `loginctl enable-linger <usuario>`, y sin sesión activa `allow_active` no se aplica. Por eso hace falta una regla polkit opcional (`50-kse-unattended.rules`) que conceda a ese usuario las acciones `org.freedesktop.login1.power-off/reboot/suspend/hibernate` (y sus variantes `-multiple-sessions`) **y la acción del helper `org.kse.helper.wake`**; sin esta última, el WakePlanner no podría programar el siguiente despertar y la cadena se cortaría tras el primero. Lo instalan `kse service install --linger` y `kse helper install --unattended`.
-- Windows (fase 3): tarea programada con `WakeToRun` que ejecuta `kse wake-hook`. `doctor` comprueba los temporizadores de reactivación y Modern Standby (`powercfg /a`).
+- **Modo desatendido** (encender → ejecutar → apagar sin iniciar sesión): el servicio de usuario necesita `loginctl enable-linger <usuario>`, y sin sesión activa `allow_active` no se aplica. Por eso hace falta una regla polkit opcional (`50-powerclock-unattended.rules`) que conceda a ese usuario las acciones `org.freedesktop.login1.power-off/reboot/suspend/hibernate` (y sus variantes `-multiple-sessions`) **y la acción del helper `org.powerclock.helper.wake`**; sin esta última, el WakePlanner no podría programar el siguiente despertar y la cadena se cortaría tras el primero. Lo instalan `powerclock service install --linger` y `powerclock helper install --unattended`.
+- Windows (fase 3): tarea programada con `WakeToRun` que ejecuta `powerclock wake-hook`. `doctor` comprueba los temporizadores de reactivación y Modern Standby (`powercfg /a`).
 - macOS (fase 4): `pmset schedule wakeorpoweron` vía helper.
 - Realidad del hardware: desde S3/S4 suele funcionar; desde S5 depende de la BIOS/UEFI; en portátiles suele requerir corriente AC. `doctor` lo avisa y lo verifica con `--test-wake`.
 
@@ -171,7 +171,7 @@ class PlatformBackend(ABC):
 - `notify(title, body, actions)`: `actions` es `{clave: etiqueta}`. Sin `actions` vuelve enseguida; con `actions` espera a que el usuario elija una (devuelve su clave) o cierre la notificación (`None`), así que se lanza como tarea y se cancela cuando deja de hacer falta.
 - `subscribe_power_events` recibe un `PowerEvent` (`before_sleep`, `after_resume`, `before_shutdown`).
 - Lo genérico (CPU, red, procesos, batería, usuarios) va en `sensors/` con psutil, no en el backend.
-- `FakePlatform`: en memoria, registra todas las llamadas. Se usa en TODOS los tests (el dry-run usa el backend real, ver §5). Se selecciona con `KSE_BACKEND=fake`.
+- `FakePlatform`: en memoria, registra todas las llamadas. Se usa en TODOS los tests (el dry-run usa el backend real, ver §5). Se selecciona con `POWERCLOCK_BACKEND=fake`.
 
 **Linux (detalle)**
 - Energía: logind `org.freedesktop.login1.Manager` → `CanPowerOff/CanSuspend/CanHibernate…` y luego `PowerOff/Reboot/Suspend/Hibernate/HybridSleep(interactive=true)`. Apagar/reiniciar comprueban `Can*` **antes** de pedírselo al escritorio; `no`/`na` → `NotSupported`.
@@ -181,9 +181,9 @@ class PlatformBackend(ABC):
 - Multimedia: MPRIS (`PlaybackStatus == "Playing"`); sin bus de sesión → desconocido. Notificaciones: `org.freedesktop.Notifications`; con botones, urgencia crítica y sin caducidad, se espera `ActionInvoked`/`NotificationClosed` y se cierra con `CloseNotification` si se cancela. Wi-Fi: `PrimaryConnection` de NetworkManager → `SpecificObject` → `Ssid`.
 - Entorno de un servicio systemd de usuario: puede faltar `DBUS_SESSION_BUS_ADDRESS` (se usa `$XDG_RUNTIME_DIR/bus`) y `WAYLAND_DISPLAY` (se busca `wayland-*` en el directorio de ejecución y se pasa a `kscreen-doctor`/`xdg-open`).
 - Zona horaria (`timezone()`): `$TZ` → enlace `/etc/localtime` → `/etc/timezone` → contenido de `/etc/localtime` → UTC.
-- Eventos: señales `PrepareForSleep`/`PrepareForShutdown`; inhibidor `Inhibit("shutdown:sleep", "kse", motivo, "delay")`.
-- Helper: `/usr/local/libexec/kse-helper` (root:root 0755, `#!/usr/bin/python3` del sistema, solo stdlib) + `/usr/share/polkit-1/actions/org.kse.helper.policy` (acción `org.kse.helper.wake`) con `allow_active=yes` y la anotación `org.freedesktop.policykit.exec.path` → `pkexec /usr/local/libexec/kse-helper wake-set <epoch>` sin contraseña en sesión activa. Valida que el epoch sea solo dígitos, al menos 5 s en el futuro y como mucho 366 días. Nunca ejecuta nada arbitrario: `rtcwake` con ruta absoluta y entorno limpio. `wake-get` imprime el epoch UTC o `none`.
-- `kse helper install [--unattended] [--print]` muestra los comandos `sudo install -D -o root -g root -m 0755|0644 …` exactos y solo los ejecuta si el usuario responde que sí; con `--unattended` genera la regla para ese usuario en su directorio de datos. `uninstall` borra la alarma y los tres archivos. `doctor` comprueba que el helper instalado coincide con el de esta versión, pregunta a polkit con `pkcheck --action-id org.kse.helper.wake --process <pid>` si este proceso puede programar la alarma sin contraseña (sin ejecutar nada como root), y muestra la alarma actual.
+- Eventos: señales `PrepareForSleep`/`PrepareForShutdown`; inhibidor `Inhibit("shutdown:sleep", "powerclock", motivo, "delay")`.
+- Helper: `/usr/local/libexec/powerclock-helper` (root:root 0755, `#!/usr/bin/python3` del sistema, solo stdlib) + `/usr/share/polkit-1/actions/org.powerclock.helper.policy` (acción `org.powerclock.helper.wake`) con `allow_active=yes` y la anotación `org.freedesktop.policykit.exec.path` → `pkexec /usr/local/libexec/powerclock-helper wake-set <epoch>` sin contraseña en sesión activa. Valida que el epoch sea solo dígitos, al menos 5 s en el futuro y como mucho 366 días. Nunca ejecuta nada arbitrario: `rtcwake` con ruta absoluta y entorno limpio. `wake-get` imprime el epoch UTC o `none`.
+- `powerclock helper install [--unattended] [--print]` muestra los comandos `sudo install -D -o root -g root -m 0755|0644 …` exactos y solo los ejecuta si el usuario responde que sí; con `--unattended` genera la regla para ese usuario en su directorio de datos. `uninstall` borra la alarma y los tres archivos. `doctor` comprueba que el helper instalado coincide con el de esta versión, pregunta a polkit con `pkcheck --action-id org.powerclock.helper.wake --process <pid>` si este proceso puede programar la alarma sin contraseña (sin ejecutar nada como root), y muestra la alarma actual.
 - `doctor` informa de: RTC presente, helper instalado, Can*, hibernación configurada (swap/resume), AC/batería, sesión Wayland/X11, escritorio, fabricante/modelo (`/sys/class/dmi/id/`) con pista de BIOS (p. ej. Dell: *Power Management → Auto On Time*), linger activo, RTC UTC/local.
 
 ## 8. API local
@@ -213,54 +213,54 @@ Solo escucha en 127.0.0.1. El acceso remoto (fase 5) será opt-in. Sin `/docs` n
 
 ## 9. CLI
 ```
-kse shutdown --in 30m
-kse suspend --at 23:30 --wake 07:30
-kse shutdown --when-idle 20m
-kse shutdown --when-exits ffmpeg
-kse reboot --when-cpu-below 10 --for 5m
-kse shutdown --when-net-below 50 --for 5m        # descarga terminada
-kse run --when-exits ffmpeg -- notify-send "Render terminado"
-kse wake --at "2026-09-24 07:30"
-kse run --at 03:00 --wake -- /home/pc/bin/backup.sh
-kse status | kse cancel | kse postpone 10m
-kse rules list|show|add <f.json>|edit <id>|enable|disable|rm|export|import
-kse doctor [--json] [--test-wake 120]
-kse service install [--linger] | uninstall | status
-kse helper install [--unattended] [--print] | uninstall [--print]
-kse gui [--tray]
+powerclock shutdown --in 30m
+powerclock suspend --at 23:30 --wake 07:30
+powerclock shutdown --when-idle 20m
+powerclock shutdown --when-exits ffmpeg
+powerclock reboot --when-cpu-below 10 --for 5m
+powerclock shutdown --when-net-below 50 --for 5m        # descarga terminada
+powerclock run --when-exits ffmpeg -- notify-send "Render terminado"
+powerclock wake --at "2026-09-24 07:30"
+powerclock run --at 03:00 --wake -- /home/pc/bin/backup.sh
+powerclock status | powerclock cancel | powerclock postpone 10m
+powerclock rules list|show|add <f.json>|edit <id>|enable|disable|rm|export|import
+powerclock doctor [--json] [--test-wake 120]
+powerclock service install [--linger] | uninstall | status
+powerclock helper install [--unattended] [--print] | uninstall [--print]
+powerclock gui [--tray]
 ```
-Los comandos rápidos crean reglas `one_shot` vía API (`kse shutdown|reboot|suspend|hibernate|hybrid-sleep|lock|logout|screen-off|run [--in|--at|--when-idle|--when-exits|--when-cpu-below|--when-net-below [--for]] [--force] [--warning] [--wake]`). Con `--when-*` muestran al momento lo que ve el sensor (p. ej. "ffmpeg is not running yet: waiting for it to start"); `kse status` las lista en **Watching** y `kse rules list` lo muestra en su columna "Next". Si el demonio no está activo, lo indican y sugieren `kse service install`. Opción global `--dry-run`. `kse service install --dry-run` instala el servicio en modo dry-run (pruebas).
+Los comandos rápidos crean reglas `one_shot` vía API (`powerclock shutdown|reboot|suspend|hibernate|hybrid-sleep|lock|logout|screen-off|run [--in|--at|--when-idle|--when-exits|--when-cpu-below|--when-net-below [--for]] [--force] [--warning] [--wake]`). Con `--when-*` muestran al momento lo que ve el sensor (p. ej. "ffmpeg is not running yet: waiting for it to start"); `powerclock status` las lista en **Watching** y `powerclock rules list` lo muestra en su columna "Next". Si el demonio no está activo, lo indican y sugieren `powerclock service install`. Opción global `--dry-run`. `powerclock service install --dry-run` instala el servicio en modo dry-run (pruebas).
 
 ## 10. GUI (PySide6)
 Decisiones (M7):
 - **Qt Widgets estándar, sin librerías exclusivas de KDE** (KDE Frameworks, Kirigami): el mismo código en cualquier escritorio y SO. Descartados por consumo o por encaje: Rust (Slint/iced; más ligero, pero rompe `pipx install` y duplica lenguaje), plasmoide (solo KDE), Tauri/Electron (motor web), Tkinter (sin bandeja, no viene en el Python de Ubuntu), GTK4 (sin bandeja).
-- **Consumo**: solo la bandeja vive siempre (medido en el Latitude, Wayland: ~50 MB; con la ventana construida ~65 MB; 0 % CPU en reposo porque todo llega por `/events`, sin sondeo). La ventana se crea al abrirla y se destruye al cerrarla. En el VPS no se instala (`pipx install kse` sin `[gui]`).
+- **Consumo**: solo la bandeja vive siempre (medido en el Latitude, Wayland: ~50 MB; con la ventana construida ~65 MB; 0 % CPU en reposo porque todo llega por `/events`, sin sondeo). La ventana se crea al abrirla y se destruye al cerrarla. En el VPS no se instala (`pipx install powerclock` sin `[gui]`).
 - **Sin bandeja también funciona** (GNOME sin la extensión AppIndicator): la ventana es la app y la cuenta atrás sigue llegando por notificación.
-- **Aspecto**: con el Qt de pip, estilo Fusion con la paleta, los iconos y el modo claro/oscuro del escritorio (en Plasma: colores e iconos Breeze; no el estilo de los controles ni la fuente). Modo nativo opcional en Linux, con el mismo código: `sudo apt install python3-pyside6.qtwidgets python3-pyside6.qtnetwork python3-qasync qt6-svg-plugins` y `pipx install --system-site-packages kse` (sin `[gui]`) → usa el Qt del sistema y se ve Breeze exacto.
-- **Una sola instancia** (`QLocalServer`): lanzar `kse-gui` otra vez muestra la ventana de la que ya corre.
+- **Aspecto**: con el Qt de pip, estilo Fusion con la paleta, los iconos y el modo claro/oscuro del escritorio (en Plasma: colores e iconos Breeze; no el estilo de los controles ni la fuente). Modo nativo opcional en Linux, con el mismo código: `sudo apt install python3-pyside6.qtwidgets python3-pyside6.qtnetwork python3-qasync qt6-svg-plugins` y `pipx install --system-site-packages powerclock` (sin `[gui]`) → usa el Qt del sistema y se ve Breeze exacto.
+- **Una sola instancia** (`QLocalServer`): lanzar `powerclock-gui` otra vez muestra la ventana de la que ya corre.
 - **Nunca bloquea el hilo de Qt**: `qasync` integra asyncio en el bucle de Qt; las peticiones y el WebSocket son corrutinas. Los componentes solo necesitan un bucle asyncio en marcha, así los tests los ejercitan sin qasync (Qt `offscreen`).
 - **Enlace con el demonio** (`gui/client.py`): `HttpApi` (httpx async; relee puerto y token tras un fallo, por si el demonio se reinició) y `DaemonLink`, que mantiene `/health` y `/pending` al día: los refresca con cada evento de `/events` (salvo `tick`), agrupando ráfagas, y repite la consulta si llega un evento mientras otra está en curso. Sin demonio: estado "sin conexión" y reintento con espera creciente (hasta 10 s). Con la ventana abierta, refresco cada 5 s para ver en vivo lo que miden los sensores.
-- **Bandeja**: icono según estado (inactivo / programado / cuenta atrás / sin demonio); tooltip con lo próximo; menú con lo próximo, Cancelar, Posponer 10 min, **Ahora** (apagar, reiniciar, suspender… con su cuenta atrás de 60 s; bloquear y apagar pantalla, al momento), Programar…, Abrir KSE y cerrar el icono (las reglas siguen: las ejecuta el demonio).
+- **Bandeja**: icono según estado (inactivo / programado / cuenta atrás / sin demonio); tooltip con lo próximo; menú con lo próximo, Cancelar, Posponer 10 min, **Ahora** (apagar, reiniciar, suspender… con su cuenta atrás de 60 s; bloquear y apagar pantalla, al momento), Programar…, Abrir PowerClock y cerrar el icono (las reglas siguen: las ejecuta el demonio).
 - **Rápido** (estilo KShutdown): Acción (las de energía o "Ejecutar un programa") + Cuándo (ahora / fecha y hora / dentro de / inactividad / al terminar un programa, eligiéndolo entre los que corren / CPU baja / red baja, con su `for`) + cuenta atrás, forzar y "Encender también el equipo a las…" → Aceptar. Debajo, las acciones rápidas en espera con Cancelar y +10 min (este último solo si tienen hora o están en cuenta atrás).
 - **Reglas**: tabla con activar/desactivar, cuándo y lo próximo (hora o lo que ve el sensor); nueva, editar, ejecutar ahora, borrar (pregunta), importar y exportar.
 - **Editor de reglas** (`gui/editor.py` + `gui/forms.py`): los formularios se **generan del JSON Schema de cada modelo** (`models.model_json_schema`): un control por tipo de campo (duración, fecha local, hora, número con sus límites, lista de opciones, días, orden como línea de shell, entorno `K=V`, zona horaria, programa en marcha…), así el editor sigue a `models.py` sin formularios a mano. Pestañas Regla (disparador), Condiciones ("solo si se cumplen todas" + guardas "esperar mientras se cumpla alguna" con su reintento y límite), Pasos (ordenables), Opciones y JSON; las dos vistas se sincronizan al cambiar de pestaña. Condiciones complejas (`any`, anidadas) se editan como JSON dentro del formulario sin perderse. Se valida con los mismos modelos antes de enviar; editar una cuenta atrás no la reinicia.
 - **Historial** (resultado, por qué se ejecutó, motivo y pasos de cada ejecución) y **Diagnóstico**: estado del demonio y botón "Iniciar el servicio" (si ya está instalado solo lo arranca; si no, pregunta y lo instala; en dry-run, como servicio dry-run), capacidades con cómo arreglarlas, próxima alarma, **instalar el ayudante** (muestra los comandos exactos y los ejecuta con `pkexec /bin/sh -c …`: una sola ventana de contraseña del sistema), **probar un despertar en 2 min** (pregunta, 10 s para apartar las manos, informa del resultado; en dry-run no hace nada) y las casillas de menú de aplicaciones y arranque con la sesión.
 - **Diálogo de cuenta atrás** (`WindowStaysOnTopHint`; en Wayland el compositor decide): Cancelar (también con Esc) / Posponer 10 min. Se abre con `warning_started` o al arrancar la GUI a mitad de una cuenta atrás; se cierra con el fin de la ejecución, con un `/pending` pedido después de abrirse que ya no la tenga, o 3 s después de llegar a 0.
-- **Menú y autoarranque** (`install/autostart.py` → `platform/linux/autostart.py`): `~/.local/share/applications/kse.desktop` (+ icono en `icons/hicolor/scalable/apps/kse.svg`) y `~/.config/autostart/kse-gui.desktop` con `--tray`, en carpetas del usuario, sin root.
-- **Traducciones**: gettext. Los textos son los `_("…")` del código; `scripts/i18n.py update` los lleva a `src/kse/locale/<idioma>/LC_MESSAGES/kse.po` y `compile` genera el `.mo` (sin herramientas de gettext). Los tests fallan si un texto queda sin traducir, si una traducción pierde un `{marcador}` o el formato de rich, o si el `.mo` no está al día. Qt carga además sus propias traducciones (`qtbase_es`). Los tests corren en inglés (`LC_ALL=C.UTF-8`).
+- **Menú y autoarranque** (`install/autostart.py` → `platform/linux/autostart.py`): `~/.local/share/applications/powerclock.desktop` (+ icono en `icons/hicolor/scalable/apps/powerclock.svg`) y `~/.config/autostart/powerclock-gui.desktop` con `--tray`, en carpetas del usuario, sin root.
+- **Traducciones**: gettext. Los textos son los `_("…")` del código; `scripts/i18n.py update` los lleva a `src/powerclock/locale/<idioma>/LC_MESSAGES/powerclock.po` y `compile` genera el `.mo` (sin herramientas de gettext). Los tests fallan si un texto queda sin traducir, si una traducción pierde un `{marcador}` o el formato de rich, o si el `.mo` no está al día. Qt carga además sus propias traducciones (`qtbase_es`). Los tests corren en inglés (`LC_ALL=C.UTF-8`).
 
 ## 11. Instalación
 ```
-pipx install "kse[gui]"     # escritorio (Linux, Windows y macOS: de momento, pipx en todos)
-pipx install kse            # servidor / VPS
-kse service install         # servicio de usuario + autoarranque
-kse helper install          # opcional: encender/despertar (sudo una vez)
+pipx install "powerclock[gui]"     # escritorio (Linux, Windows y macOS: de momento, pipx en todos)
+pipx install powerclock            # servidor / VPS
+powerclock service install         # servicio de usuario + autoarranque
+powerclock helper install          # opcional: encender/despertar (sudo una vez)
 ```
-- Linux: `~/.config/systemd/user/kse.service` (`ExecStart=<venv>/bin/kse-daemon --foreground`, `Restart=on-failure`; `systemctl --user enable --now`; linger opcional con `loginctl enable-linger`, sin sudo) · `~/.config/autostart/kse-gui.desktop` y la entrada del menú (casillas en Diagnóstico). Una parada por SIGTERM es limpia: guarda la marca de vida y conserva las acciones rápidas pendientes.
+- Linux: `~/.config/systemd/user/powerclock.service` (`ExecStart=<venv>/bin/powerclock-daemon --foreground`, `Restart=on-failure`; `systemctl --user enable --now`; linger opcional con `loginctl enable-linger`, sin sudo) · `~/.config/autostart/powerclock-gui.desktop` y la entrada del menú (casillas en Diagnóstico). Una parada por SIGTERM es limpia: guarda la marca de vida y conserva las acciones rápidas pendientes.
 - Windows: tarea "al iniciar sesión" para el demonio · acceso directo de Inicio para la GUI.
-- macOS: `~/Library/LaunchAgents/org.kse.daemon.plist` · helper como LaunchDaemon.
+- macOS: `~/Library/LaunchAgents/org.powerclock.daemon.plist` · helper como LaunchDaemon.
 - Flatpak descartado para la app: el sandbox tiene su propio espacio de procesos (no vería `ffmpeg` ni ningún proceso del usuario), ejecutaría los comandos de `run` dentro del sandbox y no puede instalar el helper, polkit ni el servicio. Solo la GUI podría ir en Flatpak (runtime KDE), con el demonio instalado aparte. Snap (requiere confinamiento `classic`) y AppImage (su ruta cambia al actualizar; no instala helper ni servicio) tampoco encajan.
-- Empaquetado por SO: opcional y más adelante (ROADMAP, "Empaquetado"). Para dejarlo fácil: el helper debe poder vivir también en `/usr/libexec/kse-helper` (ruta de paquete) y `kse service install` debe limitarse a activar un `kse.service` que ya instale un paquete.
+- Empaquetado por SO: opcional y más adelante (ROADMAP, "Empaquetado"). Para dejarlo fácil: el helper debe poder vivir también en `/usr/libexec/powerclock-helper` (ruta de paquete) y `powerclock service install` debe limitarse a activar un `powerclock.service` que ya instale un paquete.
 
 ## 12. Seguridad
 - Demonio sin privilegios; helper con lista blanca y validación estricta; ejecutado con el Python del sistema, nunca desde el venv.
@@ -275,14 +275,14 @@ KSHUTDOWN-EVOLUTION/
 ├── CLAUDE.md  README.md  pyproject.toml  .gitignore
 ├── docs/                ARCHITECTURE.md  ROADMAP.md
 ├── examples/            reglas de ejemplo (*.json)
-├── src/kse/
+├── src/powerclock/
 │   ├── models.py        # Rule, Trigger*, Predicate*, Action*, parse_duration
-│   ├── config.py        # rutas platformdirs (KSE_HOME), daemon.json, token, escritura atómica
+│   ├── config.py        # rutas platformdirs (POWERCLOCK_HOME), daemon.json, token, escritura atómica
 │   ├── timeparse.py     # "23:30" / "2026-09-24 07:30" → instante
-│   ├── doctor.py        # kse doctor: informe del backend + comprobaciones genéricas
+│   ├── doctor.py        # powerclock doctor: informe del backend + comprobaciones genéricas
 │   ├── i18n.py          # textos traducibles (gettext)
 │   ├── labels.py        # nombres traducidos (tipos, campos, estados) y motivos del motor en palabras
-│   ├── locale/          # es/LC_MESSAGES/kse.po + kse.mo (scripts/i18n.py)
+│   ├── locale/          # es/LC_MESSAGES/powerclock.po + powerclock.mo (scripts/i18n.py)
 │   ├── connection.py    # dónde está el API del demonio, su token y sus errores (CLI y GUI)
 │   ├── engine/          # core.py (Engine) clock.py scheduler.py watcher.py evaluator.py executor.py runs.py processes.py wake.py
 │   ├── sensors/         # base.py (SensorReader, Readings) system.py (psutil + SystemReadings) fake.py registry.py (SensorHub)
@@ -290,11 +290,11 @@ KSHUTDOWN-EVOLUTION/
 │   │   ├── linux/       # backend.py logind.py idle.py wayland.py desktop.py notify.py network.py dbus.py commands.py host.py capabilities.py service.py (systemd) helper.py autostart.py (.desktop)
 │   │   ├── windows/     # fase 3
 │   │   └── macos/       # fase 4
-│   ├── helper/          # kse_helper_linux.py org.kse.helper.policy 50-kse-unattended.rules.in (plantilla por usuario)
-│   ├── daemon/          # main.py (kse-daemon) core.py (Daemon) api.py store.py (reglas + historial) events.py
+│   ├── helper/          # powerclock_helper_linux.py org.powerclock.helper.policy 50-powerclock-unattended.rules.in (plantilla por usuario)
+│   ├── daemon/          # main.py (powerclock-daemon) core.py (Daemon) api.py store.py (reglas + historial) events.py
 │   ├── cli/             # main.py client.py format.py
 │   ├── install/         # service.py (fachada por SO) autostart.py helper.py
-│   └── gui/             # app.py (kse-gui) controller.py client.py (HttpApi, DaemonLink) tray.py window.py quick.py rules.py editor.py forms.py history.py diagnostics.py countdown.py summary.py widgets.py tasks.py single.py icons.py icons/*.svg
+│   └── gui/             # app.py (powerclock-gui) controller.py client.py (HttpApi, DaemonLink) tray.py window.py quick.py rules.py editor.py forms.py history.py diagnostics.py countdown.py summary.py widgets.py tasks.py single.py icons.py icons/*.svg
 ├── scripts/             # i18n.py (extraer y compilar traducciones) screenshots.py (capturas del README, Qt offscreen y backend falso)
 └── tests/               # unit/ (unit/gui: Qt offscreen) + real/ (@pytest.mark.real, excluidos por defecto)
 ```
@@ -302,4 +302,4 @@ KSHUTDOWN-EVOLUTION/
 ## 14. Límites conocidos y decisiones
 - El encendido desde S5 no está garantizado (BIOS); en portátil, con AC.
 - En Wayland, idle vía D-Bus del escritorio; `xprintidle` solo en X11.
-- Nombre público: no usar "KShutdown" (es un proyecto ajeno). `kse` es provisional; comprobar disponibilidad en PyPI antes de publicar.
+- Nombre: **PowerClock** — *Shutdown, wake-up and task scheduler* (decidido el 24-09-2026; nombre de trabajo anterior: "KShutdown Evolution", `kse`). Libre en PyPI y sin otra app con ese nombre; descartados por existir ya apps que hacen lo mismo: Shutdown Scheduler, PowerPilot, PowerTask, AutoShutdown, PowerWise, PowerCron, PowerWake. Paquete, comandos (`powerclock`, `powerclock-daemon`, `powerclock-gui`), carpetas, servicio (`powerclock.service`) y ayudante (`powerclock-helper`, acción polkit `org.powerclock.helper.wake`) llevan el nombre. Las variables de entorno son `POWERCLOCK_*`; las antiguas `KSE_*` se siguen aceptando (y si cualquiera de las dos pide dry-run, es dry-run), para que una costumbre nunca haga que se apague el equipo de verdad. No usar "KShutdown" (es un proyecto ajeno): solo se cita como inspiración de la pestaña Rápido.

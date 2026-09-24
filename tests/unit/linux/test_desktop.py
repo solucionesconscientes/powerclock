@@ -3,9 +3,9 @@ from pathlib import Path
 import pytest
 
 from fakebus import FakeBus, FakeCommands, kde_laptop
-from kse.platform.base import NotSupported, PowerAction
-from kse.platform.linux.dbus import PROPERTIES
-from kse.platform.linux.desktop import Desktop
+from powerclock.platform.base import NotSupported, PowerAction
+from powerclock.platform.linux.dbus import PROPERTIES
+from powerclock.platform.linux.desktop import Desktop
 
 
 def desktop(session: FakeBus, commands: FakeCommands, tmp_path: Path, **env: str) -> Desktop:

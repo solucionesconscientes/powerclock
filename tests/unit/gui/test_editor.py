@@ -9,9 +9,9 @@ import pytest
 from pydantic import BaseModel
 
 from guisupport import pump
-from kse.gui.client import DaemonLink
-from kse.gui.editor import RuleEditor
-from kse.gui.forms import (
+from powerclock.gui.client import DaemonLink
+from powerclock.gui.editor import RuleEditor
+from powerclock.gui.forms import (
     ACTIONS,
     PREDICATES,
     TRIGGERS,
@@ -21,7 +21,7 @@ from kse.gui.forms import (
     TextField,
     type_of,
 )
-from kse.models import Rule
+from powerclock.models import Rule
 
 ROOT = Path(__file__).resolve().parents[3]
 EXAMPLES = sorted((ROOT / "examples").glob("*.json"))
@@ -135,7 +135,7 @@ async def test_editing_a_countdown_does_not_restart_it(qapp: object) -> None:
             "id": "c",
             "name": "C",
             "trigger": {"type": "countdown", "duration": "1h", "armed_at": "2026-09-24T08:00:00Z"},
-            "actions": [{"type": "notify", "title": "KSE"}],
+            "actions": [{"type": "notify", "title": "PowerClock"}],
         }
     )
     editor = RuleEditor(None, rule)  # type: ignore[arg-type]

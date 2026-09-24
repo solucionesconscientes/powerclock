@@ -6,15 +6,15 @@ import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
-from kse.config import Paths
-from kse.daemon.core import Daemon
-from kse.platform.fake import FakePlatform
+from powerclock.config import Paths
+from powerclock.daemon.core import Daemon
+from powerclock.platform.fake import FakePlatform
 
 RULE = {
     "id": "test",
     "name": "Test",
     "trigger": {"type": "manual"},
-    "actions": [{"type": "notify", "title": "KSE"}],
+    "actions": [{"type": "notify", "title": "PowerClock"}],
 }
 
 

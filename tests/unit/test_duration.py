@@ -2,7 +2,7 @@ from datetime import timedelta
 
 import pytest
 
-from kse.models import format_duration, parse_duration
+from powerclock.models import format_duration, parse_duration
 
 
 @pytest.mark.parametrize(

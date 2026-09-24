@@ -6,10 +6,10 @@ import httpx
 import pytest
 
 from guisupport import pump
-from kse.connection import ApiError, DaemonUnavailable, Endpoint
-from kse.daemon.core import Daemon
-from kse.engine.clock import FakeClock
-from kse.gui.client import DaemonLink, HttpApi
+from powerclock.connection import ApiError, DaemonUnavailable, Endpoint
+from powerclock.daemon.core import Daemon
+from powerclock.engine.clock import FakeClock
+from powerclock.gui.client import DaemonLink, HttpApi
 
 
 async def test_online_with_health_and_pending(link: DaemonLink, daemon: Daemon) -> None:
@@ -63,7 +63,7 @@ async def test_offline_when_the_daemon_does_not_answer(qapp: object) -> None:
         raise httpx.ConnectError("connection refused")
 
     api = HttpApi(
-        locate=lambda: Endpoint("http://kse", "token"), transport=httpx.MockTransport(refuse)
+        locate=lambda: Endpoint("http://powerclock", "token"), transport=httpx.MockTransport(refuse)
     )
     with pytest.raises(DaemonUnavailable, match="not running"):
         await api.get("/health")

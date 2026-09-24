@@ -12,7 +12,7 @@ pytestmark = [
 
 
 async def test_capabilities_report() -> None:
-    from kse.platform.linux import LinuxPlatform
+    from powerclock.platform.linux import LinuxPlatform
 
     linux = LinuxPlatform()
     try:
@@ -24,7 +24,7 @@ async def test_capabilities_report() -> None:
 
 
 async def test_readings() -> None:
-    from kse.platform.linux import LinuxPlatform
+    from powerclock.platform.linux import LinuxPlatform
 
     linux = LinuxPlatform()
     try:

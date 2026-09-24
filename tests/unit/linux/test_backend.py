@@ -4,8 +4,8 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from fakebus import LOGIND, MANAGER, MANAGER_PATH, SESSION_PATH, FakeBus, FakeCommands, kde_laptop
-from kse.platform.base import NotSupported, PowerAction, PowerMode
-from kse.platform.linux import LinuxPlatform
+from powerclock.platform.base import NotSupported, PowerAction, PowerMode
+from powerclock.platform.linux import LinuxPlatform
 
 
 def platform(

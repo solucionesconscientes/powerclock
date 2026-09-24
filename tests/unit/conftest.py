@@ -2,14 +2,14 @@ from collections.abc import AsyncIterator
 
 import pytest
 
-from kse.engine import Engine
-from kse.engine.clock import FakeClock
-from kse.engine.evaluator import Evaluator
-from kse.engine.executor import Executor
-from kse.engine.processes import FakeProcesses
-from kse.engine.runs import Event
-from kse.platform.fake import FakePlatform
-from kse.sensors.fake import FakeReadings, FakeSensors
+from powerclock.engine import Engine
+from powerclock.engine.clock import FakeClock
+from powerclock.engine.evaluator import Evaluator
+from powerclock.engine.executor import Executor
+from powerclock.engine.processes import FakeProcesses
+from powerclock.engine.runs import Event
+from powerclock.platform.fake import FakePlatform
+from powerclock.sensors.fake import FakeReadings, FakeSensors
 from support import MADRID, START
 
 
@@ -25,9 +25,9 @@ def _no_real_system(monkeypatch: pytest.MonkeyPatch) -> None:
         raise AssertionError("a unit test tried to run a real system command")
 
     try:
-        from kse.platform.linux import service
-        from kse.platform.linux.commands import SystemCommands
-        from kse.platform.linux.dbus import DBusFastBus
+        from powerclock.platform.linux import service
+        from powerclock.platform.linux.commands import SystemCommands
+        from powerclock.platform.linux.dbus import DBusFastBus
     except ImportError:  # not on Linux
         return
     for name in ("call", "subscribe"):
@@ -35,7 +35,7 @@ def _no_real_system(monkeypatch: pytest.MonkeyPatch) -> None:
     for name in ("run", "spawn"):
         monkeypatch.setattr(SystemCommands, name, forbidden)
     monkeypatch.setattr(service, "run", forbidden_sync)  # systemctl, loginctl
-    from kse.platform.linux import helper
+    from powerclock.platform.linux import helper
 
     monkeypatch.setattr(helper, "run_interactive", forbidden_sync)  # sudo
 

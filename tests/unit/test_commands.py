@@ -6,9 +6,9 @@ from pathlib import Path
 
 import psutil
 
-from kse.engine.clock import FakeClock
-from kse.engine.executor import Executor
-from kse.engine.runs import Run
+from powerclock.engine.clock import FakeClock
+from powerclock.engine.executor import Executor
+from powerclock.engine.runs import Run
 from support import MADRID, rule, until_sleeping
 
 PY = sys.executable
@@ -36,14 +36,14 @@ async def test_non_zero_exit_fails(executor: Executor) -> None:
 
 
 async def test_missing_program_fails(executor: Executor) -> None:
-    run = await run_steps(executor, command("/nonexistent/kse-command"))
+    run = await run_steps(executor, command("/nonexistent/powerclock-command"))
     assert run.state == "failed"
     assert "No such file" in (run.steps[0].detail or "")
 
 
 async def test_cwd_and_env(executor: Executor, tmp_path: Path) -> None:
-    script = "import os; print(os.getcwd()); print(os.environ['KSE_TEST'])"
-    step = command(PY, "-c", script, cwd=str(tmp_path), env={"KSE_TEST": "valor"})
+    script = "import os; print(os.getcwd()); print(os.environ['POWERCLOCK_TEST'])"
+    step = command(PY, "-c", script, cwd=str(tmp_path), env={"POWERCLOCK_TEST": "valor"})
     run = await run_steps(executor, step)
     assert run.steps[0].detail == f"{tmp_path}\nvalor"
 

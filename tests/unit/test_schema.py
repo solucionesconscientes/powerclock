@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from kse.models import DURATION_PATTERN, parse_duration, rule_json_schema
+from powerclock.models import DURATION_PATTERN, parse_duration, rule_json_schema
 
 
 @pytest.fixture(scope="module")

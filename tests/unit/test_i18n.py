@@ -11,7 +11,7 @@ from types import ModuleType
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-LOCALE = ROOT / "src" / "kse" / "locale"
+LOCALE = ROOT / "src" / "powerclock" / "locale"
 MARKUP = re.compile(r"\[/?[a-z ]*\]")
 
 
@@ -25,7 +25,7 @@ def load_tool() -> ModuleType:
 
 
 tool = load_tool()
-CATALOGS = sorted(LOCALE.glob("*/LC_MESSAGES/kse.po"))
+CATALOGS = sorted(LOCALE.glob("*/LC_MESSAGES/powerclock.po"))
 
 
 def fields(text: str) -> list[tuple[str | None, str | None]]:
@@ -59,7 +59,7 @@ def test_compiled_catalog_is_up_to_date(po: Path) -> None:
 
 
 def test_spanish_is_loaded() -> None:
-    spanish = gettext.translation("kse", LOCALE, languages=["es"])
+    spanish = gettext.translation("powerclock", LOCALE, languages=["es"])
     assert spanish.gettext("Cancel") == "Cancelar"
     assert (
         spanish.gettext("{action} when {process} exits").format(action="Apagar", process="ffmpeg")
@@ -68,14 +68,14 @@ def test_spanish_is_loaded() -> None:
 
 
 def test_tests_run_in_english() -> None:
-    from kse.i18n import _
+    from powerclock.i18n import _
 
     assert _("Cancel") == "Cancel"
 
 
 def test_po_round_trip(tmp_path: Path) -> None:
-    po = tmp_path / "kse.po"
-    texts = {'Say "hi"\nnow': ["kse/x.py:1"], "Plain": ["kse/y.py:2"]}
+    po = tmp_path / "powerclock.po"
+    texts = {'Say "hi"\nnow': ["powerclock/x.py:1"], "Plain": ["powerclock/y.py:2"]}
     tool.write_po(po, "Content-Type: text/plain; charset=UTF-8\n", texts, {"Plain": "Llano"})
     assert tool.read_po(po) == {
         "": "Content-Type: text/plain; charset=UTF-8\n",

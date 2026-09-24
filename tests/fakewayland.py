@@ -4,7 +4,7 @@ import asyncio
 import struct
 from pathlib import Path
 
-from kse.platform.linux.wayland import message, read_string, string
+from powerclock.platform.linux.wayland import message, read_string, string
 
 
 class FakeCompositor:

@@ -4,8 +4,8 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from kse.cli.main import app
-from kse.platform.linux import service
+from powerclock.cli.main import app
+from powerclock.platform.linux import service
 
 
 class FakeSystemctl:
@@ -25,36 +25,36 @@ class FakeSystemctl:
 
 
 def test_unit_file() -> None:
-    unit = service.render_unit(Path("/venv/bin/kse-daemon"), dry_run=False)
-    assert "ExecStart=/venv/bin/kse-daemon --foreground\n" in unit
+    unit = service.render_unit(Path("/venv/bin/powerclock-daemon"), dry_run=False)
+    assert "ExecStart=/venv/bin/powerclock-daemon --foreground\n" in unit
     assert "Restart=on-failure" in unit
     assert "WantedBy=default.target" in unit
-    assert "KSE_DRY_RUN" not in unit
-    dry = service.render_unit(Path("/venv/bin/kse-daemon"), dry_run=True)
-    assert "Environment=KSE_DRY_RUN=1\n" in dry
+    assert "POWERCLOCK_DRY_RUN" not in unit
+    dry = service.render_unit(Path("/venv/bin/powerclock-daemon"), dry_run=True)
+    assert "Environment=POWERCLOCK_DRY_RUN=1\n" in dry
 
 
 def test_unit_path_follows_xdg(tmp_path: Path) -> None:
     assert service.unit_path({"XDG_CONFIG_HOME": str(tmp_path)}) == (
-        tmp_path / "systemd" / "user" / "kse.service"
+        tmp_path / "systemd" / "user" / "powerclock.service"
     )
 
 
 def test_install_uninstall_and_status(tmp_path: Path) -> None:
-    unit = tmp_path / "kse.service"
+    unit = tmp_path / "powerclock.service"
     systemctl = FakeSystemctl()
     done = service.install(
         dry_run=True,
         linger_user="pc",
         runner=systemctl,
         path=unit,
-        executable=Path("/venv/bin/kse-daemon"),
+        executable=Path("/venv/bin/powerclock-daemon"),
     )
-    assert "KSE_DRY_RUN=1" in unit.read_text()
+    assert "POWERCLOCK_DRY_RUN=1" in unit.read_text()
     assert systemctl.ran == [
         ["systemctl", "--user", "daemon-reload"],
-        ["systemctl", "--user", "enable", "--now", "kse.service"],
-        ["systemctl", "--user", "restart", "kse.service"],
+        ["systemctl", "--user", "enable", "--now", "powerclock.service"],
+        ["systemctl", "--user", "restart", "powerclock.service"],
         ["loginctl", "enable-linger", "pc"],
     ]
     assert done[-1] == "linger enabled for pc"
@@ -66,7 +66,7 @@ def test_install_uninstall_and_status(tmp_path: Path) -> None:
     service.uninstall(runner=systemctl, path=unit)
     assert not unit.exists()
     assert systemctl.ran == [
-        ["systemctl", "--user", "disable", "--now", "kse.service"],
+        ["systemctl", "--user", "disable", "--now", "powerclock.service"],
         ["systemctl", "--user", "daemon-reload"],
     ]
 
@@ -76,13 +76,13 @@ def test_install_failure_is_reported(tmp_path: Path) -> None:
         service.install(
             dry_run=False,
             runner=FakeSystemctl(failing="enable"),
-            path=tmp_path / "kse.service",
-            executable=Path("/venv/bin/kse-daemon"),
+            path=tmp_path / "powerclock.service",
+            executable=Path("/venv/bin/powerclock-daemon"),
         )
 
 
 def test_daemon_executable_is_next_to_the_interpreter() -> None:
-    assert service.daemon_executable().name == "kse-daemon"
+    assert service.daemon_executable().name == "powerclock-daemon"
 
 
 def test_cli(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -92,9 +92,11 @@ def test_cli(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     runner = CliRunner()
     result = runner.invoke(app, ["service", "install", "--dry-run"])
     assert result.exit_code == 0, result.output
-    unit = tmp_path / "xdg-config" / "systemd" / "user" / "kse.service"  # conftest's XDG home
+    unit = (
+        tmp_path / "xdg-config" / "systemd" / "user" / "powerclock.service"
+    )  # conftest's XDG home
     assert f"wrote {unit}" in result.output
-    assert "KSE_DRY_RUN=1" in unit.read_text()
+    assert "POWERCLOCK_DRY_RUN=1" in unit.read_text()
     status = runner.invoke(app, ["service", "status"])
     assert "active: inactive · enabled: enabled" in status.output
     assert runner.invoke(app, ["service", "uninstall"]).exit_code == 0

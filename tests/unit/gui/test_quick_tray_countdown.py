@@ -6,14 +6,14 @@ from typing import Any
 import pytest
 
 from guisupport import pump
-from kse.engine.clock import FakeClock
-from kse.gui.client import DaemonLink
-from kse.gui.countdown import Countdowns
-from kse.gui.quick import QuickTab
-from kse.gui.tray import Tray, quick_now
-from kse.platform.base import PowerAction
-from kse.platform.fake import FakePlatform
-from kse.sensors.fake import FakeReadings
+from powerclock.engine.clock import FakeClock
+from powerclock.gui.client import DaemonLink
+from powerclock.gui.countdown import Countdowns
+from powerclock.gui.quick import QuickTab
+from powerclock.gui.tray import Tray, quick_now
+from powerclock.platform.base import PowerAction
+from powerclock.platform.fake import FakePlatform
+from powerclock.sensors.fake import FakeReadings
 
 
 def names(link: DaemonLink) -> list[str]:

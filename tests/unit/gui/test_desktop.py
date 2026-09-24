@@ -1,4 +1,4 @@
-"""Menu entry and login start (.desktop files), one instance per user, and `kse gui`."""
+"""Menu entry and login start (.desktop files), one instance per user, and `powerclock gui`."""
 
 import subprocess
 from pathlib import Path
@@ -8,9 +8,9 @@ import pytest
 from typer.testing import CliRunner
 
 from guisupport import pump
-from kse.cli import main as cli
-from kse.gui.single import SingleInstance
-from kse.platform.linux import autostart
+from powerclock.cli import main as cli
+from powerclock.gui.single import SingleInstance
+from powerclock.platform.linux import autostart
 
 
 @pytest.fixture
@@ -19,13 +19,15 @@ def env(tmp_path: Path) -> dict[str, str]:
 
 
 def test_menu_entry(env: dict[str, str], monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(autostart, "gui_executable", lambda: Path("/home/pc/.local/bin/kse-gui"))
+    monkeypatch.setattr(
+        autostart, "gui_executable", lambda: Path("/home/pc/.local/bin/powerclock-gui")
+    )
     assert not autostart.in_menu(env)
     autostart.set_menu(True, env)
     assert autostart.in_menu(env)
     entry = autostart.menu_path(env).read_text()
-    assert "Exec=/home/pc/.local/bin/kse-gui\n" in entry
-    assert "Icon=kse\n" in entry
+    assert "Exec=/home/pc/.local/bin/powerclock-gui\n" in entry
+    assert "Icon=powerclock\n" in entry
     assert "GenericName[es]=Programador de energía y tareas" in entry
     assert autostart.icon_path(env).read_text().startswith("<svg")
     autostart.set_menu(False, env)
@@ -34,10 +36,10 @@ def test_menu_entry(env: dict[str, str], monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 def test_login_start(env: dict[str, str], monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(autostart, "gui_executable", lambda: Path("/opt/my apps/kse-gui"))
+    monkeypatch.setattr(autostart, "gui_executable", lambda: Path("/opt/my apps/powerclock-gui"))
     autostart.set_login(True, env)
     entry = autostart.autostart_path(env).read_text()
-    assert 'Exec="/opt/my apps/kse-gui" --tray' in entry
+    assert 'Exec="/opt/my apps/powerclock-gui" --tray' in entry
     assert "X-GNOME-Autostart-enabled=true" in entry
     assert autostart.at_login(env)
     assert autostart.set_login(False, env) == [f"removed {autostart.autostart_path(env)}"]
@@ -45,7 +47,7 @@ def test_login_start(env: dict[str, str], monkeypatch: pytest.MonkeyPatch) -> No
 
 
 async def test_single_instance(qapp: object, tmp_path: Path) -> None:
-    name = f"kse-gui-test-{tmp_path.name}"
+    name = f"powerclock-gui-test-{tmp_path.name}"
     first = SingleInstance(name)
     assert not first.forward("show")  # nobody is listening yet
     received: list[str] = []
@@ -59,8 +61,8 @@ async def test_single_instance(qapp: object, tmp_path: Path) -> None:
     assert received == ["show"]
 
 
-def test_kse_gui_command(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    executable = tmp_path / "kse-gui"
+def test_gui_command(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    executable = tmp_path / "powerclock-gui"
     executable.write_text("")
     started: list[Any] = []
     monkeypatch.setattr(cli, "gui_executable", lambda: executable)
@@ -71,4 +73,4 @@ def test_kse_gui_command(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Non
     monkeypatch.setattr(cli, "gui_executable", lambda: None)
     result = CliRunner().invoke(cli.app, ["gui"])
     assert result.exit_code == 1
-    assert "pipx install --force 'kse[gui]'" in result.output
+    assert "pipx install --force 'powerclock[gui]'" in result.output

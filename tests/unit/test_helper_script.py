@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from kse.helper import kse_helper_linux as helper
+from powerclock.helper import powerclock_helper_linux as helper
 
 NOW = 1_790_000_000
 
@@ -74,7 +74,7 @@ def test_wake_set_rejects(
     rtcwake = fake_rtcwake(tmp_path)
     assert run(["wake-set", argument], rtc, rtcwake=rtcwake) == helper.EXIT_USAGE
     assert not (tmp_path / "rtcwake.log").exists()
-    assert "kse-helper:" in capsys.readouterr().err
+    assert "powerclock-helper:" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize(
@@ -124,8 +124,8 @@ def test_errors_are_reported(tmp_path: Path, capsys: pytest.CaptureFixture[str])
 def test_the_script_is_standalone() -> None:
     source = Path(helper.__file__).read_text()
     assert source.startswith("#!/usr/bin/python3\n")
-    assert "import kse" not in source
-    assert "from kse" not in source
+    assert "import powerclock" not in source
+    assert "from powerclock" not in source
     imports = {
         line.split()[1] for line in source.splitlines() if line.startswith(("import ", "from "))
     }

@@ -1,0 +1,25 @@
+// Installed by `powerclock helper install --unattended` as
+// /etc/polkit-1/rules.d/50-powerclock-unattended.rules
+//
+// Lets @USER@ program the wake-up alarm and shut down, reboot, suspend or hibernate
+// without an active graphical session: wake up → work → shut down, unattended.
+polkit.addRule(function (action, subject) {
+    if (subject.user !== "@USER@") {
+        return polkit.Result.NOT_HANDLED;
+    }
+    var allowed = [
+        "org.powerclock.helper.wake",
+        "org.freedesktop.login1.power-off",
+        "org.freedesktop.login1.power-off-multiple-sessions",
+        "org.freedesktop.login1.reboot",
+        "org.freedesktop.login1.reboot-multiple-sessions",
+        "org.freedesktop.login1.suspend",
+        "org.freedesktop.login1.suspend-multiple-sessions",
+        "org.freedesktop.login1.hibernate",
+        "org.freedesktop.login1.hibernate-multiple-sessions"
+    ];
+    if (allowed.indexOf(action.id) >= 0) {
+        return polkit.Result.YES;
+    }
+    return polkit.Result.NOT_HANDLED;
+});

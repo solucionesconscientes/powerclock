@@ -15,20 +15,20 @@ import httpx
 from PySide6.QtWidgets import QApplication, QWidget
 
 from guisupport import pump
-from kse.config import Paths
-from kse.connection import Endpoint
-from kse.daemon.core import Daemon
-from kse.engine.clock import FakeClock
-from kse.gui import tasks
-from kse.gui.client import DaemonLink, HttpApi
-from kse.platform.fake import FakePlatform
-from kse.sensors.fake import FakeReadings
+from powerclock.config import Paths
+from powerclock.connection import Endpoint
+from powerclock.daemon.core import Daemon
+from powerclock.engine.clock import FakeClock
+from powerclock.gui import tasks
+from powerclock.gui.client import DaemonLink, HttpApi
+from powerclock.platform.fake import FakePlatform
+from powerclock.sensors.fake import FakeReadings
 from support import MADRID
 
 
 @pytest.fixture(scope="session")
 def qapp() -> QApplication:
-    app = QApplication.instance() or QApplication(["kse-gui-tests"])
+    app = QApplication.instance() or QApplication(["powerclock-gui-tests"])
     assert isinstance(app, QApplication)
     return app
 
@@ -66,7 +66,7 @@ async def daemon(
 @pytest.fixture
 async def link(qapp: QApplication, daemon: Daemon) -> AsyncIterator[DaemonLink]:
     api = HttpApi(
-        locate=lambda: Endpoint("http://kse", daemon.token),
+        locate=lambda: Endpoint("http://powerclock", daemon.token),
         transport=httpx.ASGITransport(app=daemon.app),
     )
 

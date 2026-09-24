@@ -5,10 +5,10 @@ from typing import Any
 import httpx
 import pytest
 
-from kse.engine.clock import FakeClock, settle
-from kse.platform.base import PowerAction
-from kse.platform.fake import FakePlatform
-from kse.sensors.fake import FakeReadings
+from powerclock.engine.clock import FakeClock, settle
+from powerclock.platform.base import PowerAction
+from powerclock.platform.fake import FakePlatform
+from powerclock.sensors.fake import FakeReadings
 
 
 async def quick(http: httpx.AsyncClient, **payload: Any) -> dict[str, Any]:

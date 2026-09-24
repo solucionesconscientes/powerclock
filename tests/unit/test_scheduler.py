@@ -4,9 +4,9 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from kse.engine.clock import FakeClock, settle
-from kse.engine.scheduler import Scheduler
-from kse.models import Rule
+from powerclock.engine.clock import FakeClock, settle
+from powerclock.engine.scheduler import Scheduler
+from powerclock.models import Rule
 from support import MADRID, START, rule
 
 Fired = list[tuple[str, datetime, bool]]

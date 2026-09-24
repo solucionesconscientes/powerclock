@@ -4,10 +4,10 @@ from typing import Any
 import psutil
 import pytest
 
-from kse.platform.fake import FakePlatform
-from kse.sensors import system
-from kse.sensors.base import PowerState, ProcessInfo
-from kse.sensors.system import NetMeter, NetRate, SystemReadings
+from powerclock.platform.fake import FakePlatform
+from powerclock.sensors import system
+from powerclock.sensors.base import PowerState, ProcessInfo
+from powerclock.sensors.system import NetMeter, NetRate, SystemReadings
 
 BatteryInfo = namedtuple("BatteryInfo", "percent secsleft power_plugged")
 User = namedtuple("User", "name terminal host started pid")

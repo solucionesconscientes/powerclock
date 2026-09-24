@@ -33,7 +33,7 @@ RULES: dict[str, list[dict[str, Any]]] = {
             },
             "actions": [
                 {"type": "run", "cmd": ["/home/me/bin/backup.sh"], "timeout": "2h"},
-                {"type": "notify", "title": "KSE", "body": "Backup done"},
+                {"type": "notify", "title": "PowerClock", "body": "Backup done"},
                 {"type": "power", "action": "shutdown"},
             ],
         },
@@ -71,7 +71,7 @@ RULES: dict[str, list[dict[str, Any]]] = {
             },
             "actions": [
                 {"type": "run", "cmd": ["/home/yo/bin/backup.sh"], "timeout": "2h"},
-                {"type": "notify", "title": "KSE", "body": "Backup terminado"},
+                {"type": "notify", "title": "PowerClock", "body": "Backup terminado"},
                 {"type": "power", "action": "shutdown"},
             ],
         },
@@ -101,8 +101,8 @@ RULES: dict[str, list[dict[str, Any]]] = {
 
 
 def capabilities() -> list[Any]:
-    """What `kse doctor` reports on a KDE laptop (the fake backend only says "simulated")."""
-    from kse.platform.base import Capability
+    """What `powerclock doctor` reports on a KDE laptop (the fake backend only says "simulated")."""
+    from powerclock.platform.base import Capability
 
     rows = [
         ("session", True, "KDE · wayland", None),
@@ -142,18 +142,18 @@ async def shoot(language: str) -> None:
     from PySide6.QtCore import QLibraryInfo, QLocale, QTranslator
     from PySide6.QtWidgets import QApplication
 
-    from kse.config import Paths
-    from kse.connection import Endpoint
-    from kse.daemon.core import Daemon, QuickRequest
-    from kse.gui.client import HttpApi
-    from kse.gui.controller import Controller
-    from kse.platform.fake import FakePlatform
-    from kse.sensors.base import PowerState
-    from kse.sensors.fake import FakeReadings
+    from powerclock.config import Paths
+    from powerclock.connection import Endpoint
+    from powerclock.daemon.core import Daemon, QuickRequest
+    from powerclock.gui.client import HttpApi
+    from powerclock.gui.controller import Controller
+    from powerclock.platform.fake import FakePlatform
+    from powerclock.sensors.base import PowerState
+    from powerclock.sensors.fake import FakeReadings
 
     out = OUT / language
     out.mkdir(parents=True, exist_ok=True)
-    app = QApplication(["kse-gui"])
+    app = QApplication(["powerclock-gui"])
     translator = QTranslator(app)
     folder = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
     if translator.load(QLocale.system(), "qtbase", "_", folder):
@@ -195,7 +195,7 @@ async def shoot(language: str) -> None:
     daemon.quick(QuickRequest.model_validate({"action": "shutdown", "when_exits": "ffmpeg"}))
 
     api = HttpApi(
-        locate=lambda: Endpoint("http://kse", daemon.token),
+        locate=lambda: Endpoint("http://powerclock", daemon.token),
         transport=httpx.ASGITransport(app=daemon.app),
     )
 
@@ -256,7 +256,7 @@ def main() -> None:
         env = {
             **os.environ,
             "QT_QPA_PLATFORM": "offscreen",
-            "KSE_BACKEND": "fake",
+            "POWERCLOCK_BACKEND": "fake",
             "LC_ALL": locale,
             "LANGUAGE": language if language != "en" else "",
         }

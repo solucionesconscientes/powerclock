@@ -5,8 +5,8 @@ from datetime import UTC, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from kse.engine.clock import FakeClock
-from kse.models import Rule
+from powerclock.engine.clock import FakeClock
+from powerclock.models import Rule
 
 START = datetime(2026, 9, 24, 8, 0, tzinfo=UTC)  # Thursday, 10:00 in Madrid
 MADRID = ZoneInfo("Europe/Madrid")
@@ -18,7 +18,7 @@ def rule(**fields: Any) -> Rule:
         "id": "test",
         "name": "Test",
         "trigger": {"type": "manual"},
-        "actions": [{"type": "notify", "title": "KSE"}],
+        "actions": [{"type": "notify", "title": "PowerClock"}],
         "warning": "0s",
     }
     data.update(fields)

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!-- Installed by `powerclock helper install` as /usr/share/polkit-1/actions/org.powerclock.helper.policy -->
+<policyconfig>
+  <vendor>PowerClock</vendor>
+  <action id="org.powerclock.helper.wake">
+    <description>Program the computer's wake-up alarm</description>
+    <description xml:lang="es">Programar la alarma de encendido del equipo</description>
+    <message>Authentication is required to program the wake-up alarm</message>
+    <message xml:lang="es">Se necesita autenticación para programar la alarma de encendido</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/libexec/powerclock-helper</annotate>
+  </action>
+</policyconfig>

@@ -1,4 +1,4 @@
-"""`kse doctor --test-wake`: the logic with a simulated suspend, and the CLI safeguards."""
+"""`powerclock doctor --test-wake`: the logic with a simulated suspend, and the CLI safeguards."""
 
 import asyncio
 import functools
@@ -7,10 +7,10 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from typer.testing import CliRunner
 
-from kse.cli.main import app
-from kse.doctor import WakeTest, run_wake_test
-from kse.platform.base import NotSupported, PowerAction, PowerEvent, PowerMode
-from kse.platform.fake import FakePlatform
+from powerclock.cli.main import app
+from powerclock.doctor import WakeTest, run_wake_test
+from powerclock.platform.base import NotSupported, PowerAction, PowerEvent, PowerMode
+from powerclock.platform.fake import FakePlatform
 
 ALARM = datetime(2026, 9, 24, 8, 2, tzinfo=UTC)
 
@@ -69,7 +69,7 @@ async def test_run_wake_test() -> None:
 async def test_no_suspend_without_an_alarm() -> None:
     class NoHelper(Sleepy):
         async def wake_set(self, when: datetime) -> None:
-            raise NotSupported("wake", "kse-helper is not installed")
+            raise NotSupported("wake", "powerclock-helper is not installed")
 
     backend = NoHelper([datetime(2026, 9, 24, 8, 0, tzinfo=UTC)])
     with pytest.raises(NotSupported):
@@ -84,16 +84,16 @@ async def test_suspend_blocked() -> None:
 
 
 def test_cli_does_nothing_in_dry_run() -> None:
-    result = CliRunner().invoke(app, ["doctor", "--test-wake", "120"])  # KSE_DRY_RUN=1
+    result = CliRunner().invoke(app, ["doctor", "--test-wake", "120"])  # POWERCLOCK_DRY_RUN=1
     assert result.exit_code == 0
     assert "nothing done" in result.output
 
 
 def test_cli_asks_before_suspending(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("KSE_DRY_RUN")  # the fake backend: nothing real could happen anyway
+    monkeypatch.delenv("POWERCLOCK_DRY_RUN")  # the fake backend: nothing real could happen anyway
     backends: list[FakePlatform] = []
     monkeypatch.setattr(
-        "kse.cli.main.get_backend", lambda: backends.append(FakePlatform()) or backends[-1]
+        "powerclock.cli.main.get_backend", lambda: backends.append(FakePlatform()) or backends[-1]
     )
     result = CliRunner().invoke(app, ["doctor", "--test-wake", "120"], input="n\n")
     assert result.exit_code == 1
@@ -121,15 +121,15 @@ async def test_the_wake_source_is_reported_when_it_changes() -> None:
 
 
 def test_cli_full_test(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("KSE_DRY_RUN")
+    monkeypatch.delenv("POWERCLOCK_DRY_RUN")
     monkeypatch.setenv("COLUMNS", "200")
     clock = [datetime(2026, 9, 24, 8, 0, tzinfo=UTC)]
     backend = Sleepy(clock, woken_after=2)
     backend.wakeup = "IRQ 9: acpi"
-    monkeypatch.setattr("kse.cli.main.get_backend", lambda: backend)
-    monkeypatch.setattr("kse.cli.main.time.sleep", lambda seconds: None)
+    monkeypatch.setattr("powerclock.cli.main.get_backend", lambda: backend)
+    monkeypatch.setattr("powerclock.cli.main.time.sleep", lambda seconds: None)
     monkeypatch.setattr(
-        "kse.cli.main.run_wake_test", functools.partial(run_wake_test, now=lambda: clock[0])
+        "powerclock.cli.main.run_wake_test", functools.partial(run_wake_test, now=lambda: clock[0])
     )
     result = CliRunner().invoke(app, ["doctor", "--test-wake", "120"], input="y\n")
     assert result.exit_code == 0, result.output
