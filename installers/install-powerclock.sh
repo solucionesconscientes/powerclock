@@ -96,7 +96,7 @@ if [ ! -x "$UV" ] || [ "$("$UV" --version 2>/dev/null | cut -d ' ' -f 2)" != "$U
 fi
 
 # 3. PowerClock with a Python of its own: the system's version, venv or pip do not matter.
-say "Installing PowerClock and its own Python (about 120 MB the first time)…"
+say "Installing PowerClock and its own Python (about 130 MB to download the first time)…"
 UV_PYTHON_PREFERENCE=only-managed "$UV" tool install --reinstall --python "$PYTHON_VERSION" "$SOURCE" \
     || fail "PowerClock could not be installed (see the messages above)."
 BIN="$("$UV" tool dir --bin)"

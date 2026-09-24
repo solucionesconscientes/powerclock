@@ -126,7 +126,7 @@ un **icono en la bandeja** · la interfaz en **español e inglés**.
 2. **Permite que se ejecute**: clic derecho → *Propiedades* → *Permisos* → *Permitir ejecutar el
    archivo como un programa* (o, en una terminal, `chmod +x install-powerclock.sh`).
 3. **Haz doble clic.** Una terminal muestra la descarga: PowerClock con su propio Python y Qt,
-   unos 120 MB la primera vez, así no depende de lo que tenga tu sistema. Después se abre la
+   unos 130 MB de descarga y 400 MB en disco, así no depende de lo que tenga tu sistema. Después se abre la
    ventana de instalación de PowerClock.
 4. **Pulsa Instalar** y escribe tu contraseña cuando te la pida (una vez, para el pequeño ayudante
    que enciende el equipo).
