@@ -29,7 +29,7 @@ from kse.cli import client as api
 from kse.cli.format import local, relative, span, trigger, watch_detail
 from kse.config import Paths
 from kse.doctor import WakeTest, collect, run_wake_test, verdict_message
-from kse.i18n import _, power_action_label
+from kse.i18n import _
 from kse.install.helper import helper_module
 from kse.install.service import service_module
 from kse.platform import dry_run_requested, get_backend
@@ -262,11 +262,23 @@ def _power_command(action: PowerAction) -> Callable[..., None]:
     return command
 
 
+# The help of the CLI is in English (typer docstrings); the action names follow it.
+HELP_NAMES = {
+    PowerAction.SHUTDOWN: "Shut down",
+    PowerAction.REBOOT: "Restart",
+    PowerAction.SUSPEND: "Suspend",
+    PowerAction.HIBERNATE: "Hibernate",
+    PowerAction.HYBRID_SLEEP: "Hybrid sleep (suspend + hibernate)",
+    PowerAction.LOCK: "Lock the screen",
+    PowerAction.LOGOUT: "Log out",
+    PowerAction.SCREEN_OFF: "Turn off the screen",
+}
+
 for _action in PowerAction:
     app.command(
         name=_action.value.replace("_", "-"),
         help=(
-            f"{power_action_label(_action)}: now, after a delay (--in), at a time (--at) "
+            f"{HELP_NAMES[_action]}: now, after a delay (--in), at a time (--at) "
             "or when a condition is met (--when-idle, --when-exits, --when-cpu-below, "
             "--when-net-below)."
         ),
