@@ -5,6 +5,7 @@ description = "KShutdown Evolution: power and task automation (shutdown, suspend
 readme = "README.md"
 requires-python = ">=3.11"
 license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 keywords = ["shutdown", "suspend", "wake", "rtcwake", "scheduler", "automation", "power-management"]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",

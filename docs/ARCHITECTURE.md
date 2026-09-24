@@ -48,7 +48,7 @@ App multiplataforma (Linux → Windows → macOS) para automatizar energía y ta
 - Extra `[gui]`: `PySide6-Essentials` (QtCore/Gui/Widgets/Network/Svg…, sin los Addons: 236 MB en disco en vez de 674 MB) y `qasync`. La GUI habla con el API como la CLI: `httpx` (async) y `websockets` para `/events`; nada de QtWebSockets (está en los Addons).
 - Dev (grupo `dev` de uv; no es un extra publicado): `pytest`, `pytest-asyncio`, `ruff`, `time-machine`.
 - Entry points: `kse`, `kse-daemon` y `kse-gui` (este en `[project.gui-scripts]`: en Windows se lanza sin ventana de consola).
-- Licencia provisional: GPL-3.0-or-later (decidir antes de publicar).
+- Licencia: GPL-3.0-or-later (decidida el 24-09-2026; texto en `LICENSE`).
 
 ## 4. Modelo de reglas
 Regla = disparador + condiciones + guardas + acciones (secuencia) + opciones. Duraciones como texto: `"30s"`, `"5m"`, `"2h"`, `"1d"`.

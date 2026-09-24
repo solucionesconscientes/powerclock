@@ -72,7 +72,7 @@ Marca `[x]` al completar. Cada hito termina con ruff + pytest en verde y un comm
 - [x] README (es/en) con capturas; `examples/` documentados (`README.md`, `README.es.md`; capturas con `scripts/screenshots.py`. Al publicar en PyPI, las imágenes necesitan URL absolutas)
 - [ ] Comprobar el nombre en PyPI; `pipx install .` limpio en Kubuntu y en el VPS (sin GUI)
 - [ ] GitHub Actions: lint + tests (Linux), build sdist/wheel
-- [ ] CHANGELOG; licencia definitiva
+- [ ] CHANGELOG; licencia definitiva (GPL-3.0-or-later ✅, `LICENSE`)
 
 ## Empaquetado (opcional, cuando se decida)
 De momento la distribución es `pipx` en los tres SO. Opciones estudiadas, por ganancia:
