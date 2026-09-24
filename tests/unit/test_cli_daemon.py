@@ -2,6 +2,7 @@
 
 import json
 import socket
+import time
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -197,3 +198,13 @@ def test_when_options(daemon: Daemon) -> None:
     assert "idle for 0s" in status
     assert "cancel it instead" in kse_fails("postpone")
     kse_fails("shutdown", "--when-idle", "20m", "--in", "5m")
+
+
+def test_reasons_are_readable_and_keep_brackets(daemon: Daemon) -> None:
+    kse("run", "--", "/nonexistent/kse-program")
+    for _ in range(200):  # a real (missing) program: wait for its run in real time
+        if daemon.history.list(limit=1):
+            break
+        time.sleep(0.01)
+    history = kse("history")
+    assert "step 1 (Run a program) failed: [Errno 2]" in history

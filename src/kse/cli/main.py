@@ -32,6 +32,7 @@ from kse.doctor import WakeTest, collect, run_wake_test, verdict_message
 from kse.i18n import _
 from kse.install.helper import helper_module
 from kse.install.service import service_module
+from kse.labels import reason_label
 from kse.platform import dry_run_requested, get_backend
 from kse.platform.base import NotSupported, PowerAction
 
@@ -338,9 +339,9 @@ def status() -> None:
             detail = (
                 _("acts {when}").format(when=relative(run["deadline"]))
                 if run.get("deadline")
-                else run.get("reason") or ""
+                else escape(reason_label(run.get("reason")))
             )
-            table.add_row(run["rule_name"], _styled(run["state"]), detail, run["id"])
+            table.add_row(escape(run["rule_name"]), _styled(run["state"]), detail, run["id"])
         console.print(table)
     if upcoming:
         table = Table(title=_("Next"), title_justify="left", header_style="bold")
@@ -407,7 +408,10 @@ def history(
         table.add_column(column)
     for run in data["runs"]:
         table.add_row(
-            local(run["finished_at"]), run["rule_name"], _styled(run["state"]), run["reason"] or ""
+            local(run["finished_at"]),
+            escape(run["rule_name"]),
+            _styled(run["state"]),
+            escape(reason_label(run["reason"])),
         )
     console.print(table)
     console.print(

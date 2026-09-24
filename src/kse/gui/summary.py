@@ -8,6 +8,7 @@ from typing import Any
 from kse.cli.format import moment, relative, watch_detail
 from kse.gui.icons import TrayState
 from kse.i18n import _
+from kse.labels import reason_label
 
 QUICK_PREFIX = "quick-"
 
@@ -99,7 +100,8 @@ def quick_items(pending: dict[str, Any], now: datetime | None = None) -> list[It
     for run in pending.get("active", []):
         if run["rule_id"].startswith(QUICK_PREFIX):
             counting = run.get("state") == "warning"
-            detail = countdown_text(run, now) if counting else run.get("reason") or _("running")
+            detail = countdown_text(run, now) if counting else reason_label(run.get("reason"))
+            detail = detail or _("running")
             items.append(Item(run["rule_id"], run["rule_name"], detail, run["id"], counting))
             seen.add(run["rule_id"])
     for entry in pending.get("next", []):

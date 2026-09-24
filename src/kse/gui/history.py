@@ -20,10 +20,10 @@ from PySide6.QtWidgets import (
 from kse.cli.format import local
 from kse.gui.client import DaemonLink
 from kse.gui.icons import themed
-from kse.gui.labels import cause_label, kind_label, state_label
 from kse.gui.summary import when_text
 from kse.gui.tasks import spawn
 from kse.i18n import _
+from kse.labels import cause_label, detail_label, kind_label, reason_label, state_label
 
 LIMIT = 200
 STATE_COLORS = {
@@ -95,7 +95,7 @@ class HistoryTab(QWidget):
                 QTableWidgetItem(run["rule_name"]),
                 state,
                 QTableWidgetItem(cause),
-                QTableWidgetItem(run.get("reason") or ""),
+                QTableWidgetItem(reason_label(run.get("reason"))),
             ]
             for column, cell in enumerate(cells):
                 cell.setToolTip(cell.text())
@@ -118,7 +118,7 @@ class HistoryTab(QWidget):
         for step in run.get("steps", []):
             line = f"{step['index'] + 1}. {kind_label(step['type'])}: {state_label(step['status'])}"
             if step.get("detail"):
-                line += f" — {step['detail']}"
+                line += f" — {detail_label(step['detail'])}"
             lines.append(line)
         if not run.get("steps"):
             lines.append(_("No step ran."))

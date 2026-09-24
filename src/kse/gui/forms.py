@@ -30,9 +30,9 @@ from PySide6.QtWidgets import (
 )
 
 from kse.gui.icons import themed
-from kse.gui.labels import field_label, kind_label, value_label
 from kse.gui.widgets import DurationEdit, LocalDateTimeEdit, ProcessCombo, next_quarter
 from kse.i18n import _
+from kse.labels import field_label, kind_label, value_label
 from kse.models import (
     DURATION_PATTERN,
     AtTrigger,

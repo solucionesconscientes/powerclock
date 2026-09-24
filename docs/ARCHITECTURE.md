@@ -281,6 +281,7 @@ KSHUTDOWN-EVOLUTION/
 │   ├── timeparse.py     # "23:30" / "2026-09-24 07:30" → instante
 │   ├── doctor.py        # kse doctor: informe del backend + comprobaciones genéricas
 │   ├── i18n.py          # textos traducibles (gettext)
+│   ├── labels.py        # nombres traducidos (tipos, campos, estados) y motivos del motor en palabras
 │   ├── locale/          # es/LC_MESSAGES/kse.po + kse.mo (scripts/i18n.py)
 │   ├── connection.py    # dónde está el API del demonio, su token y sus errores (CLI y GUI)
 │   ├── engine/          # core.py (Engine) clock.py scheduler.py watcher.py evaluator.py executor.py runs.py processes.py wake.py
@@ -293,8 +294,8 @@ KSHUTDOWN-EVOLUTION/
 │   ├── daemon/          # main.py (kse-daemon) core.py (Daemon) api.py store.py (reglas + historial) events.py
 │   ├── cli/             # main.py client.py format.py
 │   ├── install/         # service.py (fachada por SO) autostart.py helper.py
-│   └── gui/             # app.py (kse-gui) controller.py client.py (HttpApi, DaemonLink) tray.py window.py quick.py rules.py editor.py forms.py history.py diagnostics.py countdown.py summary.py labels.py widgets.py tasks.py single.py icons.py icons/*.svg
-├── scripts/             # i18n.py (extraer y compilar traducciones)
+│   └── gui/             # app.py (kse-gui) controller.py client.py (HttpApi, DaemonLink) tray.py window.py quick.py rules.py editor.py forms.py history.py diagnostics.py countdown.py summary.py widgets.py tasks.py single.py icons.py icons/*.svg
+├── scripts/             # i18n.py (extraer y compilar traducciones) screenshots.py (capturas del README, Qt offscreen y backend falso)
 └── tests/               # unit/ (unit/gui: Qt offscreen) + real/ (@pytest.mark.real, excluidos por defecto)
 ```
 

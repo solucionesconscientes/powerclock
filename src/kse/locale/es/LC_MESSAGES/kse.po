@@ -1,25 +1,29 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=UTF-8\nLanguage: es\n"
 
-#: kse/cli/main.py:184
+#: kse/cli/main.py:185
 msgid "  cancel: kse cancel"
 msgstr "  cancelar: kse cancel"
 
-#: kse/cli/main.py:186
+#: kse/cli/main.py:187
 msgid "  cancel: kse cancel · postpone: kse postpone 10m"
 msgstr "  cancelar: kse cancel · posponer: kse postpone 10m"
 
-#: kse/cli/main.py:655
+#: kse/cli/main.py:671
 msgid "  check: kse doctor · try it: kse doctor --test-wake 120"
 msgstr "  comprobar: kse doctor · probarlo: kse doctor --test-wake 120"
 
-#: kse/cli/main.py:657
+#: kse/cli/main.py:673
 msgid "  unattended also needs: kse service install --linger"
 msgstr "  el modo desatendido también necesita: kse service install --linger"
 
-#: kse/gui/labels.py:99
+#: kse/labels.py:103
 msgid " for {time}"
 msgstr " durante {time}"
+
+#: kse/labels.py:158
+msgid " or "
+msgstr " o "
 
 #: kse/gui/forms.py:716
 msgid "(none)"
@@ -33,11 +37,11 @@ msgstr "+10 min"
 msgid "? Resumed at {resumed}, before the alarm ({alarm}): woken by hand?"
 msgstr "? Reanudó a las {resumed}, antes de la alarma ({alarm}): ¿despertado a mano?"
 
-#: kse/cli/main.py:312 kse/cli/main.py:778
+#: kse/cli/main.py:325 kse/cli/main.py:794
 msgid "[yellow]Dry run:[/] power actions and wake alarms are only logged."
 msgstr "[yellow]Simulacro:[/] las acciones de energía y las alarmas de encendido solo se registran."
 
-#: kse/cli/main.py:710
+#: kse/cli/main.py:726
 msgid "[yellow]Dry run:[/] the test would suspend the computer; nothing done."
 msgstr "[yellow]Simulacro:[/] la prueba suspendería el equipo; no se hace nada."
 
@@ -45,19 +49,19 @@ msgstr "[yellow]Simulacro:[/] la prueba suspendería el equipo; no se hace nada.
 msgid "a password would be needed (no active session?)"
 msgstr "haría falta contraseña (¿sin sesión activa?)"
 
-#: kse/gui/labels.py:27
+#: kse/labels.py:31
 msgid "A program is running"
 msgstr "Un programa está en marcha"
 
-#: kse/gui/labels.py:57
+#: kse/labels.py:61
 msgid "Above (%)"
 msgstr "Por encima de (%)"
 
-#: kse/gui/labels.py:121
+#: kse/labels.py:125
 msgid "above {percent} %"
 msgstr "por encima del {percent} %"
 
-#: kse/gui/labels.py:69 kse/gui/quick.py:132
+#: kse/gui/quick.py:132 kse/labels.py:73
 msgid "Action"
 msgstr "Acción"
 
@@ -65,11 +69,11 @@ msgstr "Acción"
 msgid "Action:"
 msgstr "Acción:"
 
-#: kse/cli/main.py:606
+#: kse/cli/main.py:622
 msgid "active"
 msgstr "activo"
 
-#: kse/cli/main.py:327
+#: kse/cli/main.py:340
 msgid "acts {when}"
 msgstr "actúa {when}"
 
@@ -85,23 +89,23 @@ msgstr "Añadir una guarda"
 msgid "Add a step"
 msgstr "Añadir un paso"
 
-#: kse/cli/main.py:466
+#: kse/cli/main.py:482
 msgid "Added"
 msgstr "Añadida"
 
-#: kse/gui/labels.py:33
+#: kse/labels.py:37
 msgid "Advanced (JSON)"
 msgstr "Avanzada (JSON)"
 
-#: kse/gui/labels.py:81
+#: kse/labels.py:85
 msgid "After"
 msgstr "Tras"
 
-#: kse/gui/labels.py:15 kse/gui/quick.py:46
+#: kse/gui/quick.py:46 kse/labels.py:19
 msgid "After a delay"
 msgstr "Dentro de un tiempo"
 
-#: kse/gui/labels.py:149
+#: kse/labels.py:268
 msgid "After resume"
 msgstr "Al reanudar"
 
@@ -113,11 +117,15 @@ msgstr "Encender también el equipo a las"
 msgid "Also without anyone logged in (unattended)"
 msgstr "También sin nadie con la sesión iniciada (desatendido)"
 
-#: kse/gui/labels.py:14 kse/gui/quick.py:45
+#: kse/labels.py:179
+msgid "another power action is in progress"
+msgstr "hay otra acción de energía en curso"
+
+#: kse/gui/quick.py:45 kse/labels.py:18
 msgid "At a date and time"
 msgstr "En una fecha y hora"
 
-#: kse/gui/labels.py:18
+#: kse/labels.py:22
 msgid "At startup or after resume"
 msgstr "Al arrancar o al reanudar"
 
@@ -141,7 +149,7 @@ msgstr "media de los últimos {window}"
 msgid "battery at {percent} %"
 msgstr "batería al {percent} %"
 
-#: kse/gui/labels.py:24
+#: kse/labels.py:28
 msgid "Battery level"
 msgstr "Nivel de batería"
 
@@ -149,19 +157,19 @@ msgstr "Nivel de batería"
 msgid "battery level unknown"
 msgstr "nivel de batería desconocido"
 
-#: kse/gui/labels.py:56
+#: kse/labels.py:60
 msgid "Below (%)"
 msgstr "Por debajo de (%)"
 
-#: kse/gui/labels.py:121
+#: kse/labels.py:125
 msgid "below {percent} %"
 msgstr "por debajo del {percent} %"
 
-#: kse/gui/labels.py:145
+#: kse/labels.py:264
 msgid "Both"
 msgstr "Ambas"
 
-#: kse/gui/labels.py:187
+#: kse/labels.py:306
 msgid "by hand"
 msgstr "a mano"
 
@@ -169,19 +177,23 @@ msgstr "a mano"
 msgid "Cancel"
 msgstr "Cancelar"
 
-#: kse/cli/main.py:361
+#: kse/cli/main.py:374
 msgid "Cancelled"
 msgstr "Cancelada"
 
-#: kse/gui/labels.py:175
+#: kse/labels.py:174 kse/labels.py:294
 msgid "cancelled"
 msgstr "cancelada"
+
+#: kse/labels.py:175
+msgid "cancelled before it fired"
+msgstr "cancelada antes de actuar"
 
 #: kse/platform/linux/capabilities.py:217
 msgid "cannot be checked by a normal user"
 msgstr "un usuario normal no puede comprobarlo"
 
-#: kse/cli/main.py:781 kse/gui/diagnostics.py:104
+#: kse/cli/main.py:797 kse/gui/diagnostics.py:104
 msgid "Capability"
 msgstr "Capacidad"
 
@@ -189,11 +201,11 @@ msgstr "Capacidad"
 msgid "Check again"
 msgstr "Comprobar de nuevo"
 
-#: kse/gui/labels.py:89
+#: kse/labels.py:93
 msgid "Check again every"
 msgstr "Volver a mirar cada"
 
-#: kse/gui/labels.py:38
+#: kse/labels.py:42
 msgid "Close a program"
 msgstr "Cerrar un programa"
 
@@ -201,15 +213,19 @@ msgstr "Cerrar un programa"
 msgid "Close the tray icon"
 msgstr "Cerrar el icono de la bandeja"
 
-#: kse/gui/labels.py:71
+#: kse/labels.py:219
+msgid "closed {count} process(es)"
+msgstr "cerrado(s) {count} proceso(s)"
+
+#: kse/labels.py:75
 msgid "Command"
 msgstr "Orden"
 
-#: kse/gui/labels.py:80
+#: kse/labels.py:84
 msgid "Condition"
 msgstr "Condición"
 
-#: kse/gui/labels.py:186
+#: kse/labels.py:305
 msgid "condition"
 msgstr "condición"
 
@@ -217,15 +233,23 @@ msgstr "condición"
 msgid "Conditions"
 msgstr "Condiciones"
 
-#: kse/gui/labels.py:32
+#: kse/labels.py:170
+msgid "conditions not met"
+msgstr "no se cumplían las condiciones"
+
+#: kse/labels.py:171
+msgid "conditions unknown: a sensor could not be read"
+msgstr "condiciones desconocidas: no se pudo leer un sensor"
+
+#: kse/labels.py:36
 msgid "Connected to the Wi-Fi network"
 msgstr "Conectado a la red Wi-Fi"
 
-#: kse/gui/labels.py:153
+#: kse/labels.py:272
 msgid "Continue with the next step"
 msgstr "Seguir con el siguiente paso"
 
-#: kse/gui/labels.py:82
+#: kse/labels.py:86
 msgid "Countdown before power actions"
 msgstr "Cuenta atrás antes de las acciones de energía"
 
@@ -233,27 +257,27 @@ msgstr "Cuenta atrás antes de las acciones de energía"
 msgid "Countdown:"
 msgstr "Cuenta atrás:"
 
-#: kse/gui/labels.py:172
+#: kse/labels.py:291
 msgid "counting down"
 msgstr "en cuenta atrás"
 
-#: kse/gui/labels.py:22
+#: kse/labels.py:26
 msgid "CPU usage below"
 msgstr "Uso de CPU por debajo de"
 
-#: kse/gui/labels.py:61
+#: kse/labels.py:65
 msgid "Cron expression"
 msgstr "Expresión cron"
 
-#: kse/gui/labels.py:31
+#: kse/labels.py:35
 msgid "Day of the week"
 msgstr "Día de la semana"
 
-#: kse/gui/labels.py:67
+#: kse/labels.py:71
 msgid "Days"
 msgstr "Días"
 
-#: kse/gui/labels.py:64
+#: kse/labels.py:68
 msgid "Delay"
 msgstr "Retraso"
 
@@ -269,7 +293,7 @@ msgstr "Borrar"
 msgid "Delete the rule {name!r}?"
 msgstr "¿Borrar la regla {name!r}?"
 
-#: kse/cli/main.py:507
+#: kse/cli/main.py:523
 msgid "Deleted"
 msgstr "Borrada"
 
@@ -277,7 +301,7 @@ msgstr "Borrada"
 msgid "Desktop"
 msgstr "Escritorio"
 
-#: kse/cli/main.py:782 kse/cli/main.py:323 kse/gui/diagnostics.py:104
+#: kse/cli/main.py:798 kse/cli/main.py:336 kse/gui/diagnostics.py:104
 msgid "Detail"
 msgstr "Detalle"
 
@@ -285,11 +309,11 @@ msgstr "Detalle"
 msgid "Diagnostics"
 msgstr "Diagnóstico"
 
-#: kse/gui/labels.py:54
+#: kse/labels.py:58
 msgid "Direction"
 msgstr "Sentido"
 
-#: kse/cli/main.py:499
+#: kse/cli/main.py:515
 msgid "Disabled"
 msgstr "Desactivada"
 
@@ -301,7 +325,7 @@ msgstr "desactivado"
 msgid "Do, in this order"
 msgstr "Hacer, en este orden"
 
-#: kse/gui/labels.py:173
+#: kse/labels.py:292
 msgid "done"
 msgstr "hecha"
 
@@ -309,15 +333,15 @@ msgstr "hecha"
 msgid "done: waits until the condition is over"
 msgstr "hecha: espera a que la condición deje de cumplirse"
 
-#: kse/gui/labels.py:143
+#: kse/labels.py:262
 msgid "Download"
 msgstr "Bajada"
 
-#: kse/gui/labels.py:178 kse/gui/window.py:98
+#: kse/gui/window.py:98 kse/labels.py:297
 msgid "dry run"
 msgstr "simulacro"
 
-#: kse/gui/labels.py:87
+#: kse/labels.py:91
 msgid "Dry run (only log power actions)"
 msgstr "Simulacro (solo registrar las acciones de energía)"
 
@@ -337,7 +361,11 @@ msgstr "Simulacro: el servicio solo registrará las acciones de energía."
 msgid "Dry run: the test would suspend the computer; nothing done."
 msgstr "Simulacro: la prueba suspendería el equipo; no se hace nada."
 
-#: kse/gui/labels.py:60
+#: kse/labels.py:227
+msgid "dry run: {action} was not done"
+msgstr "simulacro: no se hizo «{action}»"
+
+#: kse/labels.py:64
 msgid "Duration"
 msgstr "Duración"
 
@@ -369,11 +397,11 @@ msgstr "Editar la regla: {name}"
 msgid "Edit…"
 msgstr "Editar…"
 
-#: kse/cli/main.py:491 kse/gui/labels.py:50 kse/gui/rules.py:96
+#: kse/cli/main.py:507 kse/gui/rules.py:96 kse/labels.py:54
 msgid "Enabled"
 msgstr "Activada"
 
-#: kse/cli/main.py:606
+#: kse/cli/main.py:622
 msgid "enabled"
 msgstr "activado"
 
@@ -381,15 +409,19 @@ msgstr "activado"
 msgid "enabled: the daemon runs without a login"
 msgstr "activado: el demonio funciona sin iniciar sesión"
 
-#: kse/gui/labels.py:73
+#: kse/labels.py:77
 msgid "Environment"
 msgstr "Entorno"
+
+#: kse/labels.py:215
+msgid "exit code {code}"
+msgstr "código de salida {code}"
 
 #: kse/gui/rules.py:184
 msgid "Export rules"
 msgstr "Exportar reglas"
 
-#: kse/cli/main.py:530
+#: kse/cli/main.py:546
 msgid "Exported {count} rule(s) to {file}"
 msgstr "Exportada(s) {count} regla(s) a {file}"
 
@@ -397,35 +429,35 @@ msgstr "Exportada(s) {count} regla(s) a {file}"
 msgid "Export…"
 msgstr "Exportar…"
 
-#: kse/gui/labels.py:174
+#: kse/labels.py:293
 msgid "failed"
 msgstr "falló"
 
-#: kse/cli/main.py:630
+#: kse/cli/main.py:646
 msgid "failed: {command}"
 msgstr "falló: {command}"
 
-#: kse/gui/labels.py:77
+#: kse/labels.py:81
 msgid "File or address"
 msgstr "Archivo o dirección"
 
-#: kse/cli/main.py:394 kse/gui/history.py:45
+#: kse/cli/main.py:407 kse/gui/history.py:45
 msgid "Finished"
 msgstr "Terminó"
-
-#: kse/gui/labels.py:51
-msgid "For"
-msgstr "Durante"
 
 #: kse/gui/quick.py:94 kse/gui/quick.py:95
 msgid "for"
 msgstr "durante"
 
-#: kse/gui/labels.py:108
+#: kse/labels.py:55
+msgid "For"
+msgstr "Durante"
+
+#: kse/labels.py:112
 msgid "for {time}"
 msgstr "durante {time}"
 
-#: kse/gui/labels.py:155
+#: kse/labels.py:274
 msgid "Force"
 msgstr "Forzar"
 
@@ -433,19 +465,19 @@ msgstr "Forzar"
 msgid "Force: do not let applications ask to save"
 msgstr "Forzar: no dejar que las aplicaciones pidan guardar"
 
-#: kse/gui/labels.py:160
+#: kse/labels.py:279
 msgid "Fri"
 msgstr "Vie"
 
-#: kse/gui/labels.py:65
+#: kse/labels.py:69
 msgid "From"
 msgstr "Desde"
 
-#: kse/gui/labels.py:90
+#: kse/labels.py:94
 msgid "Give up after"
 msgstr "Desistir tras"
 
-#: kse/cli/main.py:654
+#: kse/cli/main.py:670
 msgid "Helper installed."
 msgstr "Ayudante instalado."
 
@@ -453,7 +485,7 @@ msgstr "Ayudante instalado."
 msgid "Helper installed. Try it: Test a wake-up in 2 minutes."
 msgstr "Ayudante instalado. Pruébalo: Probar un despertar dentro de 2 minutos."
 
-#: kse/cli/main.py:671
+#: kse/cli/main.py:687
 msgid "Helper removed."
 msgstr "Ayudante quitado."
 
@@ -465,7 +497,7 @@ msgstr "Hibernar"
 msgid "History"
 msgstr "Historial"
 
-#: kse/cli/main.py:783 kse/gui/diagnostics.py:104
+#: kse/cli/main.py:799 kse/gui/diagnostics.py:104
 msgid "How to fix"
 msgstr "Cómo arreglarlo"
 
@@ -473,7 +505,7 @@ msgstr "Cómo arreglarlo"
 msgid "Hybrid sleep"
 msgstr "Suspensión híbrida"
 
-#: kse/cli/main.py:434 kse/cli/main.py:335 kse/cli/main.py:342
+#: kse/cli/main.py:450 kse/cli/main.py:348 kse/cli/main.py:355
 msgid "Id"
 msgstr "Id"
 
@@ -489,11 +521,11 @@ msgstr "inactivo desde hace {time}"
 msgid "idle time unknown"
 msgstr "inactividad desconocida"
 
-#: kse/gui/labels.py:86
+#: kse/labels.py:90
 msgid "If a step fails"
 msgstr "Si un paso falla"
 
-#: kse/gui/labels.py:85
+#: kse/labels.py:89
 msgid "If the moment was missed"
 msgstr "Si se perdió el momento"
 
@@ -501,7 +533,7 @@ msgstr "Si se perdió el momento"
 msgid "Import rules"
 msgstr "Importar reglas"
 
-#: kse/cli/main.py:553
+#: kse/cli/main.py:569
 msgid "Imported"
 msgstr "Importada"
 
@@ -509,7 +541,7 @@ msgstr "Importada"
 msgid "Import…"
 msgstr "Importar…"
 
-#: kse/cli/main.py:335
+#: kse/cli/main.py:348
 msgid "In"
 msgstr "Falta"
 
@@ -537,15 +569,23 @@ msgstr "instalado y al día"
 msgid "installed, but from another version of kse"
 msgstr "instalado, pero de otra versión de kse"
 
-#: kse/gui/labels.py:55
+#: kse/labels.py:59
 msgid "Interface"
 msgstr "Interfaz"
 
-#: kse/cli/main.py:481 kse/gui/editor.py:217 kse/gui/forms.py:413
+#: kse/labels.py:231
+msgid "internal error: {error}"
+msgstr "error interno: {error}"
+
+#: kse/cli/main.py:497 kse/gui/editor.py:217 kse/gui/forms.py:413
 msgid "invalid JSON: {error}"
 msgstr "JSON no válido: {error}"
 
-#: kse/gui/labels.py:53
+#: kse/labels.py:183
+msgid "it was not running"
+msgstr "no estaba en marcha"
+
+#: kse/labels.py:57
 msgid "kbit/s"
 msgstr "kbit/s"
 
@@ -569,7 +609,7 @@ msgstr "kse helper install"
 msgid "kse helper install --unattended (and kse service install --linger)"
 msgstr "kse helper install --unattended (y kse service install --linger)"
 
-#: kse/cli/main.py:702
+#: kse/cli/main.py:718
 msgid "KSE opened"
 msgstr "KSE abierto"
 
@@ -585,7 +625,7 @@ msgstr "KSE — cuenta atrás"
 msgid "late"
 msgstr "tarde"
 
-#: kse/gui/labels.py:154
+#: kse/labels.py:273
 msgid "Let applications ask to save"
 msgstr "Dejar que las aplicaciones pidan guardar"
 
@@ -621,11 +661,15 @@ msgstr "midiendo: {elapsed} de {window}"
 msgid "measuring…"
 msgstr "midiendo…"
 
-#: kse/gui/labels.py:70
+#: kse/labels.py:180
+msgid "missed: the computer was off or asleep, or the daemon was not running"
+msgstr "perdida: el equipo estaba apagado o suspendido, o el demonio no estaba en marcha"
+
+#: kse/labels.py:74
 msgid "Mode"
 msgstr "Modo"
 
-#: kse/gui/labels.py:156
+#: kse/labels.py:275
 msgid "Mon"
 msgstr "Lun"
 
@@ -641,7 +685,7 @@ msgstr "Subir"
 msgid "MPRIS: {count} player(s), {playing} playing"
 msgstr "MPRIS: {count} reproductor(es), {playing} reproduciendo"
 
-#: kse/cli/main.py:434 kse/gui/labels.py:49 kse/gui/rules.py:41
+#: kse/cli/main.py:450 kse/gui/rules.py:41 kse/labels.py:53
 msgid "Name"
 msgstr "Nombre"
 
@@ -649,11 +693,11 @@ msgstr "Nombre"
 msgid "needs swap at least as large as RAM and the resume= kernel parameter"
 msgstr "necesita una swap al menos tan grande como la RAM y el parámetro resume= del kernel"
 
-#: kse/gui/labels.py:68
+#: kse/labels.py:72
 msgid "Network name"
 msgstr "Nombre de la red"
 
-#: kse/gui/labels.py:23
+#: kse/labels.py:27
 msgid "Network traffic below"
 msgstr "Tráfico de red por debajo de"
 
@@ -677,7 +721,7 @@ msgstr "Nueva regla"
 msgid "New…"
 msgstr "Nueva…"
 
-#: kse/cli/main.py:434 kse/cli/main.py:334 kse/gui/rules.py:41
+#: kse/cli/main.py:450 kse/cli/main.py:347 kse/gui/rules.py:41
 msgid "Next"
 msgstr "Próximo"
 
@@ -693,7 +737,7 @@ msgstr "aún no hay token del API: el demonio no se ha ejecutado nunca en esta c
 msgid "no battery: always on AC"
 msgstr "sin batería: siempre enchufado"
 
-#: kse/cli/main.py:476
+#: kse/cli/main.py:492
 msgid "No changes."
 msgstr "Sin cambios."
 
@@ -721,11 +765,11 @@ msgstr "No hay acciones rápidas en espera."
 msgid "no RTC with a wake alarm"
 msgstr "no hay un RTC con alarma de encendido"
 
-#: kse/cli/main.py:431
+#: kse/cli/main.py:447
 msgid "No rules yet: kse rules add FILE.json (see examples/)."
 msgstr "Aún no hay reglas: kse rules add ARCHIVO.json (mira examples/)."
 
-#: kse/cli/main.py:391
+#: kse/cli/main.py:404
 msgid "No runs yet."
 msgstr "Aún no hay ejecuciones."
 
@@ -749,7 +793,7 @@ msgstr "No hay ninguna alarma de encendido programada."
 msgid "no way to measure inactivity"
 msgstr "no hay forma de medir la inactividad"
 
-#: kse/gui/labels.py:21
+#: kse/labels.py:25
 msgid "Nobody uses the computer"
 msgstr "Nadie usa el equipo"
 
@@ -760,6 +804,10 @@ msgstr "ninguna"
 #: kse/gui/forms.py:681
 msgid "not"
 msgstr "no"
+
+#: kse/labels.py:154
+msgid "not ({condition})"
+msgstr "no ({condition})"
 
 #: kse/platform/linux/capabilities.py:56
 msgid "not allowed for this user"
@@ -785,31 +833,31 @@ msgstr "No se instaló (código de salida {code})."
 msgid "not set"
 msgstr "sin definir"
 
-#: kse/cli/main.py:626
+#: kse/cli/main.py:642
 msgid "Nothing done: you can run them yourself."
 msgstr "No se ha hecho nada: puedes ejecutarlos tú."
 
-#: kse/gui/summary.py:68
+#: kse/gui/summary.py:69
 msgid "Nothing scheduled"
 msgstr "Nada programado"
 
-#: kse/cli/main.py:348
+#: kse/cli/main.py:361
 msgid "Nothing scheduled."
 msgstr "Nada programado."
 
-#: kse/cli/main.py:342 kse/gui/quick.py:44 kse/gui/tray.py:68
+#: kse/cli/main.py:355 kse/gui/quick.py:44 kse/gui/tray.py:68
 msgid "Now"
 msgstr "Ahora"
-
-#: kse/gui/labels.py:177
-msgid "ok"
-msgstr "bien"
 
 #: kse/gui/quick.py:117
 msgid "OK"
 msgstr "Aceptar"
 
-#: kse/cli/main.py:434 kse/gui/labels.py:63
+#: kse/labels.py:296
+msgid "ok"
+msgstr "bien"
+
+#: kse/cli/main.py:450 kse/labels.py:67
 msgid "On"
 msgstr "Cuándo"
 
@@ -821,7 +869,7 @@ msgstr "enchufado"
 msgid "on battery"
 msgstr "con batería"
 
-#: kse/gui/labels.py:147
+#: kse/labels.py:266
 msgid "On battery"
 msgstr "Con batería"
 
@@ -829,7 +877,7 @@ msgstr "Con batería"
 msgid "only as reliable as the desktop that sets it"
 msgstr "tan fiable como el escritorio que lo marca"
 
-#: kse/gui/labels.py:19
+#: kse/labels.py:23
 msgid "Only by hand"
 msgstr "Solo a mano"
 
@@ -837,7 +885,7 @@ msgstr "Solo a mano"
 msgid "Only if all of these hold"
 msgstr "Solo si se cumplen todas estas"
 
-#: kse/gui/labels.py:84
+#: kse/labels.py:88
 msgid "Only once (then disable it)"
 msgstr "Solo una vez (luego se desactiva)"
 
@@ -845,7 +893,7 @@ msgstr "Solo una vez (luego se desactiva)"
 msgid "only while you are logged in"
 msgstr "solo mientras tienes la sesión iniciada"
 
-#: kse/gui/labels.py:37
+#: kse/labels.py:41
 msgid "Open a file or web page"
 msgstr "Abrir un archivo o una web"
 
@@ -857,7 +905,7 @@ msgstr "Abrir KSE"
 msgid "Options"
 msgstr "Opciones"
 
-#: kse/gui/labels.py:52
+#: kse/labels.py:56
 msgid "Percent"
 msgstr "Porcentaje"
 
@@ -865,7 +913,7 @@ msgstr "Porcentaje"
 msgid "Pick a run to see its steps."
 msgstr "Elige una ejecución para ver sus pasos."
 
-#: kse/gui/labels.py:62
+#: kse/labels.py:66
 msgid "PID"
 msgstr "PID"
 
@@ -873,7 +921,7 @@ msgstr "PID"
 msgid "pkcheck failed ({code})"
 msgstr "pkcheck falló ({code})"
 
-#: kse/gui/labels.py:146
+#: kse/labels.py:265
 msgid "Plugged in (AC)"
 msgstr "Enchufado (AC)"
 
@@ -885,15 +933,15 @@ msgstr "Posponer 10 min"
 msgid "Postpone 10 minutes"
 msgstr "Posponer 10 minutos"
 
-#: kse/cli/main.py:374
+#: kse/cli/main.py:387
 msgid "Postponed"
 msgstr "Pospuesta"
 
-#: kse/gui/labels.py:171
+#: kse/labels.py:290
 msgid "postponed"
 msgstr "pospuesta"
 
-#: kse/gui/countdown.py:201 kse/gui/countdown.py:203 kse/gui/labels.py:35
+#: kse/gui/countdown.py:201 kse/gui/countdown.py:203 kse/labels.py:39
 msgid "Power action"
 msgstr "Acción de energía"
 
@@ -901,11 +949,11 @@ msgstr "Acción de energía"
 msgid "Power on from off: BIOS → Power Management → Auto On Time (usually needs AC)"
 msgstr "Encender desde apagado: BIOS → Power Management → Auto On Time (suele necesitar AC)"
 
-#: kse/gui/labels.py:25
+#: kse/labels.py:29
 msgid "Power source"
 msgstr "Alimentación"
 
-#: kse/gui/labels.py:42
+#: kse/labels.py:46
 msgid "Program a wake-up"
 msgstr "Programar un encendido"
 
@@ -925,7 +973,7 @@ msgstr "psutil {version}: CPU, red, procesos, sesiones SSH"
 msgid "Quick"
 msgstr "Rápido"
 
-#: kse/cli/main.py:394 kse/gui/history.py:45
+#: kse/cli/main.py:407 kse/gui/history.py:45
 msgid "Reason"
 msgstr "Motivo"
 
@@ -937,7 +985,7 @@ msgstr "Actualizar"
 msgid "Remove"
 msgstr "Quitar"
 
-#: kse/gui/labels.py:16
+#: kse/labels.py:20
 msgid "Repeating (cron)"
 msgstr "Periódico (cron)"
 
@@ -953,7 +1001,7 @@ msgstr "Reiniciar"
 msgid "Result"
 msgstr "Resultado"
 
-#: kse/cli/main.py:394 kse/cli/main.py:323 kse/cli/main.py:335
+#: kse/cli/main.py:407 kse/cli/main.py:336 kse/cli/main.py:348
 msgid "Rule"
 msgstr "Regla"
 
@@ -969,15 +1017,15 @@ msgstr "Reglas"
 msgid "Rules (*.json)"
 msgstr "Reglas (*.json)"
 
-#: kse/cli/main.py:323
+#: kse/cli/main.py:336
 msgid "Run"
 msgstr "Ejecución"
 
-#: kse/gui/labels.py:36 kse/gui/quick.py:65
+#: kse/gui/quick.py:65 kse/labels.py:40
 msgid "Run a program"
 msgstr "Ejecutar un programa"
 
-#: kse/gui/labels.py:151
+#: kse/labels.py:270
 msgid "Run it once"
 msgstr "Ejecutarla una vez"
 
@@ -985,11 +1033,11 @@ msgstr "Ejecutarla una vez"
 msgid "Run now"
 msgstr "Ejecutar ahora"
 
-#: kse/cli/main.py:625
+#: kse/cli/main.py:641
 msgid "Run these commands now with sudo?"
 msgstr "¿Ejecutar ahora estos comandos con sudo?"
 
-#: kse/gui/labels.py:74
+#: kse/labels.py:78
 msgid "Run through the shell"
 msgstr "Ejecutar a través del shell"
 
@@ -997,23 +1045,23 @@ msgstr "Ejecutar a través del shell"
 msgid "Run {program}"
 msgstr "Ejecutar {program}"
 
-#: kse/cli/main.py:322
+#: kse/cli/main.py:335
 msgid "Running"
 msgstr "En marcha"
 
-#: kse/gui/labels.py:169 kse/gui/rules.py:116 kse/gui/summary.py:102
+#: kse/gui/rules.py:116 kse/gui/summary.py:104 kse/gui/summary.py:67
 msgid "running"
 msgstr "en marcha"
 
-#: kse/gui/labels.py:161
+#: kse/labels.py:280
 msgid "Sat"
 msgstr "Sáb"
 
-#: kse/cli/main.py:483
+#: kse/cli/main.py:499
 msgid "Saved"
 msgstr "Guardada"
 
-#: kse/gui/labels.py:185
+#: kse/labels.py:304
 msgid "scheduled"
 msgstr "programada"
 
@@ -1025,7 +1073,7 @@ msgstr "Programar…"
 msgid "set"
 msgstr "definida"
 
-#: kse/gui/labels.py:39
+#: kse/labels.py:43
 msgid "Show a notification"
 msgstr "Mostrar una notificación"
 
@@ -1037,31 +1085,31 @@ msgstr "Mostrar KSE en el menú de aplicaciones"
 msgid "Shut down"
 msgstr "Apagar"
 
-#: kse/gui/labels.py:150
+#: kse/labels.py:269
 msgid "Skip it"
 msgstr "Saltarla"
 
-#: kse/gui/labels.py:176
+#: kse/labels.py:295
 msgid "skipped"
 msgstr "omitida"
 
-#: kse/cli/main.py:547
+#: kse/cli/main.py:563
 msgid "Skipped (already exists)"
 msgstr "Omitida (ya existe)"
 
-#: kse/gui/labels.py:29
+#: kse/labels.py:33
 msgid "Someone is connected by SSH"
 msgstr "Alguien está conectado por SSH"
 
-#: kse/gui/labels.py:28
+#: kse/labels.py:32
 msgid "Something is playing"
 msgstr "Algo se está reproduciendo"
 
-#: kse/gui/labels.py:58
+#: kse/labels.py:62
 msgid "Source"
 msgstr "Fuente"
 
-#: kse/cli/main.py:99
+#: kse/cli/main.py:100
 msgid "Start it with: kse service install   (or run: kse-daemon)"
 msgstr "Arráncalo con: kse service install   (o ejecuta: kse-daemon)"
 
@@ -1073,27 +1121,39 @@ msgstr "Iniciar el servicio"
 msgid "Start the tray icon when the session starts"
 msgstr "Iniciar el icono de la bandeja al iniciar la sesión"
 
-#: kse/cli/main.py:515
+#: kse/cli/main.py:531
 msgid "Started"
 msgstr "Iniciada"
+
+#: kse/labels.py:223
+msgid "started in the background (PID {pid})"
+msgstr "arrancado en segundo plano (PID {pid})"
 
 #: kse/gui/history.py:112
 msgid "started {start} · finished {end}"
 msgstr "empezó {start} · terminó {end}"
 
-#: kse/cli/main.py:394 kse/cli/main.py:323
+#: kse/cli/main.py:407 kse/cli/main.py:336
 msgid "State"
 msgstr "Estado"
+
+#: kse/labels.py:189
+msgid "step {number} ({kind}) failed: {detail}"
+msgstr "falló el paso {number} ({kind}): {detail}"
 
 #: kse/gui/editor.py:90
 msgid "Steps"
 msgstr "Pasos"
 
-#: kse/gui/labels.py:152
+#: kse/labels.py:195
+msgid "still held after {time}: {guard}"
+msgstr "seguía cumpliéndose tras {time}: {guard}"
+
+#: kse/labels.py:271
 msgid "Stop"
 msgstr "Parar"
 
-#: kse/gui/labels.py:162
+#: kse/labels.py:281
 msgid "Sun"
 msgstr "Dom"
 
@@ -1101,11 +1161,11 @@ msgstr "Dom"
 msgid "Suspend"
 msgstr "Suspender"
 
-#: kse/cli/main.py:718 kse/gui/diagnostics.py:264
+#: kse/cli/main.py:734 kse/gui/diagnostics.py:264
 msgid "Suspend now?"
 msgstr "¿Suspender ahora?"
 
-#: kse/cli/main.py:722 kse/gui/diagnostics.py:403
+#: kse/cli/main.py:738 kse/gui/diagnostics.py:403
 msgid "Suspending in {seconds} s: hands off the keyboard, touchpad and stick…"
 msgstr "Suspendiendo en {seconds} s: aparta las manos del teclado, el touchpad y el stick…"
 
@@ -1117,7 +1177,7 @@ msgstr "swap {swap:.1f} GiB, RAM {ram:.1f} GiB, resume= {resume}"
 msgid "Test a wake-up in 2 minutes…"
 msgstr "Probar un despertar dentro de 2 minutos…"
 
-#: kse/gui/labels.py:79
+#: kse/labels.py:83
 msgid "Text"
 msgstr "Texto"
 
@@ -1125,11 +1185,15 @@ msgstr "Texto"
 msgid "The computer's"
 msgstr "La del equipo"
 
+#: kse/labels.py:211
+msgid "the condition was not met within {time}"
+msgstr "la condición no se cumplió en {time}"
+
 #: kse/gui/diagnostics.py:168
 msgid "The daemon is not running: rules, the tray and this window need it."
 msgstr "El demonio no está en marcha: lo necesitan las reglas, la bandeja y esta ventana."
 
-#: kse/cli/main.py:693 kse/gui/app.py:23
+#: kse/cli/main.py:709 kse/gui/app.py:23
 msgid "The GUI is not installed: pipx install --force 'kse[gui]'"
 msgstr "La interfaz gráfica no está instalada: pipx install --force 'kse[gui]'"
 
@@ -1137,7 +1201,7 @@ msgstr "La interfaz gráfica no está instalada: pipx install --force 'kse[gui]'
 msgid "the JSON must be an object"
 msgstr "el JSON debe ser un objeto"
 
-#: kse/gui/summary.py:48
+#: kse/gui/summary.py:49
 msgid "The KSE daemon is not running"
 msgstr "El demonio de KSE no está en marcha"
 
@@ -1152,6 +1216,10 @@ msgstr "El demonio de KSE no está en marcha, así que las reglas no se ejecutan
 #: kse/doctor.py:140
 msgid "the OS did not say what woke it up"
 msgstr "el sistema no dijo qué lo despertó"
+
+#: kse/labels.py:176
+msgid "the previous run of this rule is still active"
+msgstr "la ejecución anterior de esta regla sigue en marcha"
 
 #: kse/gui/diagnostics.py:332
 msgid "These commands run as root:"
@@ -1169,7 +1237,7 @@ msgstr "este proceso no puede programar la alarma"
 msgid "this process may program the alarm without a password"
 msgstr "este proceso puede programar la alarma sin contraseña"
 
-#: kse/cli/main.py:713
+#: kse/cli/main.py:729
 msgid "This programs a wake-up in {seconds} s and [bold]suspends the computer now[/]. Save your work and do not touch it until it wakes up by itself."
 msgstr "Esto programa un despertar dentro de {seconds} s y [bold]suspende el equipo ahora[/]. Guarda tu trabajo y no lo toques hasta que despierte solo."
 
@@ -1177,47 +1245,51 @@ msgstr "Esto programa un despertar dentro de {seconds} s y [bold]suspende el equ
 msgid "This programs a wake-up in {seconds} s and suspends the computer now. Save your work and do not touch it until it wakes up by itself."
 msgstr "Esto programa un despertar dentro de {seconds} s y suspende el equipo ahora. Guarda tu trabajo y no lo toques hasta que despierte solo."
 
-#: kse/gui/labels.py:159
+#: kse/labels.py:278
 msgid "Thu"
 msgstr "Jue"
 
-#: kse/gui/labels.py:75
+#: kse/labels.py:79
 msgid "Time limit"
 msgstr "Tiempo máximo"
 
-#: kse/gui/labels.py:30
+#: kse/labels.py:34
 msgid "Time of day between"
 msgstr "Hora del día entre"
 
-#: kse/gui/labels.py:88
+#: kse/labels.py:92
 msgid "Time zone"
 msgstr "Zona horaria"
 
-#: kse/gui/labels.py:78
+#: kse/labels.py:207
+msgid "timed out after {time}"
+msgstr "se agotó el tiempo tras {time}"
+
+#: kse/labels.py:82
 msgid "Title"
 msgstr "Título"
 
-#: kse/gui/labels.py:66
+#: kse/labels.py:70
 msgid "To"
 msgstr "Hasta"
 
-#: kse/cli/main.py:652
+#: kse/cli/main.py:668
 msgid "To install the helper, these commands run as root:"
 msgstr "Para instalar el ayudante, estos comandos se ejecutan como root:"
 
-#: kse/cli/main.py:669
+#: kse/cli/main.py:685
 msgid "To remove the helper, these commands run as root:"
 msgstr "Para quitar el ayudante, estos comandos se ejecutan como root:"
 
-#: kse/gui/summary.py:81
+#: kse/gui/summary.py:82
 msgid "today {time}"
 msgstr "hoy {time}"
 
-#: kse/gui/summary.py:83
+#: kse/gui/summary.py:84
 msgid "tomorrow {time}"
 msgstr "mañana {time}"
 
-#: kse/cli/main.py:434
+#: kse/cli/main.py:450
 msgid "Trigger"
 msgstr "Disparador"
 
@@ -1225,7 +1297,7 @@ msgstr "Disparador"
 msgid "True when the condition does not hold"
 msgstr "Se cumple cuando la condición no se cumple"
 
-#: kse/gui/labels.py:157
+#: kse/labels.py:276
 msgid "Tue"
 msgstr "Mar"
 
@@ -1241,7 +1313,7 @@ msgstr "Encender y despertar"
 msgid "Turning the computer on at a time needs a tiny helper that runs as root. It is installed once; after that no password is asked for wake-ups."
 msgstr "Encender el equipo a una hora necesita un pequeño ayudante que se ejecuta como root. Se instala una vez; después no se pide contraseña para los encendidos."
 
-#: kse/cli/main.py:605
+#: kse/cli/main.py:621
 msgid "unit"
 msgstr "unidad"
 
@@ -1249,7 +1321,7 @@ msgstr "unidad"
 msgid "unknown"
 msgstr "desconocido"
 
-#: kse/cli/main.py:309
+#: kse/cli/main.py:322
 msgid "up"
 msgstr "activo desde hace"
 
@@ -1257,19 +1329,19 @@ msgstr "activo desde hace"
 msgid "up {time}"
 msgstr "activo desde hace {time}"
 
-#: kse/gui/labels.py:144
+#: kse/labels.py:263
 msgid "Upload"
 msgstr "Subida"
 
-#: kse/gui/labels.py:40
+#: kse/labels.py:44
 msgid "Wait"
 msgstr "Esperar"
 
-#: kse/gui/labels.py:41
+#: kse/labels.py:45
 msgid "Wait until"
 msgstr "Esperar hasta que"
 
-#: kse/gui/labels.py:76
+#: kse/labels.py:80
 msgid "Wait until it ends"
 msgstr "Esperar a que termine"
 
@@ -1277,7 +1349,7 @@ msgstr "Esperar a que termine"
 msgid "Wait while any of these holds"
 msgstr "Esperar mientras se cumpla alguna de estas"
 
-#: kse/gui/labels.py:170
+#: kse/labels.py:289
 msgid "waiting"
 msgstr "esperando"
 
@@ -1285,7 +1357,15 @@ msgstr "esperando"
 msgid "Waiting to act"
 msgstr "En espera"
 
-#: kse/gui/labels.py:83
+#: kse/labels.py:203
+msgid "waiting until: {condition}"
+msgstr "esperando hasta que: {condition}"
+
+#: kse/labels.py:199
+msgid "waiting while: {guard}"
+msgstr "esperando mientras: {guard}"
+
+#: kse/labels.py:87
 msgid "Wake the computer up for it"
 msgstr "Encender el equipo para ejecutarla"
 
@@ -1297,7 +1377,7 @@ msgstr "Encender el equipo para ejecutarlo"
 msgid "Wake up at {time}"
 msgstr "Encender: {time}"
 
-#: kse/cli/main.py:215 kse/cli/main.py:317 kse/cli/main.py:217
+#: kse/cli/main.py:216 kse/cli/main.py:330 kse/cli/main.py:218
 msgid "wake-up alarm"
 msgstr "alarma de encendido"
 
@@ -1309,11 +1389,11 @@ msgstr "Prueba de despertar"
 msgid "Waking from off (S5) depends on the BIOS/UEFI; from suspend it usually works"
 msgstr "Encender desde apagado (S5) depende de la BIOS/UEFI; desde suspensión suele funcionar"
 
-#: kse/cli/main.py:341
+#: kse/cli/main.py:354
 msgid "Watching"
 msgstr "Vigilando"
 
-#: kse/gui/labels.py:158
+#: kse/labels.py:277
 msgid "Wed"
 msgstr "Mié"
 
@@ -1321,11 +1401,11 @@ msgstr "Mié"
 msgid "What works on this computer"
 msgstr "Qué funciona en este equipo"
 
-#: kse/cli/main.py:335 kse/gui/editor.py:65 kse/gui/labels.py:59
+#: kse/cli/main.py:348 kse/gui/editor.py:65 kse/gui/quick.py:132
 msgid "When"
 msgstr "Cuándo"
 
-#: kse/gui/labels.py:17 kse/gui/quick.py:48
+#: kse/gui/quick.py:48 kse/labels.py:21
 msgid "When a program exits"
 msgstr "Cuando termine un programa"
 
@@ -1333,7 +1413,7 @@ msgstr "Cuando termine un programa"
 msgid "When it fires and one is not met, nothing is done."
 msgstr "Si al dispararse alguna no se cumple, no se hace nada."
 
-#: kse/gui/labels.py:148
+#: kse/labels.py:267
 msgid "When KSE starts"
 msgstr "Al arrancar KSE"
 
@@ -1369,7 +1449,7 @@ msgstr "lo despertó: {source}"
 msgid "Woken up as scheduled"
 msgstr "Encendido según lo programado"
 
-#: kse/gui/labels.py:72
+#: kse/labels.py:76
 msgid "Working folder"
 msgstr "Carpeta de trabajo"
 
@@ -1441,7 +1521,7 @@ msgstr "{process} no está en marcha: puede que ya haya terminado"
 msgid "{process} is running"
 msgstr "{process} está en marcha"
 
-#: kse/gui/summary.py:92 kse/gui/tray.py:109
+#: kse/gui/summary.py:93 kse/gui/tray.py:109
 msgid "{rule}: acts in {seconds} s"
 msgstr "{rule}: actúa en {seconds} s"
 
@@ -1457,7 +1537,7 @@ msgstr "{server} · sin botones: cancela la cuenta atrás desde la CLI o la inte
 msgid "{server} · with buttons"
 msgstr "{server} · con botones"
 
-#: kse/cli/main.py:402
+#: kse/cli/main.py:418
 msgid "{shown} of {total} runs"
 msgstr "{shown} de {total} ejecuciones"
 
@@ -1477,7 +1557,7 @@ msgstr "{text!r} no es una duración válida: usa p. ej. 30s, 5m o 1h30m"
 msgid "{time} ago"
 msgstr "hace {time}"
 
-#: kse/cli/main.py:731
+#: kse/cli/main.py:747
 msgid "⏰ alarm set for {time}; suspending…"
 msgstr "⏰ alarma programada para las {time}; suspendiendo…"
 

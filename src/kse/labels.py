@@ -1,5 +1,9 @@
-"""Translatable names for what the GUI shows: rule parts, fields, values and run states."""
+"""Translatable names for what the CLI and the GUI show: rule parts, fields, values, run
+states and the reasons the engine writes (stored in English, translated when shown)."""
 
+import json
+import re
+from collections.abc import Callable
 from typing import Any
 
 from kse.cli.format import local
@@ -127,9 +131,124 @@ def describe_trigger(trigger: dict[str, Any]) -> str:
             detail = ", ".join(value_label("on", item) for item in trigger.get("on", []))
             if trigger.get("delay", "0s") != "0s":
                 detail += " + " + trigger["delay"]
+        case "process_running":
+            detail = trigger.get("name", "")
+        case "wifi_ssid":
+            detail = trigger.get("ssid", "")
+        case "weekday":
+            detail = ", ".join(value_label("days", day) for day in trigger.get("days", []))
+        case "time_window":
+            detail = f"{str(trigger.get('start'))[:5]}-{str(trigger.get('end'))[:5]}"
         case _:
             detail = ""
     return kind_label(kind) + (f": {detail}" if detail else "")
+
+
+def describe_predicate(predicate: Any) -> str:
+    """A condition in words: "A program is running: ffmpeg", "not (…)", "… or …"."""
+    if not isinstance(predicate, dict):
+        return str(predicate)
+    if "type" in predicate:
+        return describe_trigger(predicate)
+    if "not" in predicate:
+        return _("not ({condition})").format(condition=describe_predicate(predicate["not"]))
+    if "all" in predicate:
+        return " + ".join(describe_predicate(item) for item in predicate["all"])
+    if "any" in predicate:
+        return _(" or ").join(describe_predicate(item) for item in predicate["any"])
+    return json.dumps(predicate, ensure_ascii=False)
+
+
+def _condition(text: str) -> str:
+    try:
+        return describe_predicate(json.loads(text))
+    except ValueError:
+        return text
+
+
+_REASONS: dict[str, Callable[[], str]] = {
+    "conditions not met": lambda: _("conditions not met"),
+    "conditions unknown: a sensor could not be read": lambda: _(
+        "conditions unknown: a sensor could not be read"
+    ),
+    "cancelled": lambda: _("cancelled"),
+    "cancelled before it fired": lambda: _("cancelled before it fired"),
+    "the previous run of this rule is still active": lambda: _(
+        "the previous run of this rule is still active"
+    ),
+    "another power action is in progress": lambda: _("another power action is in progress"),
+    "missed: the machine was off or asleep, or the daemon was not running": lambda: _(
+        "missed: the computer was off or asleep, or the daemon was not running"
+    ),
+    "not running": lambda: _("it was not running"),
+}
+
+_PATTERNS: list[tuple[re.Pattern[str], Callable[[re.Match[str]], str]]] = [
+    (
+        re.compile(r"step (\d+) \((\w+)\) failed: (.*)", re.DOTALL),
+        lambda m: _("step {number} ({kind}) failed: {detail}").format(
+            number=m[1], kind=kind_label(m[2]), detail=detail_label(m[3])
+        ),
+    ),
+    (
+        re.compile(r"guard still active after (\S+): (.*)", re.DOTALL),
+        lambda m: _("still held after {time}: {guard}").format(time=m[1], guard=_condition(m[2])),
+    ),
+    (
+        re.compile(r"guard active: (.*)", re.DOTALL),
+        lambda m: _("waiting while: {guard}").format(guard=_condition(m[1])),
+    ),
+    (
+        re.compile(r"waiting until (.*)", re.DOTALL),
+        lambda m: _("waiting until: {condition}").format(condition=_condition(m[1])),
+    ),
+    (
+        re.compile(r"timed out after (\S+)"),
+        lambda m: _("timed out after {time}").format(time=m[1]),
+    ),
+    (
+        re.compile(r"condition not met within (\S+)"),
+        lambda m: _("the condition was not met within {time}").format(time=m[1]),
+    ),
+    (
+        re.compile(r"exit code (-?\d+)(?:: (.*))?", re.DOTALL),
+        lambda m: _("exit code {code}").format(code=m[1]) + (f": {m[2]}" if m[2] else ""),
+    ),
+    (
+        re.compile(r"closed (\d+) process\(es\)"),
+        lambda m: _("closed {count} process(es)").format(count=m[1]),
+    ),
+    (
+        re.compile(r"started in the background \(pid (\d+)\)"),
+        lambda m: _("started in the background (PID {pid})").format(pid=m[1]),
+    ),
+    (
+        re.compile(r"dry run: (\w+) \((\w+)\) not executed"),
+        lambda m: _("dry run: {action} was not done").format(action=value_label("action", m[1])),
+    ),
+    (
+        re.compile(r"internal error: (.*)", re.DOTALL),
+        lambda m: _("internal error: {error}").format(error=m[1]),
+    ),
+]
+
+
+def reason_label(reason: str | None) -> str:
+    """Why a run is waiting or ended as it did, in the user's language."""
+    if not reason:
+        return ""
+    if reason in _REASONS:
+        return _REASONS[reason]()
+    for pattern, render in _PATTERNS:
+        match = pattern.fullmatch(reason)
+        if match:
+            return render(match)
+    return reason
+
+
+def detail_label(detail: str | None) -> str:
+    """What a step reported (its output is shown as it came)."""
+    return reason_label(detail)
 
 
 def value_label(field: str, value: str) -> str:

@@ -22,10 +22,10 @@ from kse.cli.format import relative, watch_detail
 from kse.gui.client import DaemonLink
 from kse.gui.editor import RuleEditor
 from kse.gui.icons import themed
-from kse.gui.labels import describe_trigger
 from kse.gui.summary import when_text
 from kse.gui.tasks import ask, show_error, spawn
 from kse.i18n import _
+from kse.labels import describe_trigger
 
 COLUMNS = ("on", "name", "trigger", "next", "id")
 
