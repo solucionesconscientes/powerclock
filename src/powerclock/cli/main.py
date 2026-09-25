@@ -44,7 +44,10 @@ from powerclock.platform.base import NotSupported, PowerAction
 
 app = typer.Typer(
     name="powerclock",
-    help="PowerClock: power and task automation driven by persistent rules.",
+    help=(
+        "PowerClock: schedule shutdown, wake-up and your tasks, at an exact time or when the"
+        " conditions you choose are met."
+    ),
     no_args_is_help=True,
     add_completion=False,
 )
@@ -92,7 +95,8 @@ def main(
         bool, typer.Option("--dry-run", help="Quick actions only log their power actions.")
     ] = False,
 ) -> None:
-    """PowerClock: power and task automation driven by persistent rules."""
+    """PowerClock: schedule shutdown, wake-up and your tasks, at an exact time or when the
+    conditions you choose are met."""
     ctx.obj = {"dry_run": dry_run}
 
 
