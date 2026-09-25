@@ -15,9 +15,10 @@ class Commands(Protocol):
     def which(self, name: str) -> str | None: ...
 
     async def run(
-        self, argv: Sequence[str], env: Mapping[str, str] | None = None
+        self, argv: Sequence[str], env: Mapping[str, str] | None = None, limit: float | None = None
     ) -> tuple[int, str]:
-        """Run to completion; return (exit code, combined output). Raises OSError."""
+        """Run to completion (at most `limit` seconds, RUN_LIMIT by default); return (exit
+        code, combined output). Raises OSError."""
         ...
 
     async def spawn(self, argv: Sequence[str], env: Mapping[str, str] | None = None) -> int | None:
@@ -33,8 +34,9 @@ class SystemCommands:
         return shutil.which(name)
 
     async def run(
-        self, argv: Sequence[str], env: Mapping[str, str] | None = None
+        self, argv: Sequence[str], env: Mapping[str, str] | None = None, limit: float | None = None
     ) -> tuple[int, str]:
+        limit = RUN_LIMIT if limit is None else limit
         process = await asyncio.create_subprocess_exec(
             *argv,
             env=_merged(env),
@@ -43,13 +45,13 @@ class SystemCommands:
             stderr=asyncio.subprocess.STDOUT,
         )
         try:
-            async with asyncio.timeout(RUN_LIMIT):
+            async with asyncio.timeout(limit):
                 output, _ = await process.communicate()
         except TimeoutError:
             with contextlib.suppress(ProcessLookupError):
                 process.kill()
             await process.wait()
-            raise OSError(f"{argv[0]} did not finish within {RUN_LIMIT:.0f} s") from None
+            raise OSError(f"{argv[0]} did not finish within {limit:.0f} s") from None
         return process.returncode or 0, output.decode(errors="replace").strip()
 
     async def spawn(self, argv: Sequence[str], env: Mapping[str, str] | None = None) -> int | None:

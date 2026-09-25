@@ -29,8 +29,10 @@ from pydantic.json_schema import GenerateJsonSchema
 
 from powerclock.platform.base import (
     LogInMode,
+    MediaCommand,
     PowerAction,
     PowerMode,
+    PowerProfile,
     StopSignal,
     WindowPlacement,
 )
@@ -528,6 +530,119 @@ class WaitUntilStep(_Tagged):
     timeout: PositiveDuration | None = None
 
 
+OnOff = Literal["on", "off"]
+
+
+class MediaStep(_Tagged):
+    """Control a media player (MPRIS): play, pause, next… or `open` an address in it
+    (a file, a radio stream, a spotify: link). `player` is part of its name ("vlc"); without
+    it, the one playing (or the first one open)."""
+
+    type: Literal["media"] = "media"
+    command: MediaCommand = "play"
+    player: str | None = None
+    uri: str | None = None
+
+    @model_validator(mode="after")
+    def _uri_with_open(self) -> Self:
+        if (self.command == "open") != (self.uri is not None):
+            raise ValueError("uri goes with command: open (and only with it)")
+        return self
+
+
+class VolumeStep(_Tagged):
+    """The computer's volume: a `level` (0 to 150 %), reached little by little over `fade`,
+    and/or mute on or off."""
+
+    type: Literal["volume"] = "volume"
+    level: int | None = Field(default=None, ge=0, le=150)
+    mute: OnOff | None = None
+    fade: Duration = timedelta(0)
+
+    @model_validator(mode="after")
+    def _something(self) -> Self:
+        if self.level is None and self.mute is None:
+            raise ValueError("set a level, mute, or both")
+        if self.fade > timedelta(0) and self.level is None:
+            raise ValueError("fade needs a level")
+        return self
+
+
+class SoundStep(_Tagged):
+    """Play a sound (a file, or a sound of the theme by name: "alarm-clock-elapsed"), or
+    `say` a text aloud (in `language`: "es", "en"…)."""
+
+    type: Literal["sound"] = "sound"
+    file: str | None = None
+    say: str | None = None
+    language: str | None = Field(default=None, pattern=r"^[a-z]{2}(-[A-Z]{2})?$")
+
+    @model_validator(mode="after")
+    def _one_sound(self) -> Self:
+        _exactly_one(self, "file", "say")
+        return self
+
+
+class DesktopStep(_Tagged):
+    """Desktop settings: colour `theme` ("light", "dark" or a scheme's name), `wallpaper`,
+    screen `brightness` (%) and `power_profile`."""
+
+    type: Literal["desktop"] = "desktop"
+    theme: str | None = None
+    wallpaper: str | None = None
+    brightness: int | None = Field(default=None, ge=1, le=100)
+    power_profile: PowerProfile | None = None
+
+    @model_validator(mode="after")
+    def _something(self) -> Self:
+        if all(
+            v is None for v in (self.theme, self.wallpaper, self.brightness, self.power_profile)
+        ):
+            raise ValueError("set at least one of: theme, wallpaper, brightness, power_profile")
+        return self
+
+
+class NetworkStep(_Tagged):
+    """Bring a saved connection up (`connect`: a VPN…) or down (`disconnect`), or turn
+    Wi-Fi on or off."""
+
+    type: Literal["network"] = "network"
+    connect: str | None = None
+    disconnect: str | None = None
+    wifi: OnOff | None = None
+
+    @model_validator(mode="after")
+    def _something(self) -> Self:
+        if self.connect is None and self.disconnect is None and self.wifi is None:
+            raise ValueError("set at least one of: connect, disconnect, wifi")
+        return self
+
+
+class InhibitStep(_Tagged):
+    """For `duration` (without holding up the next steps): keep the screen on, hold the
+    notifications (Do not disturb) and/or keep the computer from sleeping."""
+
+    type: Literal["inhibit"] = "inhibit"
+    screen_on: bool = True
+    do_not_disturb: bool = False
+    no_sleep: bool = False
+    duration: PositiveDuration
+
+    @model_validator(mode="after")
+    def _something(self) -> Self:
+        if not (self.screen_on or self.do_not_disturb or self.no_sleep):
+            raise ValueError("choose at least one of: screen_on, do_not_disturb, no_sleep")
+        return self
+
+
+class ScreenshotStep(_Tagged):
+    """Save a picture of the screen (proof in the history). `file` takes the {date}…
+    variables."""
+
+    type: Literal["screenshot"] = "screenshot"
+    file: str = "{data}/screenshots/{rule}-{datetime}.png"
+
+
 class SetWakeStep(_Tagged):
     """Program a wake-up at an instant (`when`) or after a delay (`after`)."""
 
@@ -545,6 +660,13 @@ Action = Annotated[
     PowerStep
     | RunStep
     | LaunchStep
+    | MediaStep
+    | VolumeStep
+    | SoundStep
+    | DesktopStep
+    | NetworkStep
+    | InhibitStep
+    | ScreenshotStep
     | OpenStep
     | CloseAppStep
     | NotifyStep

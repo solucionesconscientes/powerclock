@@ -70,8 +70,12 @@ line**, or from any program through a **local API**.
 **Other actions** (steps of a rule, run in order): **open an installed application** (picked from
 the menu's list, Flatpak and Snap ones too) with ready-made **recipes** (a web page as a kiosk,
 a playlist on a loop, a PDF as a presentation…), placing its window on a screen or full screen
-and keeping it open if it closes · run a program or a shell command (with a time limit, its output
-kept in the history) · open a file or web page · close a program (asking it nicely, then forcing
+and keeping it open if it closes · **control a media player** (play, pause, next, open a radio
+station) · **set the volume**, little by little if you like · **play a sound or say a text
+aloud** · **change the desktop** (light or dark theme, wallpaper, brightness, power profile) ·
+**connect a VPN** or turn Wi-Fi on or off · **keep the screen on and silence notifications** for a
+while · **take a screenshot** for the history · run a program or a shell command (with a time
+limit, its output kept in the history) · open a file or web page · close a program (asking it nicely, then forcing
 it) · show a desktop notification · wait a while · wait until a condition is met · program the
 next wake-up. File names and texts can carry the date: `radio-{date}.mp3`.
 
@@ -423,6 +427,13 @@ Combine them with `{"all": [ … ]}`, `{"any": [ … ]}` and `{"not": … }`, ne
 | `power` | `action` (`shutdown`, `reboot`, `suspend`, `hibernate`, `hybrid_sleep`, `lock`, `logout`, `screen_off`), `mode` (`graceful` or `force`) | A power action, after the countdown. Shut down, restart and log out must be the last step. |
 | `run` | `cmd` (list: program and arguments), `cwd`, `env`, `shell`, `timeout`, `wait` | Runs a program. With `"shell": true`, `cmd` is one command line. With `wait` (default) it waits for it and fails if it returns an error; its output is kept in the history. On cancel or timeout it is asked to stop, then killed 5 s later. |
 | `launch` | `app` (its id, see `powerclock apps`), `args`, `recipe`, `window` (`screen`, `desktop`, `state`: `normal`/`maximized`/`fullscreen`/`minimized`, `above`), `keep_open`, `stop_signal` (`TERM`, `INT`, `HUP`), `wait_desktop` (default `2m`) | Opens an installed application in your desktop session, waiting up to `wait_desktop` for one. It runs as a unit of its own (`app-powerclock-….service`), so it sees your screen even if PowerClock started before you logged in. `window` places it (KDE Plasma); `keep_open` opens it again if it closes (at most 3 times an hour). |
+| `media` | `command` (`play`, `pause`, `toggle`, `stop`, `next`, `previous`, `open`), `player` (part of its name), `uri` (with `open`) | Controls a media player (MPRIS: VLC, Spotify, Elisa, browsers…): the one named, else the one playing, else the first one open. |
+| `volume` | `level` (0–150 %), `mute` (`on`/`off`), `fade` | Sets the output volume (PipeWire or PulseAudio), little by little over `fade` (a wake-up alarm that gets louder). |
+| `sound` | `file` (a path or a sound of the theme, e.g. `alarm-clock-elapsed`) or `say`, `language` | Plays a sound, or says a text aloud (speech-dispatcher or espeak-ng) and waits until it is said. |
+| `desktop` | `theme` (`light`, `dark` or a colour scheme), `wallpaper`, `brightness` (%), `power_profile` (`power-saver`, `balanced`, `performance`) | Desktop settings (KDE Plasma and GNOME). |
+| `network` | `connect`, `disconnect` (a saved connection: a VPN…), `wifi` (`on`/`off`) | NetworkManager connections. |
+| `inhibit` | `screen_on`, `do_not_disturb`, `no_sleep`, `duration` | For `duration`, keeps the screen on, holds the notifications and/or keeps the computer awake; the next steps go on at once. |
+| `screenshot` | `file` (default `{data}/screenshots/{rule}-{datetime}.png`) | Saves a picture of the screen; the history shows where. |
 | `open` | `target` | Opens a file or URL with your default application. |
 | `close_app` | `name` and `signal` (`TERM`, `INT` or `HUP`), or `app`; `timeout` (default `30s`) | Asks your programs with that name to quit, or closes the instances of `app` that PowerClock opened; kills them after `timeout`. |
 | `notify` | `title`, `body` | A desktop notification (skipped on a computer without a desktop). |

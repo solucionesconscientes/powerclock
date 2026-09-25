@@ -111,7 +111,7 @@ De momento la distribución es el instalador (lanzador + uv, M8) y `pipx`. Opcio
 ## Fase 2 — Sesión, escritorio y avisos (v0.2)
 Orden decidido el 25-09-2026: lo que desbloquea más casos de uso, primero.
 - **M12 — Encender y entrar** (✅ hecho el 25-09-2026 con SDDM y LightDM; falta la prueba real en el Latitude: reinstalar el permiso de encendido y un apagado con encendido programado): llave de un solo uso (entrada automática solo en el arranque que provoca la alarma de PowerClock, con bloqueo inmediato; ARCHITECTURE §6); quiosco con usuario dedicado; margen de 3 min cuando hay que entrar.
-- **M13 — Sonido, reproductores y escritorio:** MPRIS (lista, emisora, pausa), volumen y fundidos, sonidos y voz, tema y fondo, brillo, perfil de energía, VPN, No molestar, pantalla siempre encendida, capturas para el historial.
+- **M13 — Sonido, reproductores y escritorio** (✅ hecho el 25-09-2026; pasos `media`, `volume`, `sound`, `desktop`, `network`, `inhibit` y `screenshot`): MPRIS (lista, emisora, pausa), volumen y fundidos, sonidos y voz, tema y fondo, brillo, perfil de energía, VPN, No molestar, pantalla siempre encendida, capturas para el historial.
 - **M14 — Rediseño, fases 2 y 3:** sistema visual (colores de estado, escala φ, fuente del escritorio, iconos de bandeja) y pantallas (franja «Próximo», acciones en botones, tarjetas, anillo de cuenta atrás).
 - **M15 — Rediseño, fase 4:** editor que se lee como una frase, horarios sin cron, galería de recetas por caso de uso.
 - **M16 — Avisos y respuestas:** ntfy primero (sin cuenta ni dependencias nuevas), después Telegram y webhooks de salida; avisos con botones que esperan respuesta; pasos «si algo falla».

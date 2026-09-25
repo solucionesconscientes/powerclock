@@ -10,10 +10,13 @@ from powerclock.platform.base import (
     Capability,
     LaunchRequest,
     LogInMode,
+    MediaCommand,
     PlatformBackend,
     PowerAction,
     PowerEventCallback,
     PowerMode,
+    PowerProfile,
+    Release,
 )
 
 log = logging.getLogger(__name__)
@@ -87,6 +90,52 @@ class DryRunPlatform(PlatformBackend):
 
     async def autologin_used(self) -> LogInMode | None:
         return await self.inner.autologin_used()
+
+    # Sound, players and desktop settings are like `run`: they happen in a dry run too.
+
+    async def control_media(
+        self, command: MediaCommand, player: str | None, uri: str | None
+    ) -> str:
+        return await self.inner.control_media(command, player, uri)
+
+    async def volume(self) -> tuple[float | None, bool | None]:
+        return await self.inner.volume()
+
+    async def set_volume(self, level: float | None = None, mute: bool | None = None) -> None:
+        await self.inner.set_volume(level, mute)
+
+    async def play_sound(self, sound: str) -> None:
+        await self.inner.play_sound(sound)
+
+    async def say(self, text: str, language: str | None = None) -> None:
+        await self.inner.say(text, language)
+
+    async def set_theme(self, theme: str) -> str:
+        return await self.inner.set_theme(theme)
+
+    async def set_wallpaper(self, path: str) -> None:
+        await self.inner.set_wallpaper(path)
+
+    async def set_brightness(self, percent: int) -> None:
+        await self.inner.set_brightness(percent)
+
+    async def set_power_profile(self, profile: PowerProfile) -> None:
+        await self.inner.set_power_profile(profile)
+
+    async def network(
+        self, *, connect: str | None = None, disconnect: str | None = None, wifi: bool | None = None
+    ) -> None:
+        await self.inner.network(connect=connect, disconnect=disconnect, wifi=wifi)
+
+    async def inhibit(
+        self, *, screen: bool, notifications: bool, sleep: bool, reason: str
+    ) -> Release:
+        return await self.inner.inhibit(
+            screen=screen, notifications=notifications, sleep=sleep, reason=reason
+        )
+
+    async def screenshot(self, path: str) -> None:
+        await self.inner.screenshot(path)
 
     async def subscribe_power_events(self, callback: PowerEventCallback) -> None:
         await self.inner.subscribe_power_events(callback)

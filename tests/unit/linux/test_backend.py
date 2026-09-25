@@ -145,6 +145,14 @@ async def test_capabilities_of_the_kde_laptop(linux: LinuxPlatform, tmp_path: Pa
         "apps",
         "launch",
         "windows",
+        "volume",
+        "sound",
+        "speech",
+        "theme",
+        "brightness",
+        "power_profile",
+        "network",
+        "screenshot",
         "power_events",
         "inhibit",
         "wake.rtc",
@@ -163,6 +171,15 @@ async def test_capabilities_of_the_kde_laptop(linux: LinuxPlatform, tmp_path: Pa
         "apps",  # no desktop entries in the test's root
         "windows",  # no KWin on the fake bus
         "autologin",  # no display manager in the test's root
+        # none of these programs or services on the simulated laptop:
+        "volume",
+        "sound",
+        "speech",
+        "theme",
+        "brightness",
+        "power_profile",
+        "network",
+        "screenshot",
     }
     assert rows["session"].detail == "KDE · wayland"
     assert rows["power.lock"].detail == "logind session 3"

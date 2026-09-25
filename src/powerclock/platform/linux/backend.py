@@ -18,11 +18,14 @@ from powerclock.platform.base import (
     Capability,
     LaunchRequest,
     LogInMode,
+    MediaCommand,
     NotSupported,
     PlatformBackend,
     PowerAction,
     PowerEventCallback,
     PowerMode,
+    PowerProfile,
+    Release,
 )
 from powerclock.platform.linux import apps, session
 from powerclock.platform.linux.commands import Commands, SystemCommands
@@ -33,8 +36,10 @@ from powerclock.platform.linux.host import Host
 from powerclock.platform.linux.idle import IdleProbe
 from powerclock.platform.linux.kwin import WindowPlacer
 from powerclock.platform.linux.logind import ALLOWED, METHODS, Logind
+from powerclock.platform.linux.media import Media
 from powerclock.platform.linux.network import wifi_ssid
 from powerclock.platform.linux.notify import Notifier
+from powerclock.platform.linux.settings import Settings
 
 # D-Bus errors that mean "systemd's user manager is not there" (not "it said no").
 NO_MANAGER = ("ServiceUnknown", "NoServer", "NameHasNoOwner", "Disconnected", "NoReply")
@@ -66,6 +71,14 @@ class LinuxPlatform(PlatformBackend):
         self.notifier = Notifier(self.session_bus)
         self.session = session.UserManager(self.session_bus)
         self.windows = WindowPlacer(self.session_bus, self.runtime_dir)
+        self.players = Media(self.session_bus, self.commands, self.env, root)
+        self.settings = Settings(
+            self.session_bus,
+            self.system_bus,
+            self.commands,
+            self.session_env,
+            lambda what, why: self.logind.inhibitor(what, why, "block"),
+        )
 
     @property
     def runtime_dir(self) -> Path:
@@ -275,6 +288,52 @@ class LinuxPlatform(PlatformBackend):
         except DBusError:
             env = {**self.env, **self.desktop.graphical_env()}
         return session.display_ready(env, self.runtime_dir)
+
+    # ── Sound, media players and desktop settings ─────────────────────────────
+
+    async def control_media(
+        self, command: MediaCommand, player: str | None, uri: str | None
+    ) -> str:
+        return await self.players.control(command, player, uri)
+
+    async def volume(self) -> tuple[float | None, bool | None]:
+        return await self.players.volume()
+
+    async def set_volume(self, level: float | None = None, mute: bool | None = None) -> None:
+        await self.players.set_volume(level, mute)
+
+    async def play_sound(self, sound: str) -> None:
+        await self.players.play(sound)
+
+    async def say(self, text: str, language: str | None = None) -> None:
+        await self.players.say(text, language)
+
+    async def set_theme(self, theme: str) -> str:
+        return await self.settings.theme(theme)
+
+    async def set_wallpaper(self, path: str) -> None:
+        await self.settings.wallpaper(path)
+
+    async def set_brightness(self, percent: int) -> None:
+        await self.settings.brightness(percent)
+
+    async def set_power_profile(self, profile: PowerProfile) -> None:
+        await self.settings.power_profile(profile)
+
+    async def network(
+        self, *, connect: str | None = None, disconnect: str | None = None, wifi: bool | None = None
+    ) -> None:
+        await self.settings.network(connect, disconnect, wifi)
+
+    async def inhibit(
+        self, *, screen: bool, notifications: bool, sleep: bool, reason: str
+    ) -> Release:
+        return await self.settings.inhibit(
+            screen=screen, notifications=notifications, sleep=sleep, reason=reason
+        )
+
+    async def screenshot(self, path: str) -> None:
+        await self.settings.screenshot(path)
 
     # ── Logging in once after a scheduled power-on (ARCHITECTURE §6) ──────────
 

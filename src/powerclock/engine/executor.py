@@ -28,13 +28,20 @@ from powerclock.i18n import _, can_cancel_text, countdown_sentence
 from powerclock.models import (
     Action,
     CloseAppStep,
+    DesktopStep,
+    InhibitStep,
     LaunchStep,
+    MediaStep,
+    NetworkStep,
     NotifyStep,
     OpenStep,
     PowerStep,
     Rule,
     RunStep,
+    ScreenshotStep,
     SetWakeStep,
+    SoundStep,
+    VolumeStep,
     WaitStep,
     WaitUntilStep,
     format_duration,
@@ -49,6 +56,7 @@ POSTPONE = timedelta(minutes=10)  # the countdown notification's "postpone" butt
 OUTPUT_TAIL = 4000  # characters of command output kept in the run record
 TERMINATE_GRACE = 5.0  # seconds between asking a command to stop and killing it
 DESKTOP_POLL = 2.0  # seconds between checks while a launch waits for the desktop session
+FADE_STEP = 1.0  # seconds between volume changes of a fade
 
 RequestWake = Callable[[datetime], Awaitable[None]]
 Outcome = tuple[StepStatus, str | None]
@@ -181,8 +189,9 @@ class Executor:
     async def shutdown(self) -> None:
         """Cancel every active run and wait for them to finish."""
         tasks = [active.task for active in self._active.values()]
+        tasks += [t for t in self._background if t.get_name().startswith("powerclock-inhibit")]
         for task in tasks:
-            task.cancel()
+            task.cancel()  # held inhibitors are given back
         await asyncio.gather(*tasks, return_exceptions=True)
 
     # ── Run lifecycle ─────────────────────────────────────────────────────────
@@ -273,6 +282,32 @@ class Executor:
                 return "ok", None
             case CloseAppStep():
                 return await self._close(step)
+            case MediaStep():
+                uri = variables.expand(step.uri, values) if step.uri else None
+                return "ok", await self._backend.control_media(step.command, step.player, uri)
+            case VolumeStep():
+                return await self._volume(step, run)
+            case SoundStep():
+                if step.say is not None:
+                    await self._backend.say(variables.expand(step.say, values), step.language)
+                else:
+                    assert step.file is not None
+                    await self._backend.play_sound(variables.expand(step.file, values))
+                return "ok", None
+            case DesktopStep():
+                return await self._desktop(step, values)
+            case NetworkStep():
+                wifi = None if step.wifi is None else step.wifi == "on"
+                await self._backend.network(
+                    connect=step.connect, disconnect=step.disconnect, wifi=wifi
+                )
+                return "ok", None
+            case InhibitStep():
+                return await self._inhibit(step, rule)
+            case ScreenshotStep():
+                path = variables.expand(step.file, values)
+                await self._backend.screenshot(path)
+                return "ok", path
             case NotifyStep():
                 return await self._notify(step, values)
             case WaitStep():
@@ -389,6 +424,64 @@ class Executor:
                 raise StepFailed(f"no desktop session after {format_duration(step.wait_desktop)}")
             self._set_state(run, "waiting", "waiting for the desktop session")
             await self._clock.sleep(DESKTOP_POLL)
+
+    async def _volume(self, step: VolumeStep, run: Run) -> Outcome:
+        """Set the volume; with `fade`, a little each second from where it is now."""
+        mute = None if step.mute is None else step.mute == "on"
+        if step.level is None:
+            await self._backend.set_volume(mute=mute)
+            return "ok", None
+        target = step.level / 100
+        if step.fade > timedelta(0):
+            start, _ = await self._backend.volume()
+            if start is not None:
+                if mute is False:  # unmute first, or the fade would not be heard
+                    await self._backend.set_volume(mute=False)
+                    mute = None
+                self._set_state(run, "waiting", None)
+                count = max(1, round(step.fade.total_seconds() / FADE_STEP))
+                for index in range(1, count):
+                    level = start + (target - start) * index / count
+                    await self._backend.set_volume(level=level)
+                    await self._clock.sleep(step.fade.total_seconds() / count)
+        await self._backend.set_volume(level=target, mute=mute)
+        return "ok", f"{step.level} %"
+
+    async def _desktop(self, step: DesktopStep, values: Mapping[str, str]) -> Outcome:
+        done = []
+        if step.theme is not None:
+            done.append(await self._backend.set_theme(step.theme))
+        if step.wallpaper is not None:
+            await self._backend.set_wallpaper(variables.expand(step.wallpaper, values))
+            done.append("wallpaper")
+        if step.brightness is not None:
+            await self._backend.set_brightness(step.brightness)
+            done.append(f"brightness {step.brightness} %")
+        if step.power_profile is not None:
+            await self._backend.set_power_profile(step.power_profile)
+            done.append(step.power_profile)
+        return "ok", ", ".join(done)
+
+    async def _inhibit(self, step: InhibitStep, rule: Rule) -> Outcome:
+        """Hold the inhibitors in the background for `duration`; the next steps go on."""
+        release = await self._backend.inhibit(
+            screen=step.screen_on,
+            notifications=step.do_not_disturb,
+            sleep=step.no_sleep,
+            reason=rule.name,
+        )
+
+        async def hold() -> None:
+            try:
+                await self._clock.sleep(step.duration.total_seconds())
+            finally:
+                with contextlib.suppress(Exception):
+                    await release()
+
+        task = asyncio.create_task(hold(), name=f"powerclock-inhibit-{rule.id}")
+        self._background.add(task)
+        task.add_done_callback(self._background.discard)
+        return "ok", f"for {format_duration(step.duration)}"
 
     async def _close(self, step: CloseAppStep) -> Outcome:
         if step.app is not None:

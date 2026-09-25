@@ -70,8 +70,12 @@ con la sesión cerrada. Puedes manejarlo desde un **icono en la bandeja y una ve
 **Otras acciones** (pasos de una regla, que se ejecutan en orden): **abrir una aplicación
 instalada** (elegida de la lista del menú, también Flatpak y Snap) con **recetas** ya preparadas
 (una web en modo quiosco, una lista en bucle, un PDF como presentación…), colocando su ventana en
-una pantalla o a pantalla completa y manteniéndola abierta si se cierra · ejecutar un programa o
-una orden del shell (con tiempo máximo y su salida guardada en el historial) · abrir un archivo o
+una pantalla o a pantalla completa y manteniéndola abierta si se cierra · **controlar un
+reproductor** (reproducir, pausar, siguiente, poner una emisora) · **ajustar el volumen**, poco a
+poco si quieres · **reproducir un sonido o decir un texto en voz alta** · **cambiar el escritorio**
+(tema claro u oscuro, fondo, brillo, perfil de energía) · **conectar una VPN** o encender y apagar
+el Wi-Fi · **mantener la pantalla encendida y silenciar los avisos** un rato · **hacer una captura
+de pantalla** para el historial · ejecutar un programa o una orden del shell (con tiempo máximo y su salida guardada en el historial) · abrir un archivo o
 una web · cerrar un programa (primero pidiéndoselo y luego forzándolo) · mostrar una
 notificación · esperar un rato · esperar a que se cumpla una condición · programar el siguiente
 encendido. Los nombres de archivo y los textos pueden llevar la fecha: `radio-{date}.mp3`.
@@ -444,6 +448,13 @@ como quieras.
 | `power` | `action` (`shutdown`, `reboot`, `suspend`, `hibernate`, `hybrid_sleep`, `lock`, `logout`, `screen_off`), `mode` (`graceful` o `force`) | Una acción de energía, tras la cuenta atrás. Apagar, reiniciar y cerrar sesión deben ser el último paso. |
 | `run` | `cmd` (lista: programa y argumentos), `cwd`, `env`, `shell`, `timeout`, `wait` | Ejecuta un programa. Con `"shell": true`, `cmd` es una sola línea de órdenes. Con `wait` (por defecto) lo espera y falla si devuelve un error; su salida se guarda en el historial. Al cancelar o agotarse el tiempo se le pide que pare y 5 s después se fuerza. |
 | `launch` | `app` (su id, mira `powerclock apps`), `args`, `recipe`, `window` (`screen`, `desktop`, `state`: `normal`/`maximized`/`fullscreen`/`minimized`, `above`), `keep_open`, `stop_signal` (`TERM`, `INT`, `HUP`), `wait_desktop` (por defecto `2m`) | Abre una aplicación instalada en tu sesión del escritorio, esperando hasta `wait_desktop` a que haya una. Se ejecuta como unidad propia (`app-powerclock-….service`), así ve tu pantalla aunque PowerClock arrancara antes de que entraras. `window` la coloca (KDE Plasma); `keep_open` la vuelve a abrir si se cierra (como mucho 3 veces por hora). |
+| `media` | `command` (`play`, `pause`, `toggle`, `stop`, `next`, `previous`, `open`), `player` (parte de su nombre), `uri` (con `open`) | Controla un reproductor (MPRIS: VLC, Spotify, Elisa, navegadores…): el indicado, si no el que está sonando, si no el primero abierto. |
+| `volume` | `level` (0–150 %), `mute` (`on`/`off`), `fade` | Ajusta el volumen de salida (PipeWire o PulseAudio), poco a poco durante `fade` (un despertador que va subiendo). |
+| `sound` | `file` (una ruta o un sonido del tema, p. ej. `alarm-clock-elapsed`) o `say`, `language` | Reproduce un sonido, o dice un texto en voz alta (speech-dispatcher o espeak-ng) y espera a terminar. |
+| `desktop` | `theme` (`light`, `dark` o un esquema de color), `wallpaper`, `brightness` (%), `power_profile` (`power-saver`, `balanced`, `performance`) | Ajustes del escritorio (KDE Plasma y GNOME). |
+| `network` | `connect`, `disconnect` (una conexión guardada: una VPN…), `wifi` (`on`/`off`) | Conexiones de NetworkManager. |
+| `inhibit` | `screen_on`, `do_not_disturb`, `no_sleep`, `duration` | Durante `duration` mantiene la pantalla encendida, retiene los avisos y/o impide que el equipo se suspenda; los pasos siguientes siguen al momento. |
+| `screenshot` | `file` (por defecto `{data}/screenshots/{rule}-{datetime}.png`) | Guarda una imagen de la pantalla; el historial dice dónde. |
 | `open` | `target` | Abre un archivo o una URL con tu aplicación predeterminada. |
 | `close_app` | `name` y `signal` (`TERM`, `INT` o `HUP`), o `app`; `timeout` (por defecto `30s`) | Pide a tus programas con ese nombre que se cierren, o cierra las copias de `app` que abrió PowerClock; las fuerza pasado `timeout`. |
 | `notify` | `title`, `body` | Una notificación del escritorio (se omite en un equipo sin escritorio). |

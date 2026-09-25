@@ -63,6 +63,9 @@ class WindowPlacement(BaseModel):
 
 StopSignal = Literal["TERM", "INT", "HUP"]
 LogInMode = Literal["locked", "unlocked"]  # how the screen is left after logging in by itself
+MediaCommand = Literal["play", "pause", "toggle", "stop", "next", "previous", "open"]
+PowerProfile = Literal["power-saver", "balanced", "performance"]
+Release = Callable[[], Awaitable[None]]  # gives back what was held (an inhibitor…)
 
 
 @dataclass(frozen=True)
@@ -185,6 +188,60 @@ class PlatformBackend(ABC):
     async def autologin_done(self) -> None:
         """Forget this boot's automatic log-in (nothing is left for another one)."""
         self._unsupported("autologin")
+
+    # ── Sound, media players and desktop settings (M13) ───────────────────────
+
+    async def control_media(
+        self, command: MediaCommand, player: str | None, uri: str | None
+    ) -> str:
+        """Control a media player (the one whose name contains `player`, else the one
+        playing, else the first); returns which one."""
+        self._unsupported("media")
+
+    async def volume(self) -> tuple[float | None, bool | None]:
+        """The output volume (1.0 = 100 %) and whether it is muted (None: unknown)."""
+        self._unsupported("volume")
+
+    async def set_volume(self, level: float | None = None, mute: bool | None = None) -> None:
+        self._unsupported("volume")
+
+    async def play_sound(self, sound: str) -> None:
+        """Play a sound file, or a sound of the theme by name ("alarm-clock-elapsed")."""
+        self._unsupported("sound")
+
+    async def say(self, text: str, language: str | None = None) -> None:
+        """Say a text aloud (speech synthesis) and return when it is said."""
+        self._unsupported("say")
+
+    async def set_theme(self, theme: str) -> str:
+        """ "light", "dark" or the desktop's own name of a colour scheme; returns what was set."""
+        self._unsupported("theme")
+
+    async def set_wallpaper(self, path: str) -> None:
+        self._unsupported("wallpaper")
+
+    async def set_brightness(self, percent: int) -> None:
+        self._unsupported("brightness")
+
+    async def set_power_profile(self, profile: PowerProfile) -> None:
+        self._unsupported("power_profile")
+
+    async def network(
+        self, *, connect: str | None = None, disconnect: str | None = None, wifi: bool | None = None
+    ) -> None:
+        """Bring a saved connection (a VPN…) up or down, or turn Wi-Fi on or off."""
+        self._unsupported("network")
+
+    async def inhibit(
+        self, *, screen: bool, notifications: bool, sleep: bool, reason: str
+    ) -> Release:
+        """Keep the screen on, hold notifications (Do not disturb) and/or keep the computer
+        from sleeping, until the returned function is called."""
+        self._unsupported("inhibit")
+
+    async def screenshot(self, path: str) -> None:
+        """Save a picture of the whole screen to `path` (a .png)."""
+        self._unsupported("screenshot")
 
     async def session_env(self) -> dict[str, str]:
         """Variables that programs need to reach the desktop session (display, bus…), for

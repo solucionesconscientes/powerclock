@@ -113,7 +113,7 @@ class FakeCommands:
         return f"/usr/bin/{name}" if name in self.available else None
 
     async def run(
-        self, argv: Sequence[str], env: Mapping[str, str] | None = None
+        self, argv: Sequence[str], env: Mapping[str, str] | None = None, limit: float | None = None
     ) -> tuple[int, str]:
         self.ran.append((list(argv), dict(env or {})))
         return self.results.get(argv[0], (0, ""))

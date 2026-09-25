@@ -41,6 +41,10 @@ The first release, for Linux.
   started before the session; `run` now gets the session's variables too. `{date}`, `{time}`…
   in commands, file names and notifications; a `desktop_session` trigger and condition;
   `powerclock apps` and `powerclock recipes`.
+- **Sound, media players and the desktop** as steps: control a media player (MPRIS), set the
+  volume (with a gradual fade), play a sound or say a text aloud, change the theme, wallpaper,
+  brightness or power profile, connect a VPN or switch Wi-Fi, keep the screen on and silence
+  notifications for a while, and take a screenshot for the history.
 - **Logging in by itself after a scheduled power-on** (`log_in` in a rule, `--log-in`, "and
   log in" in the Quick tab): a one-time ticket for the calling user that the root helper uses
   at boot, before the login screen, only if this boot is that alarm's (and not the power

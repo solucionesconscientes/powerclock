@@ -1,6 +1,7 @@
 """The Linux part of `powerclock doctor`: what works on this machine and how to fix what does
 not."""
 
+import contextlib
 import logging
 import os
 from collections.abc import Awaitable, Callable
@@ -9,11 +10,12 @@ from typing import TYPE_CHECKING
 
 from powerclock.i18n import _
 from powerclock.platform.base import Capability, NotSupported, PowerAction
-from powerclock.platform.linux.dbus import DBusError
+from powerclock.platform.linux.dbus import DBusError, has_owner
 from powerclock.platform.linux.helper import ACTION, packaged
 from powerclock.platform.linux.idle import LOGIND, WAYLAND
 from powerclock.platform.linux.logind import ALLOWED, METHODS
 from powerclock.platform.linux.network import wifi_ssid
+from powerclock.platform.linux.settings import GNOME_POWER, KDE_BRIGHTNESS, PROFILES
 
 if TYPE_CHECKING:
     from powerclock.platform.linux.backend import LinuxPlatform
@@ -191,6 +193,46 @@ async def _applications(p: "LinuxPlatform") -> list[Capability]:
     return rows
 
 
+async def _desktop_tools(p: "LinuxPlatform") -> list[Capability]:
+    """What sound, media and desktop-setting steps can use here."""
+
+    def first(*names: str) -> str | None:
+        return next((name for name in names if p.commands.which(name)), None)
+
+    missing = _("not found")
+    volume = first("wpctl", "pactl")
+    sound = first("pw-play", "paplay", "aplay")
+    speech = first("spd-say", "espeak-ng")
+    theme = first("plasma-apply-colorscheme", "gsettings")
+    network = first("nmcli")
+    shot = first("spectacle", "gnome-screenshot", "grim")
+    brightness = None
+    with contextlib.suppress(DBusError):
+        if await has_owner(p.session_bus, KDE_BRIGHTNESS):
+            brightness = "KDE"
+        elif await has_owner(p.session_bus, GNOME_POWER):
+            brightness = "GNOME"
+    brightness = brightness or first("brightnessctl")
+    profiles = False
+    with contextlib.suppress(DBusError):
+        profiles = await has_owner(p.system_bus, PROFILES)
+    return [
+        row("volume", volume is not None, volume or missing, _("install wpctl (PipeWire)")),
+        row("sound", sound is not None, sound or missing),
+        row(
+            "speech",
+            speech is not None,
+            speech or missing,
+            None if speech else _("install speech-dispatcher or espeak-ng"),
+        ),
+        row("theme", theme is not None, theme or missing),
+        row("brightness", brightness is not None, brightness or missing),
+        row("power_profile", profiles, "power-profiles-daemon" if profiles else missing),
+        row("network", network is not None, network or missing),
+        row("screenshot", shot is not None, shot or missing),
+    ]
+
+
 async def _power_events(p: "LinuxPlatform") -> list[Capability]:
     try:
         delay = await p.logind.inhibit_delay_max()
@@ -319,6 +361,7 @@ CHECKS: list[Check] = [
     _notify,
     _wifi,
     _applications,
+    _desktop_tools,
     _power_events,
     _wake,
     _autologin,

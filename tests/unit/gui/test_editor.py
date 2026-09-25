@@ -100,6 +100,8 @@ async def test_starting_values_are_valid(
         form = editor._form(type_of(model))
         if type_of(model) == "close_app":  # by name or by app: the user picks one
             form.fields["name"].set("x")
+        elif type_of(model) in ("media", "sound"):  # their starting values are enough
+            pass
         else:
             for field in form.fields.values():  # what the user must type (a program, a URL…)
                 if isinstance(field, TextField | ArgsField | AppField) and not field.get():

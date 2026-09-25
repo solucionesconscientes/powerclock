@@ -11,12 +11,15 @@ from powerclock.platform.base import (
     Capability,
     LaunchRequest,
     LogInMode,
+    MediaCommand,
     NotSupported,
     PlatformBackend,
     PowerAction,
     PowerEvent,
     PowerEventCallback,
     PowerMode,
+    PowerProfile,
+    Release,
 )
 
 
@@ -62,6 +65,10 @@ class FakePlatform(PlatformBackend):
         self.opened: dict[str, int] = {}  # app → instances PowerClock opened
         self.login: tuple[datetime, LogInMode] | None = None  # the armed log-in ticket
         self.logged_in: LogInMode | None = None  # this boot logged in by itself
+        self.players: list[str] = ["vlc"]  # media players open (MPRIS names)
+        self.level: float | None = 0.5  # output volume (1.0 = 100 %)
+        self.muted: bool | None = False
+        self.inhibited_now: set[str] = set()  # "screen", "notifications", "sleep"
         self.calls: list[FakeCall] = []
         self._callbacks: list[PowerEventCallback] = []
 
@@ -139,6 +146,69 @@ class FakePlatform(PlatformBackend):
 
     async def session_env(self) -> dict[str, str]:
         return dict(self.session_vars)
+
+    async def control_media(
+        self, command: MediaCommand, player: str | None, uri: str | None
+    ) -> str:
+        self._record("control_media", command, player, uri)
+        found = [p for p in self.players if player is None or player.lower() in p.lower()]
+        if not found:
+            raise NotSupported("media", "no media player is open")
+        return found[0]
+
+    async def volume(self) -> tuple[float | None, bool | None]:
+        return self.level, self.muted
+
+    async def set_volume(self, level: float | None = None, mute: bool | None = None) -> None:
+        self._record("set_volume", level, mute)
+        if level is not None:
+            self.level = level
+        if mute is not None:
+            self.muted = mute
+
+    async def play_sound(self, sound: str) -> None:
+        self._record("play_sound", sound)
+
+    async def say(self, text: str, language: str | None = None) -> None:
+        self._record("say", text, language)
+
+    async def set_theme(self, theme: str) -> str:
+        self._record("set_theme", theme)
+        return {"dark": "BreezeDark", "light": "BreezeLight"}.get(theme, theme)
+
+    async def set_wallpaper(self, path: str) -> None:
+        self._record("set_wallpaper", path)
+
+    async def set_brightness(self, percent: int) -> None:
+        self._record("set_brightness", percent)
+
+    async def set_power_profile(self, profile: PowerProfile) -> None:
+        self._record("set_power_profile", profile)
+
+    async def network(
+        self, *, connect: str | None = None, disconnect: str | None = None, wifi: bool | None = None
+    ) -> None:
+        self._record("network", connect, disconnect, wifi)
+
+    async def inhibit(
+        self, *, screen: bool, notifications: bool, sleep: bool, reason: str
+    ) -> Release:
+        held = {
+            name
+            for name, on in (("screen", screen), ("notifications", notifications), ("sleep", sleep))
+            if on
+        }
+        self._record("inhibit", tuple(sorted(held)), reason)
+        self.inhibited_now |= held
+
+        async def release() -> None:
+            self._record("release", tuple(sorted(held)))
+            self.inhibited_now -= held
+
+        return release
+
+    async def screenshot(self, path: str) -> None:
+        self._record("screenshot", path)
 
     async def autologin_arm(self, alarm: datetime, mode: LogInMode) -> None:
         self._record("autologin_arm", alarm, mode)
