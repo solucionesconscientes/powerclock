@@ -1,5 +1,6 @@
-"""The main window: Quick, Rules, History and Diagnostics tabs, and a banner when the daemon
-is not running. It is created when opened and destroyed when closed (the tray stays)."""
+"""The main window: Quick, Rules, History and Diagnostics tabs, and a banner when PowerClock
+is not running in the background. It is created when opened and destroyed when closed (the
+tray stays)."""
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QCloseEvent
@@ -20,7 +21,7 @@ from powerclock.gui.history import HistoryTab
 from powerclock.gui.icons import app_icon, themed
 from powerclock.gui.quick import QuickTab
 from powerclock.gui.rules import RulesTab
-from powerclock.gui.summary import summarize
+from powerclock.gui.summary import not_running_text, summarize
 from powerclock.i18n import _
 
 LIVE_REFRESH = 5000  # ms: what the sensors see (CPU, network…) while the window is open
@@ -54,7 +55,7 @@ class MainWindow(QMainWindow):
         banner_layout = QHBoxLayout(self.banner)
         self.banner_text = QLabel()
         self.banner_text.setWordWrap(True)
-        start = QPushButton(themed("media-playback-start"), _("Start the service"))
+        start = QPushButton(themed("media-playback-start"), _("Start PowerClock"))
         start.clicked.connect(self._start_service)
         banner_layout.addWidget(self.banner_text, 1)
         banner_layout.addWidget(start)
@@ -89,13 +90,11 @@ class MainWindow(QMainWindow):
     def _update(self) -> None:
         link = self._link
         self.banner.setVisible(not link.online)
-        self.banner_text.setText(
-            _("The PowerClock daemon is not running, so rules do not run. Start the service.")
-        )
+        self.banner_text.setText(not_running_text())
         summary = summarize(link.online, link.pending)
         self.statusBar().showMessage(summary.headline)
         dry = link.online and bool(link.health and link.health.get("dry_run"))
-        self.setWindowTitle("PowerClock" + (" — " + _("dry run") if dry else ""))
+        self.setWindowTitle("PowerClock" + (" — " + _("test mode") if dry else ""))
 
     def _load_tab(self, index: int) -> None:
         if not self._link.online:

@@ -4,6 +4,7 @@ import json
 import socket
 import time
 from collections.abc import Iterator
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -62,7 +63,7 @@ def test_quick_shutdown_status_cancel_history(daemon: Daemon) -> None:
     assert "in 1m 5" in output or "in 2m" in output
 
     status = powerclock("status")
-    assert "Dry run" in status
+    assert "Test mode" in status
     assert "Next" in status
     assert "Shut down in 2m" in status
 
@@ -143,7 +144,7 @@ def test_import_every_example(daemon: Daemon) -> None:
 
 def test_daemon_never_ran() -> None:
     output = powerclock_fails("status")  # POWERCLOCK_HOME is an empty temporary directory
-    assert "no API token yet" in output
+    assert "no API token" in output
     assert "powerclock service install" in output
 
 
@@ -156,12 +157,13 @@ def test_daemon_not_running() -> None:
         port = probe.getsockname()[1]
     paths.settings.write_text(json.dumps({"port": port}))
     output = powerclock_fails("status")
-    assert "the powerclock daemon is not running" in output
+    assert "PowerClock is not running in the background" in output
 
 
 def test_wake_commands(daemon: Daemon) -> None:
-    output = powerclock("wake", "--at", "2026-09-25 07:30")
-    assert "Wake up at 2026-09-25 07:30" in output
+    tomorrow = f"{date.today() + timedelta(days=1)} 07:30"  # always in the future
+    output = powerclock("wake", "--at", tomorrow)
+    assert f"Turn on at {tomorrow}" in output
     assert "wake-up alarm" in output
     assert "wake-up alarm" in powerclock("status")
     output = powerclock("suspend", "--at", "23:30", "--wake", "07:30")
@@ -173,13 +175,13 @@ def test_wake_commands(daemon: Daemon) -> None:
 
 def test_shutdown_when_a_program_exits(daemon: Daemon) -> None:
     output = powerclock("shutdown", "--when-exits", "ffmpeg")
-    assert "Shut down when ffmpeg exits" in output
+    assert "Shut down when ffmpeg ends" in output
     assert "ffmpeg is not running yet: waiting for it to start" in output
     assert "postpone" not in output
     status = powerclock("status")
     assert "Watching" in status
-    assert "Shut down when ffmpeg exits" in status
-    assert "Cancelled: Shut down when ffmpeg exits" in powerclock("cancel")
+    assert "Shut down when ffmpeg ends" in status
+    assert "Cancelled: Shut down when ffmpeg ends" in powerclock("cancel")
     assert "Nothing scheduled." in powerclock("status")
 
 
@@ -189,9 +191,9 @@ def test_when_options(daemon: Daemon) -> None:
     powerclock("run", "--when-net-below", "50", "--", "notify-send", "done")
     names = sorted(rule.name for rule in daemon.engine.rules.values())
     assert names == [
-        "Restart when the CPU is below 10 % for 2m",
-        "Run notify-send when the network is below 50 kbit/s for 5m",
-        "Suspend when idle for 20m",
+        "Restart when the computer goes quiet (CPU below 10 % for 2m)",
+        "Run notify-send when the download finishes (network below 50 kbit/s for 5m)",
+        "Suspend after 20m without use",
     ]
     status = powerclock("status")
     assert "measuring…" in status

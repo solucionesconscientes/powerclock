@@ -323,10 +323,12 @@ def status() -> None:
         pending = client.get("/pending")
     console.print(
         f"[bold]powerclock {health['version']}[/] · {health['backend']} · {health['timezone']}"
-        f" · {_('up')} {span(health['uptime'])}"
+        f" · {_('running for')} {span(health['uptime'])}"
     )
     if health["dry_run"]:
-        console.print(_("[yellow]Dry run:[/] power actions and wake alarms are only logged."))
+        console.print(
+            _("[yellow]Test mode:[/] nothing really turns off or on; actions are only noted down.")
+        )
     for problem in health["rules_errors"]:
         console.print(f"[red]✘ rules.json:[/] {problem}")
     wake = pending["wake"]
@@ -453,7 +455,7 @@ def rules_list() -> None:
         console.print(_("No rules yet: powerclock rules add FILE.json (see examples/)."))
         return
     table = Table(header_style="bold")
-    for column in (_("Id"), _("Name"), _("Trigger"), _("On"), _("Next")):
+    for column in (_("Id"), _("Name"), _("When"), _("On"), _("Next")):
         table.add_column(column)
     for rule in rules:
         when, watch = upcoming.get(rule["id"]), watched.get(rule["id"])
@@ -683,15 +685,16 @@ def helper_install(
     rules_file = Paths.default().data / "50-powerclock-unattended.rules"
     user = getpass.getuser() if unattended else None
     commands = module.install_commands(unattended_user=user, rules_file=rules_file)
-    console.print(_("To install the helper, these commands run as root:"))
+    console.print(_("To allow turning the computer on, these commands run as root:"))
     if _offer(module, commands, print_only):
-        console.print(f"[green]✔[/] {_('Helper installed.')}")
+        console.print(f"[green]✔[/] {_('Done: PowerClock can turn the computer on.')}")
         console.print(
             _("  check: powerclock doctor · try it: powerclock doctor --test-wake 120"), style="dim"
         )
         if unattended:
             console.print(
-                _("  unattended also needs: powerclock service install --linger"), style="dim"
+                _("  to work with the session closed: powerclock service install --linger"),
+                style="dim",
             )
 
 
@@ -704,9 +707,11 @@ def helper_uninstall(
     """Clear the alarm and remove the helper and the polkit files (asks before using sudo)."""
     module = _helper()
     commands = module.uninstall_commands(helper_present=module.HELPER.exists())
-    console.print(_("To remove the helper, these commands run as root:"))
+    console.print(
+        _("To remove the permission to turn the computer on, these commands run as root:")
+    )
     if _offer(module, commands, print_only):
-        console.print(f"[green]✔[/] {_('Helper removed.')}")
+        console.print(f"[green]✔[/] {_('Permission to turn the computer on removed.')}")
 
 
 # ── GUI ────────────────────────────────────────────────────────────────────────
@@ -784,7 +789,7 @@ def setup(
     )
 
     def run_root(commands: list[list[str]]) -> bool:
-        console.print(_("To install the helper, these commands run as root:"))
+        console.print(_("To allow turning the computer on, these commands run as root:"))
         return installer.helper is not None and _as_root(installer.helper, commands)
 
     report = installer.install(options, run_root)
@@ -829,7 +834,9 @@ def uninstall(
     installer = Setup()
 
     def run_root(commands: list[list[str]]) -> bool:
-        console.print(_("To remove the helper, these commands run as root:"))
+        console.print(
+            _("To remove the permission to turn the computer on, these commands run as root:")
+        )
         return installer.helper is not None and _as_root(installer.helper, commands)
 
     _report(installer.uninstall(run_root, remove_data=purge))
@@ -848,7 +855,9 @@ def uninstall(
 
 def _test_wake(seconds: int) -> None:
     if dry_run_requested():
-        console.print(_("[yellow]Dry run:[/] the test would suspend the computer; nothing done."))
+        console.print(
+            _("[yellow]Test mode:[/] the test would suspend the computer, so nothing was done.")
+        )
         return
     console.print(
         _(
@@ -916,7 +925,9 @@ def doctor(
         return
     console.print(f"[bold]powerclock {__version__}[/] · backend [bold]{name}[/]")
     if dry_run_requested():
-        console.print(_("[yellow]Dry run:[/] power actions and wake alarms are only logged."))
+        console.print(
+            _("[yellow]Test mode:[/] nothing really turns off or on; actions are only noted down.")
+        )
     table = Table(show_lines=False, header_style="bold")
     table.add_column("", width=1)
     table.add_column(_("Capability"), no_wrap=True)

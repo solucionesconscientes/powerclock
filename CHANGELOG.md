@@ -33,3 +33,8 @@ The first release, for Linux.
   Python, and opens an installation window that asks for the password once. A welcome on first
   use; updates and uninstalling from the Diagnostics tab or with `powerclock update` /
   `powerclock uninstall`; `powerclock setup` for technical users.
+- **Plain words** in the interface (English and Spanish): the Quick button says what it will do
+  (*Schedule shutdown*, *Shut down now*), the warning says what is about to happen (*The computer
+  will shut down in 42 s*), the rule editor asks *When*, *Only if…*, *Wait while…* and *What it
+  does*, Diagnostics names every check, and the technical words (daemon, dry run, helper,
+  unattended, guards, triggers) stay in the command line and in `rules.json`.

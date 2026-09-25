@@ -10,13 +10,15 @@
 > planned. Its Quick tab was inspired by [KShutdown](https://kshutdown.sourceforge.io/); it is a
 > separate program, written from scratch and not affiliated with it.
 
-PowerClock shuts down, restarts, suspends, hibernates, locks, logs out and **turns your computer on**
-by itself, and runs your programs and scripts, **at a time, on a schedule or when something
-happens**: nobody is using the computer, a render or a download has finished, the battery is low,
-the laptop was unplugged…
+**Schedule shutdown, wake-up and your tasks, at an exact time or when the conditions you choose
+are met.** PowerClock shuts down, restarts, suspends, hibernates, locks, logs out and **turns your
+computer on** by itself, and runs your programs and scripts **at a time, on a schedule or when a
+condition is met**: you stop using the computer, a render or a download finishes, the battery runs
+low, the laptop is unplugged…
 
-It does this with **persistent rules** kept by a small background service (the *daemon*). Rules
-keep working with the window closed, after a restart, and even with nobody logged in. You can
+It does this with **persistent rules** that PowerClock keeps in the background (a small service,
+the *daemon*). Rules keep working with the window closed, after a restart, and even with the
+session closed. You can
 drive it from a **tray icon and a window** (in the spirit of KShutdown), from the **command
 line**, or from any program through a **local API**.
 
@@ -70,26 +72,26 @@ limit, its output kept in the history), open a file or web page, close a program
 nicely, then forcing it), show a desktop notification, wait a while, wait until a condition is
 met, and program the next wake-up.
 
-**When** (triggers):
+**When** (the *trigger*):
 
 - **At a time**: once at a date and time, after a delay (a countdown), or repeating with a cron
   expression (every night at 03:00, weekdays at 07:30…), in your time zone or another one.
-- **When something happens**: nobody has used the computer for a while · a program exits (render,
-  compression, copy…) · CPU usage stays low for a while · network traffic stays low for a while
-  (a download finished) · the battery goes below/above a level · the laptop is unplugged or
+- **When a condition is met**: the computer has not been used for a while · a program ends
+  (render, compression, copy…) · the computer goes quiet (low CPU for a while) · a download
+  finishes (low network traffic for a while) · the battery goes below/above a level · the laptop is unplugged or
   plugged in · PowerClock starts or the computer resumes from sleep.
 - **By hand**: from the window, the tray, the command line or the API.
 
 **Only if / wait while**:
 
-- **Conditions** decide whether a rule runs when it fires ("only if on AC", "only on weekdays",
-  "only between 22:00 and 07:00", "only on my home Wi-Fi"…).
-- **Guards** make it *wait* and check again ("not while a video is playing", "not while someone is
-  connected by SSH", "not while ffmpeg is running") up to a limit.
+- **Only if…** (*conditions*) decides whether a rule runs at its moment ("only if plugged in",
+  "only on weekdays", "only between 22:00 and 07:00", "only on my home Wi-Fi"…).
+- **Wait while…** (*guards*) makes it *wait* and check again ("while a video is playing", "while
+  someone is connected by SSH", "while ffmpeg is running") up to a limit.
 
-**Around it**: a cancellable **countdown** before any power action (with *Cancel* and *Postpone
-10 minutes* in a notification and a dialog) · a **dry-run** mode to try everything without
-turning anything off · a **history** of every run with its result and reason · `powerclock doctor`, which
+**Around it**: a **warning** before any power action that you can cancel until the last second
+(with *Cancel* and *Postpone 10 minutes* in a notification and a dialog) · a **test mode**
+(`--dry-run`) to try everything without turning anything off · a **history** of every run with its result and reason · `powerclock doctor`, which
 checks what works on your computer and says how to fix what does not · a **tray icon** · an
 interface in **English and Spanish**.
 
@@ -97,8 +99,8 @@ interface in **English and Spanish**.
 
 | | |
 |---|---|
-| ![Quick tab](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/quick.png) **Quick**: an action, when, OK. Below, what is waiting. | ![Rules tab](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/rules.png) **Rules**: every rule and what comes next. |
-| ![Rule editor: conditions](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/editor-conditions.png) **Rule editor**: conditions and guards. | ![Rule editor: steps](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/editor-steps.png) **Rule editor**: the steps, in order. |
+| ![Quick tab](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/quick.png) **Quick**: an action, when, and a button that says what it will do. Below, what is scheduled. | ![Rules tab](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/rules.png) **Rules**: every rule and what comes next. |
+| ![Rule editor: conditions](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/editor-conditions.png) **Rule editor**: *Only if…*, the conditions. | ![Rule editor: steps](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/editor-steps.png) **Rule editor**: the steps, in order. |
 | ![History](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/history.png) **History**: result and reason of every run. | ![Diagnostics](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/diagnostics.png) **Diagnostics**: what works here and how to fix the rest. |
 | ![Countdown](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/countdown.png) The **countdown** before a power action. | ![Tray menu](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/tray-menu.png) The **tray menu**. |
 
@@ -111,7 +113,7 @@ interface in **English and Spanish**.
   *AppIndicator* extension (Ubuntu enables it by default); without it PowerClock works from its window.
 - To **turn the computer on** at a time: an RTC wake alarm (almost every PC) and, to power on from
   *off*, a BIOS/UEFI that allows it (usually only on AC power for laptops). `powerclock doctor` tells you.
-- A server without a desktop (a VPS) can run the daemon and the command line alone.
+- A server without a desktop (a VPS) can run PowerClock in the background and its command line alone.
 
 ## Installation
 
@@ -123,12 +125,12 @@ interface in **English and Spanish**.
 3. **Double-click it.** A terminal shows the download: PowerClock with its own Python and Qt,
    about 130 MB to download and 400 MB on disk, so it does not depend on what your system has.
    Then PowerClock's installation window opens.
-4. **Press Install** and type your password when asked (once, for the small helper that turns the
+4. **Press Install** and type your password when asked (once, so that PowerClock can turn the
    computer on).
 
 That is all: PowerClock is in the tray and in the applications menu, and its service is running.
-Everything lives in your home folder except that small helper, so updating never asks for the
-password. To update: *Diagnostics → Check for updates* (or `powerclock update`). To uninstall:
+Everything lives in your home folder except a small program that can only program the wake-up
+alarm, so updating never asks for the password. To update: *Diagnostics → Check for updates* (or `powerclock update`). To uninstall:
 *Diagnostics → Uninstall PowerClock…* (or `powerclock uninstall`).
 
 Windows and macOS installers will work the same way when those versions arrive.
@@ -148,14 +150,15 @@ powerclock doctor                          # what works on this computer
 
 ## Getting started in five minutes
 
-Everything below can be tried safely first with **dry run**: add `--dry-run` to a quick command,
-or install the service with `powerclock service install --dry-run`. Power actions are then only written
-to the log.
+Everything below can be tried safely first in **test mode**: add `--dry-run` to a quick command,
+or install the service with `powerclock service install --dry-run`. Power actions are then only
+noted down, never done.
 
 **From the window** (`powerclock gui`), *Quick* tab: pick an *Action* (e.g. *Shut down*), pick *When*
-(e.g. *After a delay* → `30m`) and press **OK**. It appears under *Waiting to act* with its time,
-and the tray icon turns blue. Cancel or postpone it from there, from the tray menu or from the
-countdown window that appears one minute before acting.
+(e.g. *After a delay* → `30m`) and press the button, which says what it will do (*Schedule
+shutdown*). It appears under *Scheduled* with its time, and the tray icon turns blue. Cancel or
+postpone it from there, from the tray menu or from the warning window that appears one minute
+before acting.
 
 **From the command line**:
 
@@ -200,19 +203,20 @@ notifies you and shuts down after a one-minute countdown you can cancel.
 
 ## How it works: the main ideas
 
-- **The daemon** (`powerclock-daemon`) does everything: it keeps the rules, watches the time and the
+- **PowerClock in the background** (`powerclock-daemon`, the *daemon*) does everything: it keeps the rules, watches the time and the
   sensors, runs the actions and records the history. It runs as **your user** (never as root), as
   a systemd user service installed by `powerclock service install`. The window, the tray and the command
   line are only clients: closing them changes nothing.
-- **A rule** is: a **trigger** (when) + optional **conditions** (only if) + optional **guards**
-  (wait while) + **steps** (what to do, in order) + options (countdown, only once, wake up…).
+- **A rule** is: **when** (the *trigger*) + optional **only if…** (*conditions*) + optional **wait
+  while…** (*guards*) + **what it does** (the *steps*, in order) + options (warning, only once, turn
+  the computer on…).
 - **A quick action** is a rule made for you by the Quick tab, the tray or commands such as
   `powerclock shutdown --in 30m`. It runs once and then disappears (its run stays in the history).
-- **The countdown**: before any power action there is a cancellable countdown (60 seconds by
-  default, configurable per rule, `0s` to skip it). During it you get a notification and a window
+- **The warning**: before any power action PowerClock warns you with a countdown you can cancel
+  until the last second (60 seconds by default, configurable per rule, `0s` to skip it). During it you get a notification and a window
   with **Cancel** and **Postpone 10 minutes**, and `powerclock cancel` / `powerclock postpone` work too.
-- **The history** records every run: when, why it started (*scheduled*, *condition* or *by
-  hand*), how it ended (*done*, *failed*, *cancelled*, *skipped*) and why, with each step's result
+- **The history** records every run: when, where it came from (*Schedule*, *Condition* or
+  *Manual*), how it ended (*done*, *failed*, *cancelled*, *skipped*) and why, with each step's result
   and the last lines of each command's output.
 - **Missed runs**: if a scheduled moment passes while the computer is off or asleep, the rule is
   *skipped* by default; with `"on_missed": "run_once"` it runs once as soon as possible.
@@ -223,22 +227,24 @@ notifies you and shuts down after a one-minute countdown you can cancel.
 ## The graphical interface
 
 Open it with `powerclock gui` or from the applications menu. Only **one** copy runs: opening it again
-brings up the window that is already running. Closing the window leaves the tray icon; *Close the
-tray icon* in its menu quits the interface (your rules keep running in the daemon).
+brings up the window that is already running. Closing the window leaves the tray icon; *Hide the
+icon (PowerClock keeps working)* in its menu quits the interface (your rules keep running in the
+background).
 
 **Tray icon.** Its colour says what is going on: grey (nothing scheduled), blue with a clock
-(something scheduled or being watched), red (a countdown is running), grey and crossed out (the
-daemon is not running). Hover it to see what comes next. Its menu has: what comes next,
+(something scheduled or being watched), red (a countdown is running), grey and crossed out
+(PowerClock is not running in the background). Hover it to see what comes next. Its menu has: what comes next,
 **Cancel**, **Postpone 10 minutes**, **Now ▸** (shut down, restart, suspend, hibernate, lock, log
 out, turn off the screen; the first ones with their countdown, locking and screen off at once),
-**Schedule…**, **Open PowerClock** and **Close the tray icon**. A left click opens the window.
+**Schedule…**, **Open PowerClock** and **Hide the icon**. A left click opens the window.
 
 **Quick tab** (like KShutdown): choose an **Action** (any power action or *Run a program*),
-**When** (now, at a date and time, after a delay, when nobody uses the computer for…, when a
-program exits — pick it from the running ones or type its name or PID —, when the CPU usage stays
-below…, when the network traffic stays below…, with how long it must last), the **countdown**,
-whether to **force** (without letting applications ask to save) and **also turn the computer on
-at** a time. Below, **Waiting to act** lists the quick actions not done yet, each with **Cancel**
+**When** (now, at a date and time, after a delay, after a period without use, when a program ends
+— pick it from the running ones or type its name or PID —, when the computer goes quiet (CPU
+below…), when the download finishes (network below…), with how long it must last), **Warn me
+first**, whether to **force** (without waiting for applications to save) and **Turn it back on at**
+a time. The button says what it will do (*Shut down now*, *Schedule shutdown*…). Below,
+**Scheduled** lists the quick actions not done yet, each with **Cancel**
 and, if it has a time, **+10 min**. For the ones waiting for a condition it shows what the sensor
 sees now ("ffmpeg is running", "idle for 5m 12s", "CPU 35 % · measuring: 2m of 5m").
 
@@ -246,25 +252,26 @@ sees now ("ffmpeg is running", "idle for 5m 12s", "CPU 35 % · measuring: 2m of 
 and its id. **New…**, **Edit…** (or double click), **Run now**, **Delete**, **Import…** and
 **Export…** (JSON files).
 
-**Rule editor.** Tabs *Rule* (name, enabled, the trigger and its settings), *Conditions* (the
-conditions that must all hold, and the guards with how often to check again and when to give up),
-*Steps* (in order, with ↑ ↓ to reorder), *Options* and *JSON*. The JSON tab shows the same rule as
+**Rule editor.** Tabs *When* (name, enabled, and when it acts), *Only if…* (the conditions that
+must all hold), *Wait while…* (the reasons to wait, with how often to check again and when to give
+up), *What it does* (the steps in order, with ↑ ↓ to reorder), *Options* and *JSON*. The JSON tab shows the same rule as
 text and stays in step with the forms when you switch tabs, so you can edit in either. Conditions
 more complex than a list (an *any*, nested groups) are kept and can be edited as JSON inside the
 form. Mistakes are explained before saving (for example, that shutting down must be the last
 step).
 
-**History tab.** Every run with when it finished, the rule, the result, why it ran and the reason;
+**History tab.** Every run with when it finished, the rule, the result, its source and the reason;
 select one to see its steps and their output.
 
-**Diagnostics tab.** Whether the daemon is running (and a button to start it or install it as a
-service), everything `powerclock doctor` checks with how to fix what does not work, the next wake-up
-alarm, **Install the helper…** (shows the exact commands and runs them asking for your password in
-a desktop window), **Test a wake-up in 2 minutes…** and two checkboxes: *Show PowerClock in the
+**Diagnostics tab.** Whether PowerClock is running in the background (and a button to start
+it), everything `powerclock doctor` checks, by name, with how to fix what does not work, the next
+wake-up alarm, **Allow turning the computer on…** (shows the exact commands and runs them asking
+for your password in a desktop window), **Test a wake-up in 2 minutes…** and two checkboxes: *Show PowerClock in the
 applications menu* and *Start the tray icon when the session starts*.
 
-**Countdown window.** Appears on top of the others when a power action is about to happen: which
-action, how many seconds are left, **Cancel** (or Esc) and **Postpone 10 minutes**.
+**Warning window.** Appears on top of the others when a power action is about to happen and says
+what will happen ("The computer will shut down in 42 s") and that you can cancel it until the last
+second: **Cancel** (or Esc) and **Postpone 10 minutes**.
 
 The interface follows your desktop's colours, icons and light or dark mode. Installed with pipx,
 Qt draws the controls in its own *Fusion* style; see
@@ -289,11 +296,11 @@ as `30s`, `5m`, `2h`, `1d` or combined (`1h30m`).
 | `--when-cpu-below 10` | When the average CPU usage stays below 10 % … |
 | `--when-net-below 50` | … or the network traffic below 50 kbit/s … |
 | `--for 5m` | … for this long (default `5m`). |
-| `--warning 2m` | Countdown before acting (default `60s`; `0s` for none). |
+| `--warning 2m` | Warn this long before acting (default `60s`; `0s` for none). |
 | `--force` | Do not let applications ask to save. |
 | `--wake 07:30` | (power actions) Also turn the computer on at that time — e.g. suspend now, wake up in the morning. |
 | `--wake` | (`run`) Turn the computer on to run it (with `--in`/`--at`). |
-| `--dry-run` | Global option (`powerclock --dry-run shutdown …`): only log the power action. |
+| `--dry-run` | Global option (`powerclock --dry-run shutdown …`): test mode, the power action is only noted down. |
 
 **Other commands**
 
@@ -493,10 +500,11 @@ PowerClock only reads the sensors your rules use: with no rule watching the CPU,
   you set `warning: 0s`), with buttons in a notification and in a window, plus `powerclock cancel`.
 - **Graceful by default**: on KDE and GNOME, shutting down, restarting and logging out go through
   the session manager so applications can ask to save. `force` is only used when you ask for it.
-- **Dry run** everywhere: per quick action (`--dry-run`), per rule (`"dry_run": true`), for the
-  whole daemon (`powerclock service install --dry-run`, `"dry_run": true` in `daemon.json`, or
-  `POWERCLOCK_DRY_RUN=1`). Power actions and alarms are then only logged; the rest still runs.
-- **Guards** prevent acting at a bad moment (a render, a video, an SSH session…).
+- **Test mode** (*dry run*) everywhere: per quick action (`--dry-run`), per rule (`"dry_run":
+  true`), for the whole daemon (`powerclock service install --dry-run`, `"dry_run": true` in
+  `daemon.json`, or `POWERCLOCK_DRY_RUN=1`). Power actions and alarms are then only noted down; the
+  rest still runs.
+- **Wait while…** (*guards*) prevents acting at a bad moment (a render, a video, an SSH session…).
 - **Least privilege**: the daemon runs as your user. Only the wake helper runs as root, it only
   touches the RTC alarm, and it is installed by you with the exact commands shown first.
 - **Private API**: it only listens on `127.0.0.1` and needs a token stored in a file only your
@@ -530,7 +538,7 @@ virtual machines.
 | `~/.config/systemd/user/powerclock.service` | The user service (`powerclock service install`). |
 | `~/.local/share/applications/powerclock.desktop`, `~/.config/autostart/powerclock-gui.desktop` | Menu entry and login start (Diagnostics tab). |
 
-Environment variables: `POWERCLOCK_DRY_RUN=1` (dry run), `POWERCLOCK_HOME=/some/dir` (keep every file in one
+Environment variables: `POWERCLOCK_DRY_RUN=1` (test mode), `POWERCLOCK_HOME=/some/dir` (keep every file in one
 folder, handy to experiment without touching your rules) and `POWERCLOCK_BACKEND=fake` (a simulated
 computer, used by the tests).
 
@@ -567,11 +575,11 @@ curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
 
 ## Troubleshooting
 
-- **"The powerclock daemon is not running"** — `powerclock service install` (or `powerclock service status`; logs:
+- **"PowerClock is not running in the background"** — `powerclock service install` (or `powerclock service status`; logs:
   `journalctl --user -u powerclock`). To try it in the foreground: `POWERCLOCK_DRY_RUN=1 powerclock-daemon`.
 - **A power action does nothing** — `powerclock doctor`: each `power.*` line says whether your system
   allows it (e.g. hibernation needs swap and `resume=`). If a rule has `dry_run` or the daemon runs
-  in dry run, `powerclock status` says so.
+  in test mode, `powerclock status` says so.
 - **Applications are not asked to save** — `powerclock doctor` → `power.graceful` shows the method found
   (KDE's `org.kde.Shutdown`, GNOME's `gnome-session-quit`); without one, logind is used directly.
 - **The computer does not wake up** — run `powerclock doctor --test-wake 120` and read what woke it (or
@@ -633,12 +641,16 @@ that read the real system are marked `real` and skipped by default.
 
 ## Roadmap
 
-- **0.1 — Linux** (now): everything above.
-- **0.2**: more triggers (file changes, Wi-Fi network, USB, temperature), webhooks and Telegram
-  notifications, a visual condition editor, recipes.
+- **0.1 — Linux** (now): everything above, with clearer wording and a step to **open installed
+  applications** (Flatpak ones too) with recipes: Chrome as a kiosk, VLC on a loop, Okular as a
+  presentation…
+- **0.2**: logging in when PowerClock turns the computer on (only that boot, with the screen
+  locked), media players, volume and desktop settings, the new design, phone notifications (ntfy,
+  Telegram), more conditions (sunrise and sunset, calendar, files, devices, electricity tariff
+  periods as an option) and turning other computers on (Wake-on-LAN).
 - **0.3 — Windows** and **0.4 — macOS**.
-- **1.0**: remote control (Telegram bot, web interface), several computers, Wake-on-LAN,
-  MQTT/Home Assistant, KDE Connect, and describing rules in plain language.
+- **1.0**: remote control (Telegram bot, web interface), several computers, MQTT/Home Assistant,
+  KDE Connect, and describing rules in plain language.
 
 ## License
 

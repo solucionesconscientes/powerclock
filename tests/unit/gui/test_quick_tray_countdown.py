@@ -63,6 +63,24 @@ async def test_quick_options(link: DaemonLink) -> None:
     assert payload["at"].endswith(("+00:00", "Z")) or "+" in payload["at"]
 
 
+@pytest.mark.parametrize(
+    ("action", "when", "button"),
+    [
+        (PowerAction.SHUTDOWN, "now", "Shut down now"),
+        (PowerAction.SHUTDOWN, "at", "Schedule shutdown"),
+        (PowerAction.SUSPEND, "idle", "Schedule suspend"),
+        ("run", "now", "Run now"),
+        ("run", "in", "Schedule the program"),
+    ],
+)
+async def test_the_button_says_what_it_will_do(
+    link: DaemonLink, action: PowerAction | str, when: str, button: str
+) -> None:
+    tab = QuickTab(link)
+    tab.select(action, when)
+    assert tab.ok.text() == button
+
+
 async def test_run_a_program(link: DaemonLink) -> None:
     tab = QuickTab(link)
     tab.select("run", "in")
@@ -98,7 +116,7 @@ async def test_submit_cancel_and_postpone(link: DaemonLink, errors: list[Excepti
     tab.select(PowerAction.SUSPEND, "idle")
     tab.submit()
     await pump()
-    assert names(link) == ["Shut down in 30m", "Suspend when idle for 20m"]
+    assert names(link) == ["Shut down in 30m", "Suspend after 20m without use"]
     assert tab.pending.rowCount() == 2
     timed = tab.pending.cellWidget(0, 2)
     watched = tab.pending.cellWidget(1, 2)
@@ -175,8 +193,8 @@ async def test_countdown_dialog_cancel(
     await link.api.post("/quick", json={"action": "reboot"})
     await pump()
     [dialog] = countdowns.dialogs.values()
-    assert dialog.rule.text() == "Restart"
-    assert "Restart in" in dialog.headline.text()
+    assert dialog.rule.text() == "Restart · You can cancel it until the last second."
+    assert "The computer will restart in" in dialog.headline.text()
     dialog.cancel_button.click()
     await pump()
     assert countdowns.dialogs == {}
@@ -206,5 +224,5 @@ async def test_countdown_dialog_when_the_gui_starts_late(
     link.refresh()
     await pump()
     [dialog] = countdowns.dialogs.values()
-    assert "Hibernate in" in dialog.headline.text()  # the action comes from the rule
-    assert dialog.rule.text() == "Hibernate"
+    assert "will hibernate in" in dialog.headline.text()  # the action comes from the rule
+    assert dialog.rule.text().startswith("Hibernate · ")

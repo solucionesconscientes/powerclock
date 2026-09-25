@@ -1,5 +1,6 @@
-"""The Diagnostics tab: the daemon, what works on this computer and how to fix the rest, the
-wake-up helper and its test, and PowerClock in the menu and at login."""
+"""The Diagnostics tab: PowerClock in the background, what works on this computer and how to
+fix the rest, the permission to turn the computer on (the root helper) and its test, and
+PowerClock in the menu and at login."""
 
 import asyncio
 import getpass
@@ -33,12 +34,14 @@ from powerclock.doctor import WakeTest, run_wake_test, verdict_message
 from powerclock.gui.client import DaemonLink
 from powerclock.gui.icons import themed
 from powerclock.gui.maintenance import MaintenanceBox
+from powerclock.gui.summary import not_running_text, test_mode_text
 from powerclock.gui.tasks import ask, inform, show_error, spawn
 from powerclock.i18n import _
 from powerclock.install.autostart import desktop_module
 from powerclock.install.helper import helper_module
 from powerclock.install.service import service_module
 from powerclock.install.steps import Setup
+from powerclock.labels import capability_label
 from powerclock.platform import dry_run_requested, get_backend
 from powerclock.platform.base import NotSupported
 
@@ -95,16 +98,16 @@ class DiagnosticsTab(QWidget):
         # The daemon
         self.daemon = QLabel()
         self.daemon.setWordWrap(True)
-        self.start_service = QPushButton(themed("media-playback-start"), _("Start the service"))
+        self.start_service = QPushButton(themed("media-playback-start"), _("Start PowerClock"))
         self.start_service.clicked.connect(self.start_daemon)
-        daemon_box = QGroupBox(_("PowerClock daemon"))
+        daemon_box = QGroupBox(_("PowerClock in the background"))
         daemon_row = QHBoxLayout(daemon_box)
         daemon_row.addWidget(self.daemon, 1)
         daemon_row.addWidget(self.start_service)
 
         # What works here
         self.table = QTableWidget(0, 3)
-        self.table.setHorizontalHeaderLabels([_("Capability"), _("Detail"), _("How to fix")])
+        self.table.setHorizontalHeaderLabels([_("Function"), _("Detail"), _("How to fix")])
         self.table.verticalHeader().setVisible(False)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setWordWrap(True)
@@ -122,7 +125,7 @@ class DiagnosticsTab(QWidget):
         # Wake-ups
         self.alarm = QLabel()
         self.install_helper = QPushButton(
-            themed("system-software-install"), _("Install the helper…")
+            themed("system-software-install"), _("Allow turning the computer on…")
         )
         self.install_helper.clicked.connect(self.open_helper_dialog)
         self.test_button = QPushButton(themed("chronometer"), _("Test a wake-up in 2 minutes…"))
@@ -171,21 +174,18 @@ class DiagnosticsTab(QWidget):
         link = self._link
         self.start_service.setVisible(not link.online and self._service is not None)
         if not link.online or link.health is None:
-            self.daemon.setText(
-                _("The daemon is not running: rules, the tray and this window need it.")
-                + (f"\n{link.error}" if link.error else "")
-            )
+            self.daemon.setText(not_running_text() + (f"\n{link.error}" if link.error else ""))
         else:
             health = link.health
             parts = [
                 f"powerclock {health['version']}",
                 health["backend"],
                 health["timezone"],
-                _("up {time}").format(time=span(health["uptime"])),
+                _("running for {time}").format(time=span(health["uptime"])),
             ]
             text = " · ".join(parts)
             if health.get("dry_run"):
-                text += "\n" + _("Dry run: power actions and wake alarms are only logged.")
+                text += "\n" + test_mode_text()
             for problem in health.get("rules_errors", []):
                 text += "\n✘ rules.json: " + problem
             self.daemon.setText(text)
@@ -213,7 +213,8 @@ class DiagnosticsTab(QWidget):
         self.table.setRowCount(len(rows))
         for row, capability in enumerate(rows):
             mark = "✔" if capability["supported"] else "✘"
-            name = QTableWidgetItem(f"{mark} {capability['id']}")
+            name = QTableWidgetItem(f"{mark} {capability_label(capability['id'])}")
+            name.setToolTip(capability["id"])
             color = "#27ae60" if capability["supported"] else "#da4453"
             name.setForeground(QBrush(QColor(color)))
             self.table.setItem(row, 0, name)
@@ -237,11 +238,11 @@ class DiagnosticsTab(QWidget):
             return
         dry_run = dry_run_requested()
         text = _(
-            "This installs PowerClock as a service of your user: "
+            "This sets PowerClock to work in the background: "
             "it starts now and every time you log in."
         )
         if dry_run:
-            text += "\n\n" + _("Dry run: the service will only log power actions.")
+            text += "\n\n" + _("Test mode: PowerClock will not really turn anything off.")
 
         def install() -> None:
             spawn(self._install_service(service, dry_run), self)
@@ -263,7 +264,7 @@ class DiagnosticsTab(QWidget):
 
     def confirm_wake_test(self) -> None:
         if dry_run_requested():
-            inform(self, _("Dry run: the test would suspend the computer; nothing done."))
+            inform(self, _("Test mode: the test would suspend the computer, so nothing was done."))
             return
         text = _(
             "This programs a wake-up in {seconds} s and suspends the computer now. "
@@ -301,8 +302,8 @@ class DiagnosticsTab(QWidget):
 
 
 class HelperDialog(QDialog):
-    """Shows the exact commands that install the helper, then runs them with pkexec, which
-    asks for the administrator password in a desktop window."""
+    """Shows the exact commands that install the helper (the permission to turn the computer
+    on), then runs them with pkexec, which asks for the password in a desktop window."""
 
     def __init__(
         self, helper: ModuleType, elevate: RunElevated, parent: QWidget | None = None
@@ -310,17 +311,18 @@ class HelperDialog(QDialog):
         super().__init__(parent)
         self._helper = helper
         self._elevate = elevate
-        self.setWindowTitle(_("Install the wake-up helper"))
+        self.setWindowTitle(_("Allow turning the computer on"))
         intro = QLabel(
             _(
-                "Turning the computer on at a time needs a tiny helper that runs as root. "
-                "It is installed once; after that no password is asked for wake-ups."
+                "To turn the computer on at a time, PowerClock needs a small program that runs "
+                "as administrator. It can only program the wake-up alarm. It is installed once; "
+                "after that, no password is asked."
             )
         )
         intro.setWordWrap(True)
-        self.unattended = QCheckBox(_("Also without anyone logged in (unattended)"))
+        self.unattended = QCheckBox(_("Also work when you are logged out"))
         self.unattended.setToolTip(
-            _("Lets PowerClock program wake-ups and power actions when nobody has a session open.")
+            _("PowerClock can turn the computer on and off even when nobody is logged in.")
         )
         self.commands = QPlainTextEdit()
         self.commands.setReadOnly(True)
@@ -337,7 +339,7 @@ class HelperDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.addWidget(intro)
         layout.addWidget(self.unattended)
-        layout.addWidget(QLabel(_("These commands run as root:")))
+        layout.addWidget(QLabel(_("These commands run as administrator:")))
         layout.addWidget(self.commands, 1)
         layout.addWidget(self.result)
         layout.addWidget(buttons)
@@ -361,7 +363,12 @@ class HelperDialog(QDialog):
         code = await self._elevate(self._helper.elevated(self.command_list()))
         self.run_button.setEnabled(True)
         if code == 0:
-            self.result.setText("✔ " + _("Helper installed. Try it: Test a wake-up in 2 minutes."))
+            self.result.setText(
+                "✔ "
+                + _("Done: PowerClock can turn the computer on. Try it with «{test}».").format(
+                    test=_("Test a wake-up in 2 minutes…").rstrip("…")
+                )
+            )
         else:
             self.result.setText("✘ " + _("Not installed (exit code {code}).").format(code=code))
 

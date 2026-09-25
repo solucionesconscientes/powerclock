@@ -2,7 +2,12 @@
 
 import pytest
 
-from powerclock.labels import describe_predicate, describe_trigger, reason_label
+from powerclock.labels import (
+    capability_label,
+    describe_predicate,
+    describe_trigger,
+    reason_label,
+)
 
 
 @pytest.mark.parametrize(
@@ -12,7 +17,7 @@ from powerclock.labels import describe_predicate, describe_trigger, reason_label
         ("cancelled before it fired", "cancelled before it fired"),
         (
             "missed: the machine was off or asleep, or the daemon was not running",
-            "missed: the computer was off or asleep, or the daemon was not running",
+            "missed: the computer was off or asleep, or PowerClock was not running",
         ),
         (
             "step 1 (run) failed: exit code 3: disk full",
@@ -26,9 +31,9 @@ from powerclock.labels import describe_predicate, describe_trigger, reason_label
         (
             'waiting until {"type":"net_below","kbps":50.0,"for":"5m","direction":"both",'
             '"interface":null}',
-            "waiting until: Network traffic below: 50 kbit/s for 5m",
+            "waiting until: Network quiet (below): 50 kbit/s for 5m",
         ),
-        ("dry run: shutdown (graceful) not executed", "dry run: Shut down was not done"),
+        ("dry run: shutdown (graceful) not executed", "test mode: Shut down was not really done"),
         ("something new", "something new"),  # unknown texts are shown as they are
         (None, ""),
     ],
@@ -55,5 +60,19 @@ def test_conditions_in_words() -> None:
         "Something is playing or Connected to the Wi-Fi network: Home"
     )
     assert describe_trigger({"type": "process_exit", "name": "ffmpeg"}) == (
-        "When a program exits: ffmpeg"
+        "When a program ends: ffmpeg"
     )
+
+
+@pytest.mark.parametrize(
+    ("capability", "name"),
+    [
+        ("power.shutdown", "Shut down"),
+        ("power.graceful", "Let applications ask to save"),
+        ("wake.helper", "Permission to turn the computer on"),
+        ("linger", "Work with the session closed"),
+        ("something.new", "something.new"),  # a new check still shows up, by its id
+    ],
+)
+def test_capabilities_have_names_for_people(capability: str, name: str) -> None:
+    assert capability_label(capability) == name

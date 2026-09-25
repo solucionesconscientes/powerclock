@@ -38,7 +38,7 @@ def test_next_timed_action() -> None:
 def test_watched_quick_action_cannot_be_postponed() -> None:
     watch = {
         "rule_id": "quick-2",
-        "name": "Suspend when idle for 20m",
+        "name": "Suspend after 20m without use",
         "trigger": {"type": "idle", "for": "20m"},
         "state": False,
         "armed": True,
@@ -47,7 +47,7 @@ def test_watched_quick_action_cannot_be_postponed() -> None:
         "checked_at": "2026-09-24T08:00:00Z",
     }
     summary = summarize(True, pending(watching=[watch]), NOW)
-    assert summary.headline == "Suspend when idle for 20m · idle for 1m 05s"
+    assert summary.headline == "Suspend after 20m without use · idle for 1m 05s"
     [item] = summary.quick
     assert item.watched
     assert (summary.can_cancel, summary.can_postpone) == (True, False)

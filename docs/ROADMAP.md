@@ -78,12 +78,12 @@ Marca `[x]` al completar. Cada hito termina con ruff + pytest en verde y un comm
 
 ### M9 — Textos y vocabulario (rediseño, fase 1)
 Decidido el 25-09-2026 (ver ARCHITECTURE §10, «Rediseño»). Todo lo nuevo añade textos: fijar antes el vocabulario evita reescribirlos.
-- [ ] Tabla de vocabulario aplicada en es/en: GUI, textos compartidos (`labels.py`, motivos, capacidades) y los mensajes de la CLI que ve el usuario
-- [ ] Rápido: botón con verbo y objeto («Programar apagado», «Apagar ahora»), «Programado», condiciones con nombres del usuario, «Avisar antes», «Volver a encenderlo a las»
-- [ ] Editor: «Cuándo», «Solo si…», «Esperar mientras…», «Qué hará»
-- [ ] Cuenta atrás, bandeja y avisos con frases completas («El equipo se apagará en 42 s · Puedes cancelarlo hasta el último segundo»)
-- [ ] Diagnóstico con nombres claros (lo técnico, en el detalle) e Historial con «Origen»
-- [ ] Subtítulo nuevo en la instalación, la bienvenida, el README y el instalador
+- [x] Tabla de vocabulario aplicada en es/en: GUI, textos compartidos (`labels.py`, motivos, capacidades) y los mensajes de la CLI que ve el usuario
+- [x] Rápido: botón con verbo y objeto («Programar apagado», «Apagar ahora»), «Programado», condiciones con nombres del usuario, «Avisar antes», «Volver a encenderlo a las»
+- [x] Editor: «Cuándo», «Solo si…», «Esperar mientras…», «Qué hará»
+- [x] Cuenta atrás, bandeja y avisos con frases completas («El equipo se apagará en 42 s · Puedes cancelarlo hasta el último segundo»)
+- [x] Diagnóstico con nombres claros (lo técnico, en el detalle) e Historial con «Origen»
+- [x] Subtítulo nuevo en la instalación, la bienvenida, el README y el instalador
 **DoD:** ninguna de estas palabras a la vista en la GUI: demonio, simulacro, ayudante, desatendido, guarda, disparador; tests y traducciones al día; revisado por el usuario.
 
 ### M10 — Abrir aplicaciones

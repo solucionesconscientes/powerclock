@@ -22,27 +22,27 @@ async def quick(http: httpx.AsyncClient, **payload: Any) -> dict[str, Any]:
     [
         (
             {"when_idle": "20m"},
-            "Shut down when idle for 20m",
+            "Shut down after 20m without use",
             {"type": "idle", "for": "20m"},
         ),
         (
             {"when_exits": "ffmpeg"},
-            "Shut down when ffmpeg exits",
+            "Shut down when ffmpeg ends",
             {"type": "process_exit", "name": "ffmpeg", "pid": None},
         ),
         (
             {"when_exits": "4321"},
-            "Shut down when PID 4321 exits",
+            "Shut down when PID 4321 ends",
             {"type": "process_exit", "name": None, "pid": 4321},
         ),
         (
             {"when_cpu_below": 10},
-            "Shut down when the CPU is below 10 % for 5m",
+            "Shut down when the computer goes quiet (CPU below 10 % for 5m)",
             {"type": "cpu_below", "percent": 10.0, "for": "5m"},
         ),
         (
             {"when_net_below": 50, "for": "10m"},
-            "Shut down when the network is below 50 kbit/s for 10m",
+            "Shut down when the download finishes (network below 50 kbit/s for 10m)",
             {
                 "type": "net_below",
                 "kbps": 50.0,
@@ -114,7 +114,7 @@ async def test_cancel_a_quick_action_that_waits(
     assert cancelled == {
         "cancelled": "rule",
         "rule_id": rule["id"],
-        "name": "Shut down when idle for 30m",
+        "name": "Shut down after 30m without use",
     }  # the latest one first
     await settle()
     assert len((await http.get("/pending")).json()["watching"]) == 1
@@ -142,7 +142,7 @@ async def test_cancel_one_quick_action(
     assert cancelled == {
         "cancelled": "rule",
         "rule_id": first["id"],
-        "name": "Shut down when idle for 20m",
+        "name": "Shut down after 20m without use",
     }
     await settle()
     rules = (await http.get("/rules")).json()

@@ -62,7 +62,7 @@ RULES: dict[str, list[dict[str, Any]]] = {
     "es": [
         {
             "id": "backup-nocturno",
-            "name": "Backup nocturno y apagar",
+            "name": "Copia nocturna y apagar",
             "trigger": {"type": "cron", "expr": "0 3 * * *"},
             "wake": True,
             "conditions": {"type": "power_source", "is": "ac"},
@@ -71,7 +71,7 @@ RULES: dict[str, list[dict[str, Any]]] = {
             },
             "actions": [
                 {"type": "run", "cmd": ["/home/yo/bin/backup.sh"], "timeout": "2h"},
-                {"type": "notify", "title": "PowerClock", "body": "Backup terminado"},
+                {"type": "notify", "title": "PowerClock", "body": "Copia terminada"},
                 {"type": "power", "action": "shutdown"},
             ],
         },
@@ -230,7 +230,7 @@ async def shoot(language: str) -> None:
     editor = rules.editor
     assert editor is not None
     editor.resize(720, 640)
-    for index, name in ((1, "editor-conditions"), (2, "editor-steps"), (4, "editor-json")):
+    for index, name in ((1, "editor-conditions"), (3, "editor-steps"), (5, "editor-json")):
         editor.tabs.setCurrentIndex(index)
         await pump(app, 0.3)
         editor.grab().save(str(out / f"{name}.png"))

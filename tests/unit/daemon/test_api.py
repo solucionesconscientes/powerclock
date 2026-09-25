@@ -351,7 +351,7 @@ async def test_missed_while_the_daemon_was_stopped(
 
 async def test_wake_request(http: httpx.AsyncClient, fake: FakePlatform) -> None:
     rule = (await http.post("/wake", json={"at": "2026-09-25 07:30"})).json()
-    assert rule["name"] == "Wake up at 2026-09-25 07:30"
+    assert rule["name"] == "Turn on at 2026-09-25 07:30"
     assert (rule["wake"], rule["one_shot"]) == (True, True)
     await settle()
     wake = (await http.get("/pending")).json()["wake"]
@@ -365,7 +365,7 @@ async def test_suspend_and_wake_up_later(http: httpx.AsyncClient, fake: FakePlat
         await http.post("/quick", json={"action": "suspend", "at": "23:30", "wake_at": "07:30"})
     ).json()
     names = sorted(r["name"] for r in (await http.get("/rules")).json())
-    assert names == ["Suspend at 2026-09-24 23:30", "Wake up at 2026-09-25 07:30"]
+    assert names == ["Suspend at 2026-09-24 23:30", "Turn on at 2026-09-25 07:30"]
     assert rule["wake"] is False
     await settle()
     assert fake.wake == datetime(2026, 9, 25, 5, 28, tzinfo=UTC)

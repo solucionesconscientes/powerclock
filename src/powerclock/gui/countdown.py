@@ -1,5 +1,6 @@
-"""The countdown before a power action: a small window on top of the others with Cancel and
-Postpone 10 minutes. The desktop notification of the daemon offers the same buttons."""
+"""The countdown before a power action: a small window on top of the others that says what
+is about to happen, with Cancel and Postpone 10 minutes. The desktop notification sent from
+the background offers the same buttons."""
 
 import time
 from datetime import UTC, datetime
@@ -21,7 +22,7 @@ from powerclock.cli.format import moment
 from powerclock.gui.client import DaemonLink
 from powerclock.gui.icons import app_icon, themed
 from powerclock.gui.tasks import spawn
-from powerclock.i18n import _, power_action_label
+from powerclock.i18n import _, can_cancel_text, countdown_sentence
 from powerclock.platform.base import PowerAction
 
 POSTPONE = "10m"
@@ -37,7 +38,7 @@ class CountdownDialog(QDialog):
         self._ended_at: float | None = None
         self._deadline = moment(run.get("deadline")) or datetime.now(UTC)
         self._total = max(1.0, (self._deadline - datetime.now(UTC)).total_seconds())
-        self._action = _action_label(action)
+        self._action = _action(action)
         self.setWindowTitle(_("PowerClock — countdown"))
         self.setWindowIcon(app_icon())
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -46,10 +47,12 @@ class CountdownDialog(QDialog):
         icon.setPixmap(app_icon().pixmap(48, 48))
         self.headline = QLabel()
         font = QFont(self.headline.font())
-        font.setPointSizeF(font.pointSizeF() * 1.6)
+        font.setPointSizeF(font.pointSizeF() * 1.4)
         font.setBold(True)
         self.headline.setFont(font)
-        self.rule = QLabel(run.get("rule_name", ""))
+        self.headline.setWordWrap(True)
+        self._rule_name = run.get("rule_name", "")
+        self.rule = QLabel()
         self.rule.setWordWrap(True)
         self.bar = QProgressBar()
         self.bar.setTextVisible(False)
@@ -80,13 +83,15 @@ class CountdownDialog(QDialog):
         self._timer.setInterval(250)
         self._timer.timeout.connect(self.refresh)
         self._timer.start()
+        self.set_rule(self._rule_name)
         self.refresh()
 
     def set_rule(self, name: str) -> None:
-        self.rule.setText(name)
+        self._rule_name = name
+        self.rule.setText(" · ".join(part for part in (name, can_cancel_text()) if part))
 
     def set_action(self, action: str | None) -> None:
-        self._action = _action_label(action)
+        self._action = _action(action)
         self.refresh()
 
     def set_deadline(self, deadline: datetime) -> None:
@@ -107,9 +112,7 @@ class CountdownDialog(QDialog):
                 return
         else:
             self._ended_at = None
-        self.headline.setText(
-            _("{action} in {seconds} s").format(action=self._action, seconds=seconds)
-        )
+        self.headline.setText(countdown_sentence(self._action, seconds))
         left = (self._deadline - datetime.now(UTC)).total_seconds()
         self.bar.setValue(round(1000 * max(0.0, min(1.0, left / self._total))))
 
@@ -196,8 +199,8 @@ class Countdowns(QObject):
             dialog.close()
 
 
-def _action_label(action: str | None) -> str:
+def _action(action: str | None) -> PowerAction | None:
     try:
-        return power_action_label(PowerAction(action)) if action else _("Power action")
+        return PowerAction(action) if action else None
     except ValueError:
-        return action or _("Power action")
+        return None

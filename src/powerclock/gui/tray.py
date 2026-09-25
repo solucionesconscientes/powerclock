@@ -76,8 +76,10 @@ class Tray(QObject):
         self.menu.addSeparator()
         self.open = self.menu.addAction(themed("configure"), _("Open PowerClock"))
         self.open.triggered.connect(lambda: show_window(None))
-        leave = self.menu.addAction(themed("application-exit"), _("Close the tray icon"))
-        leave.setToolTip(_("Your rules keep running: the daemon does them."))
+        leave = self.menu.addAction(
+            themed("application-exit"), _("Hide the icon (PowerClock keeps working)")
+        )
+        leave.setToolTip(_("Your rules keep running in the background."))
         leave.triggered.connect(quit_app)
         self.icon.setContextMenu(self.menu)
         self.icon.activated.connect(self._activated)

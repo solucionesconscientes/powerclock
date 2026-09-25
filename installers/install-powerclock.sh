@@ -51,7 +51,8 @@ if [ ! -t 1 ] && [ -z "${POWERCLOCK_IN_TERMINAL:-}" ]; then
     # No terminal emulator found: carry on without one.
 fi
 
-say "PowerClock — shutdown, wake-up and task scheduler" ""
+say "PowerClock — shutdown, wake-up and task scheduler" \
+    "Schedule shutdown, wake-up and your tasks, at an exact time or when the conditions you choose are met." ""
 
 [ "$(uname -s)" = "Linux" ] || fail "This installer is for Linux."
 case "$(uname -m)" in

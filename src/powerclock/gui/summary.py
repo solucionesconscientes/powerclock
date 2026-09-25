@@ -1,4 +1,4 @@
-"""What the daemon is up to, in a few words: the tray's icon, tooltip and menu, and the list
+"""What PowerClock is up to, in a few words: the tray's icon, tooltip and menu, and the list
 of quick actions. Pure functions of /pending, so they are easy to test."""
 
 from dataclasses import dataclass, field
@@ -46,7 +46,7 @@ class Summary:
 
 def summarize(online: bool, pending: dict[str, Any], now: datetime | None = None) -> Summary:
     if not online:
-        return Summary("offline", _("The PowerClock daemon is not running"))
+        return Summary("offline", _("PowerClock isn't running"))
     now = now or datetime.now(UTC)
     active = pending.get("active", [])
     upcoming = pending.get("next", [])
@@ -68,6 +68,14 @@ def summarize(online: bool, pending: dict[str, Any], now: datetime | None = None
     else:
         return Summary("idle", _("Nothing scheduled"), quick=quick)
     return Summary("scheduled", headline, quick=quick, upcoming=total)
+
+
+def not_running_text() -> str:
+    return _("PowerClock isn't running. Your rules won't run until you start it.")
+
+
+def test_mode_text() -> str:
+    return _("Test mode: nothing really turns off or on; actions are only noted down.")
 
 
 def when_text(value: str | datetime | None, now: datetime | None = None) -> str:

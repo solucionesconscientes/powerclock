@@ -81,8 +81,8 @@ class SetupWindow(QDialog):
         title.setFont(font)
         intro = QLabel(
             _(
-                "Shuts down, suspends and turns your computer on by itself, and runs your "
-                "tasks at a time or when something happens."
+                "Schedule shutdown, wake-up and your tasks, at an exact time or when the "
+                "conditions you choose are met."
             )
         )
         intro.setWordWrap(True)
@@ -96,7 +96,7 @@ class SetupWindow(QDialog):
         self.login = QCheckBox(_("Start the tray icon when the session starts"))
         self.menu = QCheckBox(_("Show PowerClock in the applications menu"))
         self.helper = QCheckBox(_("Turn the computer on at a time (asks for your password once)"))
-        self.unattended = QCheckBox(_("Also when nobody is logged in (unattended)"))
+        self.unattended = QCheckBox(_("Also work when you are logged out"))
         for box in (self.login, self.menu, self.helper):
             box.setChecked(True)
         if self.setup.helper is None:
@@ -105,7 +105,7 @@ class SetupWindow(QDialog):
             self.helper.setToolTip(_("Not available on this system yet"))
         self.helper.toggled.connect(self._update)
         self.dry_run = dry_run_requested()
-        notice = QLabel(_("Dry run: the service will only log power actions."))
+        notice = QLabel(_("Test mode: PowerClock will not really turn anything off."))
         notice.setVisible(self.dry_run)
 
         self.log = QPlainTextEdit()

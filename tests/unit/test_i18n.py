@@ -62,9 +62,27 @@ def test_spanish_is_loaded() -> None:
     spanish = gettext.translation("powerclock", LOCALE, languages=["es"])
     assert spanish.gettext("Cancel") == "Cancelar"
     assert (
-        spanish.gettext("{action} when {process} exits").format(action="Apagar", process="ffmpeg")
+        spanish.gettext("{action} when {process} ends").format(action="Apagar", process="ffmpeg")
         == "Apagar cuando termine ffmpeg"
     )
+    sentence = spanish.gettext("The computer will shut down in {seconds} s")
+    assert sentence.format(seconds=42) == "El equipo se apagará en 42 s"
+
+
+GUI_JARGON = re.compile(r"\b(daemon|dry run|helper|unattended|guards?|triggers?)\b", re.IGNORECASE)
+SPANISH_JARGON = re.compile(
+    r"demonio|simulacro|ayudante|desatendid|disparador|guardas|una guarda", re.I
+)
+
+
+def test_the_gui_speaks_the_users_words() -> None:
+    """Vocabulary of docs/ARCHITECTURE.md §10: the technical words stay in the CLI."""
+    for msgid, places in tool.extract().items():
+        if any(place.startswith("powerclock/gui/") for place in places):
+            assert not GUI_JARGON.search(msgid), (msgid, places)
+    for po in CATALOGS:
+        for msgid, msgstr in tool.read_po(po).items():
+            assert not SPANISH_JARGON.search(msgstr), msgid
 
 
 def test_tests_run_in_english() -> None:

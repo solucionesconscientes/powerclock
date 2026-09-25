@@ -39,7 +39,7 @@ def endpoint(paths: Paths | None = None) -> Endpoint:
     paths = paths or Paths.default()
     token = read_token(paths.token)
     if token is None:
-        raise DaemonUnavailable(_("no API token yet: the daemon has never run on this account"))
+        raise DaemonUnavailable(_("PowerClock has never run on this account yet (no API token)"))
     try:
         port = load_settings(paths).port
     except SettingsError as exc:
@@ -49,7 +49,7 @@ def endpoint(paths: Paths | None = None) -> Endpoint:
 
 def unavailable(error: Exception) -> DaemonUnavailable:
     return DaemonUnavailable(
-        _("the powerclock daemon is not running ({error})").format(error=error)
+        _("PowerClock is not running in the background ({error})").format(error=error)
     )
 
 

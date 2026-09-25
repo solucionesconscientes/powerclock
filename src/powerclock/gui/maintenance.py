@@ -146,8 +146,9 @@ class MaintenanceBox(QGroupBox):
             QMessageBox.Icon.Question,
             _("Uninstall PowerClock"),
             _(
-                "This removes the service, the menu entry, the start with the session, the "
-                "wake-up helper (asks for your password) and the program."
+                "This removes PowerClock in the background, the menu entry, the start with the "
+                "session, the permission to turn the computer on (asks for your password) and "
+                "the program."
             ),
             parent=self,
         )

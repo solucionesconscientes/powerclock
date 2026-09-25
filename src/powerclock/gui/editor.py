@@ -55,7 +55,7 @@ class RuleEditor(QDialog):
         form.insertRow(0, _("Id:"), self.rule_id)
         self.trigger = TriggerEditor()
         self.conditions = EditorList(PredicateEditor, _("Add a condition"))
-        self.guards = EditorList(PredicateEditor, _("Add a guard"))
+        self.guards = EditorList(PredicateEditor, _("Add a reason to wait"))
         self.guard_timing = ModelForm(Guards, only=("retry", "max_wait"))
         self.actions = EditorList(ActionEditor, _("Add a step"))
         self.options = ModelForm(Rule, only=OPTIONS)
@@ -68,7 +68,9 @@ class RuleEditor(QDialog):
 
         only_if = QGroupBox(_("Only if all of these hold"))
         only_if_layout = QVBoxLayout(only_if)
-        only_if_layout.addWidget(_hint(_("When it fires and one is not met, nothing is done.")))
+        only_if_layout.addWidget(
+            _hint(_("If one is not met at that moment, nothing is done this time."))
+        )
         only_if_layout.addWidget(self.conditions)
         wait_while = QGroupBox(_("Wait while any of these holds"))
         wait_layout = QVBoxLayout(wait_while)
@@ -77,7 +79,8 @@ class RuleEditor(QDialog):
         )
         wait_layout.addWidget(self.guards)
         wait_layout.addWidget(self.guard_timing)
-        conditions_tab = _page(only_if, wait_while)
+        only_if_tab = _page(only_if)
+        wait_tab = _page(wait_while)
 
         steps = QGroupBox(_("Do, in this order"))
         QVBoxLayout(steps).addWidget(self.actions)
@@ -85,9 +88,10 @@ class RuleEditor(QDialog):
         options_tab = _page(self.options)
 
         self.tabs = QTabWidget()
-        self.tabs.addTab(rule_tab, _("Rule"))
-        self.tabs.addTab(conditions_tab, _("Conditions"))
-        self.tabs.addTab(steps_tab, _("Steps"))
+        self.tabs.addTab(rule_tab, _("When"))
+        self.tabs.addTab(only_if_tab, _("Only if…"))
+        self.tabs.addTab(wait_tab, _("Wait while…"))
+        self.tabs.addTab(steps_tab, _("What it does"))
         self.tabs.addTab(options_tab, _("Options"))
         self.tabs.addTab(self.json, "JSON")
         self._tab = 0

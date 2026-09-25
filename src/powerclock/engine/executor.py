@@ -23,7 +23,7 @@ from powerclock.engine.runs import (
     StepResult,
     StepStatus,
 )
-from powerclock.i18n import _, power_action_label
+from powerclock.i18n import _, can_cancel_text, countdown_sentence
 from powerclock.models import (
     Action,
     CloseAppStep,
@@ -309,11 +309,8 @@ class Executor:
 
     async def _countdown_prompt(self, step: PowerStep, rule: Rule, run: Run) -> None:
         """Desktop notification with Cancel / Postpone buttons during the countdown."""
-        body = _("{rule}: {action} in {seconds} s").format(
-            rule=rule.name,
-            action=power_action_label(step.action),
-            seconds=round(rule.warning.total_seconds()),
-        )
+        sentence = countdown_sentence(step.action, round(rule.warning.total_seconds()))
+        body = f"{rule.name}: {sentence}. {can_cancel_text()}"
         buttons = {"cancel": _("Cancel"), "postpone": _("Postpone 10 min")}
         try:
             choice = await self._backend.notify("PowerClock", body, buttons)

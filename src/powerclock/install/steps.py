@@ -113,9 +113,9 @@ class Setup:
         else:
             linger = self.user if options.unattended else None
             done = (
-                _("Background service running, also with nobody logged in")
+                _("Running in the background, also with the session closed")
                 if linger
-                else _("Background service running")
+                else _("Running in the background")
             )
             self._step(
                 report,
@@ -126,12 +126,12 @@ class Setup:
         commands = self.root_install(options)
         if commands:
             if run_root(commands):
-                report.done.append(_("Wake-up helper installed"))
+                report.done.append(_("PowerClock can turn the computer on"))
             else:
                 report.problems.append(
                     _(
-                        "the wake-up helper was not installed (password cancelled?): "
-                        "install it later from Diagnostics"
+                        "PowerClock cannot turn the computer on yet (was the password "
+                        "cancelled?): allow it later from Diagnostics"
                     )
                 )
         return report
@@ -160,9 +160,9 @@ class Setup:
         commands = self.root_uninstall()
         if commands:
             if run_root(commands):
-                report.done.append(_("Wake-up helper removed"))
+                report.done.append(_("Permission to turn the computer on removed"))
             else:
-                report.problems.append(_("the wake-up helper was not removed"))
+                report.problems.append(_("the permission to turn the computer on was not removed"))
         if remove_data:
             for folder in {self.paths.config, self.paths.data}:
                 if folder.exists():

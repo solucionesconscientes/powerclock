@@ -61,7 +61,7 @@ async def test_rules_tab(link: DaemonLink, errors: list[Exception]) -> None:
     await pump()
     assert tab.table.rowCount() == 1
     assert tab.table.item(0, 1).text() == "Backup"
-    assert tab.table.item(0, 2).text() == "Repeating (cron): 0 3 * * *"
+    assert tab.table.item(0, 2).text() == "Repeats (cron expression): 0 3 * * *"
     assert "03:00" in tab.table.item(0, 3).text()  # 03:00 in Madrid, the next day
     assert not tab.edit_button.isEnabled()
     tab.table.selectRow(0)
@@ -112,7 +112,7 @@ async def test_history_tab(link: DaemonLink) -> None:
     tab.reload()
     await pump()
     assert tab.table.rowCount() == 1
-    assert [tab.table.item(0, c).text() for c in (1, 2, 3)] == ["Backup", "done", "by hand"]
+    assert [tab.table.item(0, c).text() for c in (1, 2, 3)] == ["Backup", "done", "Manual"]
     tab.table.selectRow(0)
     assert "1. Show a notification: ok" in tab.steps.toPlainText()
 
@@ -135,7 +135,8 @@ async def test_capabilities_and_status(link: DaemonLink) -> None:
     tab.reload()
     await pump()
     assert tab.table.rowCount() > 5
-    assert tab.table.item(0, 0).text() == "✔ power.shutdown"
+    assert tab.table.item(0, 0).text() == "✔ Shut down"
+    assert tab.table.item(0, 0).toolTip() == "power.shutdown"
     assert "powerclock " in tab.daemon.text()
     assert tab.alarm.text() == "No wake-up alarm programmed."
     assert tab.start_service.isHidden()
@@ -207,7 +208,7 @@ async def test_wake_test_in_dry_run_does_nothing(link: DaemonLink) -> None:
     tab = diagnostics(link, wake_tester=tester)
     tab.confirm_wake_test()
     [box] = await boxes()
-    assert "Dry run" in box.text()
+    assert "Test mode" in box.text()
     box.close()
     assert called == []
 
@@ -254,7 +255,7 @@ async def test_window_tabs_and_offline_banner(link: DaemonLink) -> None:
     assert window.tabs.currentWidget() is window.history
     link._offline("gone")
     assert not window.banner.isHidden()
-    assert window.statusBar().currentMessage() == "The PowerClock daemon is not running"
+    assert window.statusBar().currentMessage() == "PowerClock isn't running"
     window.close()
 
 

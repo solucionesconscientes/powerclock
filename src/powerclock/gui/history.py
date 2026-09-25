@@ -42,7 +42,7 @@ class HistoryTab(QWidget):
 
         self.table = QTableWidget(0, 5)
         self.table.setHorizontalHeaderLabels(
-            [_("Finished"), _("Rule"), _("Result"), _("Why it ran"), _("Reason")]
+            [_("Finished"), _("Rule"), _("Result"), _("Source"), _("Reason")]
         )
         self.table.verticalHeader().setVisible(False)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -114,7 +114,7 @@ class HistoryTab(QWidget):
             ),
         ]
         if run.get("dry_run"):
-            lines.append(_("dry run: power actions were only logged"))
+            lines.append(_("test mode: nothing was really turned off"))
         for step in run.get("steps", []):
             line = f"{step['index'] + 1}. {kind_label(step['type'])}: {state_label(step['status'])}"
             if step.get("detail"):

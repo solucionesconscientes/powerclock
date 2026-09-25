@@ -1,7 +1,7 @@
 [project]
 name = "powerclock"
 dynamic = ["version"]
-description = "Shutdown, wake-up and task scheduler: power off, suspend, turn on and run tasks at a time or when something happens, with persistent rules."
+description = "Shutdown, wake-up and task scheduler: schedule shutdown, wake-up and your tasks, at an exact time or when the conditions you choose are met."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "GPL-3.0-or-later"

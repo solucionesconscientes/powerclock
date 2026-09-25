@@ -148,4 +148,4 @@ async def test_doctor_unattended_rule(tmp_path: Path) -> None:
     install_helper(tmp_path)
     write(tmp_path, "etc/polkit-1/rules.d/50-powerclock-unattended.rules", "// powerclock")
     report = await rows(linux(tmp_path, FakeCommands(results={"pkcheck": (0, "")})))
-    assert report["wake.unattended"][:2] == (True, "rule installed: works without a login")
+    assert report["wake.unattended"][:2] == (True, "rule installed: works with the session closed")

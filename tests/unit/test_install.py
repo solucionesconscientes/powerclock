@@ -48,8 +48,8 @@ def test_install_everything(paths: Paths) -> None:
     assert report.done == [
         "In the applications menu",
         "Tray icon when the session starts",
-        "Background service running",
-        "Wake-up helper installed",
+        "Running in the background",
+        "PowerClock can turn the computer on",
     ]
 
 
@@ -65,7 +65,7 @@ def test_cancelled_password_leaves_the_rest_working(paths: Paths) -> None:
     setup = make(paths)
     report = setup.install(Options(), lambda commands: False)
     assert not report.ok
-    assert "install it later from Diagnostics" in report.problems[0]
+    assert "allow it later from Diagnostics" in report.problems[0]
     assert setup.service.installed  # type: ignore[union-attr]
 
 

@@ -1,5 +1,5 @@
-"""The Quick tab, in the spirit of KShutdown: an action, when, a few options, OK. Below, the
-quick actions waiting to act, each with Cancel and Postpone."""
+"""The Quick tab, in the spirit of KShutdown: an action, when, a few options and a button
+that says what it will do. Below, the quick actions scheduled, each with Cancel and Postpone."""
 
 import shlex
 from typing import Any
@@ -30,7 +30,7 @@ from powerclock.gui.summary import Item, quick_items
 from powerclock.gui.tasks import spawn
 from powerclock.gui.tray import ACTION_ICONS
 from powerclock.gui.widgets import DurationEdit, LocalDateTimeEdit, ProcessCombo, next_quarter
-from powerclock.i18n import _, power_action_label
+from powerclock.i18n import _, now_label, power_action_label, schedule_label
 from powerclock.models import format_duration
 from powerclock.platform.base import PowerAction
 
@@ -44,10 +44,10 @@ def when_label(when: str) -> str:
         "now": _("Now"),
         "at": _("At a date and time"),
         "in": _("After a delay"),
-        "idle": _("When nobody uses the computer for"),
-        "exits": _("When a program exits"),
-        "cpu": _("When the CPU usage stays below"),
-        "net": _("When the network traffic stays below"),
+        "idle": _("After a period without use"),
+        "exits": _("When a program ends"),
+        "cpu": _("When the computer goes quiet"),
+        "net": _("When the download finishes"),
     }
     return labels[when]
 
@@ -91,30 +91,30 @@ class QuickTab(QWidget):
             self.in_,
             self.idle,
             self.exits,
-            _row(self.cpu, QLabel(_("for")), self.cpu_for),
-            _row(self.net, QLabel(_("for")), self.net_for),
+            _row(QLabel(_("CPU below")), self.cpu, QLabel(_("for")), self.cpu_for),
+            _row(QLabel(_("network below")), self.net, QLabel(_("for")), self.net_for),
         ):
             self.params.addWidget(widget)
 
-        self.force = QCheckBox(_("Force: do not let applications ask to save"))
-        self.warning = DurationEdit("60s", allow_zero=True)
-        self.wake = QCheckBox(_("Also turn the computer on at"))
+        self.force = QCheckBox(_("Force (don't wait for apps to save)"))
+        self.warning = DurationEdit("1m", allow_zero=True)
+        self.wake = QCheckBox(_("Turn it back on at"))
         self.wake_at = QTimeEdit(QTime(7, 30))
         self.wake_at.setDisplayFormat("HH:mm")
-        self.wake_to_run = QCheckBox(_("Wake the computer up to run it"))
+        self.wake_to_run = QCheckBox(_("Turn the computer on to run it"))
 
         form = QFormLayout()
         form.addRow(_("Action:"), self.action)
         self.command_label = QLabel(_("Program:"))
         form.addRow(self.command_label, self.command)
         form.addRow(_("When:"), _row(self.when, self.params, stretch=True))
-        self.warning_label = QLabel(_("Countdown:"))
+        self.warning_label = QLabel(_("Warn me first:"))
         form.addRow(self.warning_label, self.warning)
         form.addRow("", self.force)
         form.addRow("", _row(self.wake, self.wake_at))
         form.addRow("", self.wake_to_run)
 
-        self.ok = QPushButton(themed("dialog-ok-apply"), _("OK"))
+        self.ok = QPushButton(themed("dialog-ok-apply"), "")
         self.ok.setDefault(True)
         self.ok.clicked.connect(self.submit)
         self.status = QLabel()
@@ -137,9 +137,9 @@ class QuickTab(QWidget):
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        self.empty = QLabel(_("No quick actions waiting."))
+        self.empty = QLabel(_("No quick actions scheduled."))
         self.empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        waiting = QGroupBox(_("Waiting to act"))
+        waiting = QGroupBox(_("Scheduled"))
         waiting_layout = QVBoxLayout(waiting)
         waiting_layout.addWidget(self.pending)
         waiting_layout.addWidget(self.empty)
@@ -233,6 +233,8 @@ class QuickTab(QWidget):
             widget.setVisible(not is_run)
         self.wake_at.setEnabled(self.wake.isChecked())
         self.wake_to_run.setVisible(is_run and when in TIME_WHEN)
+        action = None if is_run else PowerAction(self.action.currentData())
+        self.ok.setText(now_label(action) if when == "now" else schedule_label(action))
 
     # ── What is waiting ───────────────────────────────────────────────────────
 

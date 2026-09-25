@@ -221,7 +221,9 @@ async def _helper_rows(p: "LinuxPlatform") -> list[Capability]:
     if unattended is None:
         rows.append(row("wake.unattended", True, _("cannot be checked by a normal user")))
     elif unattended:
-        rows.append(row("wake.unattended", True, _("rule installed: works without a login")))
+        rows.append(
+            row("wake.unattended", True, _("rule installed: works with the session closed"))
+        )
     else:
         rows.append(
             row(
@@ -253,10 +255,8 @@ async def _hardware(p: "LinuxPlatform") -> list[Capability]:
 
 async def _linger(p: "LinuxPlatform") -> list[Capability]:
     if p.host.linger(p.user):
-        return [row("linger", True, _("enabled: the daemon runs without a login"))]
-    return [
-        row("linger", False, _("disabled"), _("powerclock service install --linger (roadmap M4)"))
-    ]
+        return [row("linger", True, _("enabled: PowerClock works with the session closed"))]
+    return [row("linger", False, _("disabled"), _("powerclock service install --linger"))]
 
 
 async def _timezone(p: "LinuxPlatform") -> list[Capability]:

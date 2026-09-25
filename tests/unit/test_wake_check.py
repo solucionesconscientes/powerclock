@@ -86,7 +86,7 @@ async def test_suspend_blocked() -> None:
 def test_cli_does_nothing_in_dry_run() -> None:
     result = CliRunner().invoke(app, ["doctor", "--test-wake", "120"])  # POWERCLOCK_DRY_RUN=1
     assert result.exit_code == 0
-    assert "nothing done" in result.output
+    assert "nothing was done" in result.output
 
 
 def test_cli_asks_before_suspending(monkeypatch: pytest.MonkeyPatch) -> None:

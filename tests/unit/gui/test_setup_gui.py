@@ -90,7 +90,7 @@ async def test_a_cancelled_password_is_explained(qapp: object, setup: Setup) -> 
     window = SetupWindow(setup, run_root=lambda commands: False, launch=lambda: None)
     window.install()
     await settle_thread(lambda: window.report is not None)
-    assert "install it later from Diagnostics" in window.log.toPlainText()
+    assert "allow it later from Diagnostics" in window.log.toPlainText()
     assert window.status.text() == "PowerClock is installed, with the notes above."
 
 

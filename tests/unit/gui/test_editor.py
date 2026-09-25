@@ -171,3 +171,10 @@ async def test_invalid_rules_are_explained(link: DaemonLink) -> None:
     editor.actions.set([{"type": "power", "action": "shutdown"}, {"type": "notify", "title": "x"}])
     editor.save()
     assert "must be the last action" in editor.error.text()
+
+
+async def test_tabs_use_the_users_words(qapp: object) -> None:
+    editor = RuleEditor(None, None)  # type: ignore[arg-type]
+    names = [editor.tabs.tabText(index) for index in range(editor.tabs.count())]
+    assert names == ["When", "Only if…", "Wait while…", "What it does", "Options", "JSON"]
+    editor.close()

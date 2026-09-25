@@ -89,7 +89,7 @@ def test_cli_prints_and_asks(monkeypatch: pytest.MonkeyPatch) -> None:
 
     accepted = runner.invoke(app, ["helper", "install", "--unattended"], input="y\n")
     assert accepted.exit_code == 0, accepted.output
-    assert "Helper installed." in accepted.output
+    assert "Done: PowerClock can turn the computer on." in accepted.output
     assert "powerclock service install --linger" in accepted.output
     assert len(ran) == 3
 

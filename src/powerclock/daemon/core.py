@@ -276,7 +276,7 @@ class Daemon:
             return AtTrigger(when=when), _("{action} at {time}").format(action=label, time=local)
         if request.when_idle is not None:
             delay = format_duration(request.when_idle)
-            return Idle(for_=request.when_idle), _("{action} when idle for {delay}").format(
+            return Idle(for_=request.when_idle), _("{action} after {delay} without use").format(
                 action=label, delay=delay
             )
         if request.when_exits is not None:
@@ -286,14 +286,18 @@ class Daemon:
                 target = f"PID {target}"
             else:
                 trigger = ProcessExitTrigger(name=target)
-            return trigger, _("{action} when {process} exits").format(action=label, process=target)
+            return trigger, _("{action} when {process} ends").format(action=label, process=target)
         if request.when_cpu_below is not None:
-            name = _("{action} when the CPU is below {percent} % for {delay}").format(
+            name = _(
+                "{action} when the computer goes quiet (CPU below {percent} % for {delay})"
+            ).format(
                 action=label, percent=f"{request.when_cpu_below:g}", delay=format_duration(sustain)
             )
             return CpuBelow(percent=request.when_cpu_below, for_=sustain), name
         if request.when_net_below is not None:
-            name = _("{action} when the network is below {kbps} kbit/s for {delay}").format(
+            name = _(
+                "{action} when the download finishes (network below {kbps} kbit/s for {delay})"
+            ).format(
                 action=label, kbps=f"{request.when_net_below:g}", delay=format_duration(sustain)
             )
             return NetBelow(kbps=request.when_net_below, for_=sustain), name
@@ -307,12 +311,12 @@ class Daemon:
         local = when.astimezone(self.tz).strftime("%Y-%m-%d %H:%M")
         rule = Rule(
             id=f"{QUICK_PREFIX}{uuid.uuid4().hex[:6]}",
-            name=_("Wake up at {time}").format(time=local),
+            name=_("Turn on at {time}").format(time=local),
             trigger=AtTrigger(when=when),
             wake=True,
             one_shot=True,
             warning=timedelta(0),
-            actions=[NotifyStep(title="PowerClock", body=_("Woken up as scheduled"))],
+            actions=[NotifyStep(title="PowerClock", body=_("Turned on as scheduled"))],
         )
         return self._save(rule, "created")
 
