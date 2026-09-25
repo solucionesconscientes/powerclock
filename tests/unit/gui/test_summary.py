@@ -32,7 +32,7 @@ def test_next_timed_action() -> None:
     assert summary.headline == "Shut down at 23:30 · in 13h 30m"
     assert (summary.can_cancel, summary.can_postpone) == (True, True)
     [item] = summary.quick
-    assert item.detail.startswith("2026-09-24 23:30") or item.detail.startswith("today")
+    assert item.detail.endswith("(in 13h 30m)")  # the day and time depend on the time zone
 
 
 def test_watched_quick_action_cannot_be_postponed() -> None:
@@ -80,4 +80,4 @@ def test_when_text() -> None:
     today = datetime.now(UTC).astimezone().replace(hour=23, minute=30, second=0, microsecond=0)
     assert when_text(today) == "today 23:30"
     assert when_text(None) == "-"
-    assert when_text("2020-01-02T03:04:00+00:00").startswith("2020-01-02")
+    assert when_text(datetime(2020, 1, 2, 3, 4).astimezone()) == "2020-01-02 03:04"  # local time

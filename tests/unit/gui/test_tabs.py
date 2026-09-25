@@ -62,7 +62,9 @@ async def test_rules_tab(link: DaemonLink, errors: list[Exception]) -> None:
     assert tab.table.rowCount() == 1
     assert tab.table.item(0, 1).text() == "Backup"
     assert tab.table.item(0, 2).text() == "Repeats: every day at 03:00"
-    assert "03:00" in tab.table.item(0, 3).text()  # 03:00 in Madrid, the next day
+    # 03:00 in Madrid the next day, shown in this computer's time zone (UTC on CI runners)
+    shown = datetime(2026, 9, 25, 1, 0, tzinfo=UTC).astimezone().strftime("%H:%M")
+    assert shown in tab.table.item(0, 3).text()
     assert not tab.edit_button.isEnabled()
     tab.table.selectRow(0)
     assert tab.edit_button.isEnabled()
