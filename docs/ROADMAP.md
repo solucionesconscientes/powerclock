@@ -76,20 +76,48 @@ Marca `[x]` al completar. Cada hito termina con ruff + pytest en verde y un comm
 - [x] Tests (lanzador con uv falso, pasos con fachadas falsas, ventana en offscreen) y README; la publicación en GitHub adjunta el lanzador
 **DoD:** en el Kubuntu del usuario, con el paquete local: doble clic en el lanzador → contraseña → PowerClock en la bandeja, en el menú y con el servicio en marcha; desinstalar lo deja todo como estaba. ✅ (24-09-2026: probado por el usuario en su Latitude, en dry-run y desde el código local)
 
-### M9 — Publicación 0.1.0
+### M9 — Textos y vocabulario (rediseño, fase 1)
+Decidido el 25-09-2026 (ver ARCHITECTURE §10, «Rediseño»). Todo lo nuevo añade textos: fijar antes el vocabulario evita reescribirlos.
+- [ ] Tabla de vocabulario aplicada en es/en: GUI, textos compartidos (`labels.py`, motivos, capacidades) y los mensajes de la CLI que ve el usuario
+- [ ] Rápido: botón con verbo y objeto («Programar apagado», «Apagar ahora»), «Programado», condiciones con nombres del usuario, «Avisar antes», «Volver a encenderlo a las»
+- [ ] Editor: «Cuándo», «Solo si…», «Esperar mientras…», «Qué hará»
+- [ ] Cuenta atrás, bandeja y avisos con frases completas («El equipo se apagará en 42 s · Puedes cancelarlo hasta el último segundo»)
+- [ ] Diagnóstico con nombres claros (lo técnico, en el detalle) e Historial con «Origen»
+- [ ] Subtítulo nuevo en la instalación, la bienvenida, el README y el instalador
+**DoD:** ninguna de estas palabras a la vista en la GUI: demonio, simulacro, ayudante, desatendido, guarda, disparador; tests y traducciones al día; revisado por el usuario.
+
+### M10 — Abrir aplicaciones
+Decidido el 25-09-2026 a partir de 32 casos de uso (lo piden 13). Diseño en ARCHITECTURE §4 («Paso `launch`»).
+- [ ] Modelo: paso `launch` (app, receta, argumentos, ventana, mantener abierta) y variables `{date}`, `{time}`… en órdenes, rutas y avisos
+- [ ] Linux: catálogo de aplicaciones instaladas (menú, Flatpak, Snap) leyendo sus `.desktop`
+- [ ] Linux: entorno de la sesión gráfica desde el gestor de servicios del usuario; lanzar como unidad transitoria `app-powerclock-…` (también `run`, que hoy no ve la pantalla si el servicio arrancó antes que la sesión)
+- [ ] Esperar a la ventana y colocarla con guiones de KWin (pantalla, escritorio, pantalla completa…); mantener abierta; cerrar con la señal elegida
+- [ ] Recetas como datos (JSON en el paquete) para los programas del catálogo
+- [ ] GUI: selector de aplicaciones con icono y recetas; CLI: `powerclock apps`
+**DoD:** en el Latitude, una regla abre Chrome en modo app en la pantalla elegida, VLC con una lista y FreeFileSync (Flatpak) con un trabajo, también con el servicio arrancado antes que la sesión.
+
+### M11 — Publicación 0.1.0
 - [x] README (es/en) con capturas; `examples/` documentados (`README.md`, `README.es.md`; capturas con `scripts/screenshots.py`. Al publicar en PyPI, las imágenes necesitan URL absolutas)
 - [ ] Comprobar el nombre en PyPI (PowerClock ✅, libre); `pipx install .` limpio en Kubuntu y en el VPS (sin GUI)
 - [ ] GitHub Actions: lint + tests (Linux), build sdist/wheel (`ci.yml` con Python 3.11–3.14 y `release.yml`, que publica en PyPI con Trusted Publishing al etiquetar `vX.Y.Z`; falta verlos en verde en GitHub)
 - [x] CHANGELOG; licencia definitiva (GPL-3.0-or-later, `LICENSE`)
 
 ## Empaquetado (opcional, cuando se decida)
-De momento la distribución es `pipx` en los tres SO. Opciones estudiadas, por ganancia:
+De momento la distribución es el instalador (lanzador + uv, M8) y `pipx`. Opciones estudiadas, por ganancia:
 - Windows: instalador firmado + winget (evita instalar Python antes).
 - macOS: `.app` firmada vía Homebrew cask (necesaria para notificaciones con botones y un icono propio en el Dock).
 - Linux: paquetes `powerclock` + `powerclock-gui` (PPA, AUR, COPR/OBS): instalación en un paso, actualizaciones del sistema y Breeze nativo. Ubuntu 26.04 tiene todas las dependencias, pero más antiguas que los mínimos actuales: habría que bajar los mínimos y probarlas, o llevar las propias dentro del paquete.
 
-## Fase 2 — Workflows y más disparadores (v0.2)
-`file`, `wifi_ssid`, `usb`, `temperature`; webhook de entrada y salida; Telegram (notificar); editor visual de condiciones; plantillas/recetas; estadísticas de uso y ahorro.
+## Fase 2 — Sesión, escritorio y avisos (v0.2)
+Orden decidido el 25-09-2026: lo que desbloquea más casos de uso, primero.
+- **M12 — Encender y entrar:** llave de un solo uso (entrada automática solo en el arranque que provoca la alarma de PowerClock, con bloqueo inmediato; ARCHITECTURE §6); quiosco con usuario dedicado; margen de 3 min cuando hay que entrar.
+- **M13 — Sonido, reproductores y escritorio:** MPRIS (lista, emisora, pausa), volumen y fundidos, sonidos y voz, tema y fondo, brillo, perfil de energía, VPN, No molestar, pantalla siempre encendida, capturas para el historial.
+- **M14 — Rediseño, fases 2 y 3:** sistema visual (colores de estado, escala φ, fuente del escritorio, iconos de bandeja) y pantallas (franja «Próximo», acciones en botones, tarjetas, anillo de cuenta atrás).
+- **M15 — Rediseño, fase 4:** editor que se lee como una frase, horarios sin cron, galería de recetas por caso de uso.
+- **M16 — Avisos y respuestas:** ntfy primero (sin cuenta ni dependencias nuevas), después Telegram y webhooks de salida; avisos con botones que esperan respuesta; pasos «si algo falla».
+- **M17 — Más disparadores:** amanecer y anochecer, calendario (ICS) y festivos, tiempo de uso, ficheros y carpetas, dispositivos, `wifi_ssid` como disparador, `temperature`; tarifa de la luz como **ajuste opcional** (desactivado por defecto; España 2.0TD o franjas propias) con la condición «tramo de la luz».
+- **M18 — Varios equipos:** Wake-on-LAN; estadísticas de uso y ahorro (horas apagado, kWh y € estimados).
+Pendiente de decidir más adelante: navegador automatizado (Playwright, dependencia nueva), accesibilidad AT-SPI, teclado y ratón virtuales, sesión fantasma.
 
 ## Fase 3 — Windows (v0.3)
 Backend Windows (shutdown.exe, SetSuspendState, LockWorkStation, GetLastInputInfo, toasts); wake con Task Scheduler `WakeToRun`; `doctor` con Modern Standby y temporizadores de reactivación; servicio al iniciar sesión; CI Windows.
@@ -98,4 +126,4 @@ Backend Windows (shutdown.exe, SetSuspendState, LockWorkStation, GetLastInputInf
 pmset, osascript, idle vía IOKit, LaunchAgent + helper LaunchDaemon, CI macOS, DMG con firma ad-hoc.
 
 ## Fase 5 — Remoto e IA (v1.0)
-Bot de Telegram (control y disparador), web UI, multi-equipo (portátil + VPS), Wake-on-LAN, MQTT/Home Assistant, KDE Connect, asistente en lenguaje natural → regla JSON validada contra `/schema/rule`.
+Bot de Telegram (control y disparador), web UI, multi-equipo (portátil + VPS), MQTT/Home Assistant, KDE Connect, asistente en lenguaje natural → regla JSON validada contra `/schema/rule`.

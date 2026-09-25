@@ -102,7 +102,21 @@ Los disparadores de estado llevan `for` (condición sostenida N tiempo), p. ej. 
 
 **Predicados** (para conditions/guards/wait_until): `process_running`, `power_source`, `battery`, `idle`, `cpu_below`, `net_below`, `media_playing`, `ssh_session`, `time_window`, `weekday`, `wifi_ssid`. Árbol lógico: `all` / `any` / `not`.
 
-**Acciones**: `power` (`shutdown|reboot|suspend|hibernate|hybrid_sleep|lock|logout|screen_off`, `mode: graceful|force`) · `run` (`cmd` lista, `cwd`, `env`, `shell` false por defecto, `timeout`, `wait`) · `open` (archivo/URL) · `close_app` (término limpio y kill tras timeout) · `notify` · `wait` · `wait_until` · `set_wake` (absoluto/relativo) · más adelante `webhook`, `telegram`.
+**Acciones**: `power` (`shutdown|reboot|suspend|hibernate|hybrid_sleep|lock|logout|screen_off`, `mode: graceful|force`) · `run` (`cmd` lista, `cwd`, `env`, `shell` false por defecto, `timeout`, `wait`) · `open` (archivo/URL) · `close_app` (término limpio y kill tras timeout) · `notify` · `wait` · `wait_until` · `set_wake` (absoluto/relativo) · más adelante `launch` (M10), reproductores, sonido y ajustes del escritorio (M13), `notify` al móvil y webhooks (M16).
+
+**Paso `launch` (M10, decidido el 25-09-2026).** Abre una aplicación instalada en la sesión gráfica. Sale de 32 casos de uso: abrir aplicaciones es la pieza que más piden (13), y la mitad de las apps del equipo del usuario son Flatpak. Borrador:
+```json
+{"type": "launch", "app": "google-chrome", "recipe": "chrome.kiosk",
+ "args": ["--kiosk", "https://panel.ejemplo.es"],
+ "window": {"screen": 2, "state": "fullscreen"}, "keep_open": true}
+```
+- `app` es el identificador de escritorio (`org.kde.okular`, `one.ablaze.floorp`), no una ruta: sobrevive a actualizaciones y el backend construye la orden desde el `.desktop` (con `flatpak run` si toca). El catálogo de apps instaladas lo da el backend (menú, Flatpak, Snap).
+- `recipe`: opcional; las recetas son datos (JSON en el paquete) que rellenan `args` con opciones comprobadas (Chrome quiosco o ventana de app, VLC en bucle, Okular en presentación…). Añadir programas no toca el código.
+- `window`: esperar a que aparezca y colocarla (pantalla, escritorio virtual, `fullscreen|maximized|minimized`, encima de todo); en KDE con guiones de KWin por D-Bus. `keep_open`: reabrirla si se cierra, con límite por hora. Al cerrar (`close_app`) se podrá elegir la señal (algunos grabadores solo guardan con SIGINT).
+- Se lanza como unidad transitoria `app-powerclock-…` del gestor de servicios del usuario, con **su** entorno (`WAYLAND_DISPLAY`, `DISPLAY`, `XAUTHORITY`… que publica el escritorio al arrancar). `run` pasa a usar el mismo entorno: hoy hereda el del servicio, que no ve la pantalla si arrancó antes que la sesión.
+- Variables en órdenes, rutas y textos: `{date}`, `{time}`, `{datetime}`, `{weekday}`, `{rule}`. `run` sigue existiendo para guiones y órdenes sin ventana.
+
+**Tarifa de la luz (M17, decidido el 25-09-2026).** Ajuste opcional del demonio, **desactivado por defecto**: solo compensa a quien tiene discriminación horaria (PVPC o contrato de tres precios; con precio fijo 24 h da igual la hora). Valores: sin tarifa · España 2.0TD (punta 10–14 y 18–22, llano 8–10, 14–18 y 22–24, valle 0–8; fines de semana y festivos nacionales, valle) · franjas propias (otros países). Solo con una tarifa elegida aparece la condición `tariff_period` (`valley|flat|peak`) en el editor y en las recetas.
 
 **Detalles fijados en M1** (referencia completa: el JSON Schema de `GET /schema/rule`, generado desde `src/powerclock/models.py`):
 - Todo objeto rechaza campos desconocidos: una errata en `rules.json` da error en vez de ignorarse.
@@ -145,6 +159,14 @@ Los disparadores de estado llevan `for` (condición sostenida N tiempo), p. ej. 
 - Tercera prueba (24-09-2026, **desde S5**, con AC): `powerclock-helper wake-set` para las 11:31:06, apagado a las 11:26:12 y **se encendió sola**; el kernel leyó el RTC a las 11:31:20 (≈14 s de POST y arranque). El encendido programado desde apagado funciona en el Latitude 5480 con la BIOS de serie.
 - Linux: el helper usa `rtcwake -m no -t <epoch>`, que respeta RTC en UTC o localtime según `/etc/adjtime`; si falla, recurre a `/sys/class/rtc/rtc0/wakealarm`: escribe `0` y después el valor **relativo** `+<segundos>`. Un valor absoluto el kernel lo interpreta en la hora del RTC, que puede ir en hora local (arranque dual con Windows) y desplazaría la alarma 1–2 h; el relativo no depende de eso. Para consultar: `rtcwake -m show`. Para borrar: `rtcwake -m disable`.
 - **Modo desatendido** (encender → ejecutar → apagar sin iniciar sesión): el servicio de usuario necesita `loginctl enable-linger <usuario>`, y sin sesión activa `allow_active` no se aplica. Por eso hace falta una regla polkit opcional (`50-powerclock-unattended.rules`) que conceda a ese usuario las acciones `org.freedesktop.login1.power-off/reboot/suspend/hibernate` (y sus variantes `-multiple-sessions`) **y la acción del helper `org.powerclock.helper.wake`**; sin esta última, el WakePlanner no podría programar el siguiente despertar y la cadena se cortaría tras el primero. Lo instalan `powerclock service install --linger` y `powerclock helper install --unattended`.
+- **Entrar al encender (M12, decidido el 25-09-2026): llave de un solo uso.** Las apps gráficas necesitan una sesión, y tras un encendido desde S5 el equipo se queda en la pantalla de acceso. Nunca activamos la entrada automática permanente; en su lugar:
+  1. Al programar un encendido de una regla con «entrar en la sesión», el ayudante guarda un vale en `/var/lib/powerclock/autologin.json` (usuario, sesión, hora de la alarma). Solo root escribe ahí.
+  2. `powerclock-boot.service` (sistema, `Before=display-manager.service`) lo lee al arrancar: si la hora está entre la alarma y 10 min después (y, si la BIOS lo dice, el arranque fue por el reloj y no por el botón: SMBIOS *Wake-up Type*), escribe la orden de entrada automática en `/run/powerclock/autologin.conf` y borra el vale.
+  3. SDDM: `/etc/sddm.conf.d/zz-powerclock.conf` es un enlace a ese fichero, creado una vez al instalar; si no existe, SDDM lo ignora. LightDM: igual con `lightdm.conf.d`; GDM: `/run/gdm/custom.conf` (a confirmar). Gestor desconocido → `NotSupported`, sin tocar nada.
+  4. En cuanto aparece la sesión: bloquear la pantalla y borrar el fichero de `/run`. Al estar en memoria, un corte de luz no deja nada activado; con `Relogin=false`, cerrar la sesión vuelve a pedir contraseña.
+  - KWallet no se abre sin contraseña (`sddm-autologin` no usa `pam_kwallet5`): los navegadores de las recetas usan perfil propio y `--password-store=basic`. Con el disco cifrado (LUKS) el arranque se para antes; no aplica.
+  - Quiosco (pantalla visible): con un usuario dedicado sin permisos de administrador. Casi toda la automatización (opciones de arranque, D-Bus, MPRIS) funciona con la pantalla bloqueada; el teclado y el ratón virtuales no (las pulsaciones irían al bloqueo).
+  - Medido en el Latitude: 32 s de la alarma a la pantalla de acceso, unos 50 s al escritorio listo; el margen pasa a 3 min cuando hay que entrar.
 - Windows (fase 3): tarea programada con `WakeToRun` que ejecuta `powerclock wake-hook`. `doctor` comprueba los temporizadores de reactivación y Modern Standby (`powercfg /a`).
 - macOS (fase 4): `pmset schedule wakeorpoweron` vía helper.
 - Realidad del hardware: desde S3/S4 suele funcionar; desde S5 depende de la BIOS/UEFI; en portátiles suele requerir corriente AC. `doctor` lo avisa y lo verifica con `--test-wake`.
@@ -248,6 +270,31 @@ Decisiones (M7):
 - **Diálogo de cuenta atrás** (`WindowStaysOnTopHint`; en Wayland el compositor decide): Cancelar (también con Esc) / Posponer 10 min. Se abre con `warning_started` o al arrancar la GUI a mitad de una cuenta atrás; se cierra con el fin de la ejecución, con un `/pending` pedido después de abrirse que ya no la tenga, o 3 s después de llegar a 0.
 - **Menú y autoarranque** (`install/autostart.py` → `platform/linux/autostart.py`): `~/.local/share/applications/powerclock.desktop` (+ icono en `icons/hicolor/scalable/apps/powerclock.svg`) y `~/.config/autostart/powerclock-gui.desktop` con `--tray`, en carpetas del usuario, sin root.
 - **Traducciones**: gettext. Los textos son los `_("…")` del código; `scripts/i18n.py update` los lleva a `src/powerclock/locale/<idioma>/LC_MESSAGES/powerclock.po` y `compile` genera el `.mo` (sin herramientas de gettext). Los tests fallan si un texto queda sin traducir, si una traducción pierde un `{marcador}` o el formato de rich, o si el `.mo` no está al día. Qt carga además sus propias traducciones (`qtbase_es`). Los tests corren en inglés (`LC_ALL=C.UTF-8`).
+
+**Rediseño (decidido el 25-09-2026).** Propuesta completa en la página «Rediseño de PowerClock»; se aplica por fases (ROADMAP M9, M14, M15).
+- **Identidad sobre el tema del sistema:** fondos, textos y controles siguen el tema del escritorio (claro/oscuro, accesibilidad); los colores propios solo marcan estados, iconos, la franja «Próximo» y el botón principal.
+- **Paleta «noche y alba»** (AA ≥ 4,5:1 en claro y oscuro): Crepúsculo `#2F5FD0` programado y acción principal · Alba `#E8A33D` (texto `#8A4F00`) encender y despertar · Lavanda `#6A4FC7` vigilando una condición · Brasa `#B33A0A` cuenta atrás · Hoja `#177245` hecho · Grana `#B42323` falló · Pizarra `#586379` omitido o cancelado. El estado nunca va solo por color: siempre icono y texto.
+- **Proporciones:** letra ×√φ por paso (11/14/18/23/29/37 px, base 14), espaciados Fibonacci (3, 5, 8, 13, 21, 34, 55, 89), ventana por defecto 800×494 y Rápido repartido 61,8/38,2 %. La fuente, la del escritorio.
+- **Tono:** tranquilo y preciso; frases cortas, verbos concretos, siempre qué va a pasar y cuándo; cada error dice qué pasó y cómo arreglarlo; ante lo que da miedo (apagar), recordar que hay aviso y que se puede cancelar.
+- **Subtítulo:** «Programa el apagado, el encendido y tus tareas: a una hora exacta o cuando se cumplan las condiciones que elijas.» / *Schedule shutdown, wake-up and your tasks, at an exact time or when the conditions you choose are met.* Nombre corto: «Programador de apagado, encendido y tareas» / *Shutdown, wake-up and task scheduler*.
+- **Vocabulario** (lo técnico queda en la CLI, en los nombres de campo de `rules.json` y en «Avanzado»):
+
+| Concepto | Antes | ES | EN |
+|---|---|---|---|
+| Servicio | demonio | PowerClock en segundo plano | PowerClock in the background |
+| Dry run | simulacro | modo prueba (no apaga nada de verdad) | test mode (nothing really turns off) |
+| Helper | ayudante de encendido | permiso para encender el equipo | permission to turn the computer on |
+| Unattended | desatendido | funcionar también con la sesión cerrada | also work when you are logged out |
+| Trigger · conditions · guards · steps | disparador · condiciones · guardas · pasos | Cuándo · Solo si… · Esperar mientras… · Qué hará | When · Only if… · Wait while… · What it does |
+| Warning | cuenta atrás | avisar antes | warn me first |
+| Botón de Rápido | Aceptar | Programar apagado · Apagar ahora (según acción y momento) | Schedule shutdown · Shut down now |
+| Lista de Rápido | En espera | Programado | Scheduled |
+| idle (Rápido) | cuando nadie use el equipo durante | tras un tiempo sin usar el equipo | after a period without use |
+| net_below (Rápido) | cuando el tráfico de red se mantenga por debajo de | cuando termine la descarga | when the download finishes |
+| cpu_below (Rápido) | cuando el uso de CPU se mantenga por debajo de | cuando el equipo quede en reposo | when the computer goes quiet |
+| wake_at | encender también el equipo a las | volver a encenderlo a las | turn it back on at |
+| cause | por qué: a mano · programada · condición | origen: manual · horario · condición | source: manual · schedule · condition |
+| Bandeja | cerrar el icono de la bandeja | ocultar el icono (PowerClock sigue funcionando) | hide the icon (PowerClock keeps working) |
 
 ## 11. Instalación
 **Para todos (decidido el 24-09-2026): lanzador + Python.** El usuario medio descarga un archivo, le da doble clic, pone su contraseña una vez y queda todo hecho. Un único archivo que funcione en los tres SO no es viable (formatos de ejecutable distintos; un `.py` falla sin Python en Windows y macOS, y en Linux no puede mostrar ventanas sin Tkinter/Qt ni crear entornos sin `python3-venv`). Por eso:
