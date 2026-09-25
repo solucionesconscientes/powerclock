@@ -91,6 +91,11 @@ def watch_detail(item: dict[str, Any]) -> str:
             )
         case "power_source":
             text = {"ac": _("on AC"), "battery": _("on battery")}.get(str(value), _("unknown"))
+        case "desktop_session":
+            text = {
+                "up": _("the desktop session is up"),
+                "down": _("waiting for a desktop session"),
+            }.get(str(value), _("unknown"))
         case _:
             text = ""
     if not item.get("armed", True):

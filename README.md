@@ -67,10 +67,13 @@ line**, or from any program through a **local API**.
 | Turn off the screen | Turns the display off (KDE, GNOME or X11). |
 | **Turn on / wake up** | Programs the computer's hardware clock (RTC) so it **wakes from suspend or even powers on from off** at a given time. |
 
-**Other actions** (steps of a rule, run in order): run a program or a shell command (with a time
-limit, its output kept in the history), open a file or web page, close a program (asking it
-nicely, then forcing it), show a desktop notification, wait a while, wait until a condition is
-met, and program the next wake-up.
+**Other actions** (steps of a rule, run in order): **open an installed application** (picked from
+the menu's list, Flatpak and Snap ones too) with ready-made **recipes** (a web page as a kiosk,
+a playlist on a loop, a PDF as a presentation…), placing its window on a screen or full screen
+and keeping it open if it closes · run a program or a shell command (with a time limit, its output
+kept in the history) · open a file or web page · close a program (asking it nicely, then forcing
+it) · show a desktop notification · wait a while · wait until a condition is met · program the
+next wake-up. File names and texts can carry the date: `radio-{date}.mp3`.
 
 **When** (the *trigger*):
 
@@ -79,7 +82,8 @@ met, and program the next wake-up.
 - **When a condition is met**: the computer has not been used for a while · a program ends
   (render, compression, copy…) · the computer goes quiet (low CPU for a while) · a download
   finishes (low network traffic for a while) · the battery goes below/above a level · the laptop is unplugged or
-  plugged in · PowerClock starts or the computer resumes from sleep.
+  plugged in · the desktop session starts (after logging in) · PowerClock starts or the computer
+  resumes from sleep.
 - **By hand**: from the window, the tray, the command line or the API.
 
 **Only if / wait while**:
@@ -284,7 +288,8 @@ occurrence), `"2026-10-01 07:30"` (local time) or ISO 8601 with a time zone. Dur
 as `30s`, `5m`, `2h`, `1d` or combined (`1h30m`).
 
 **Quick actions** — one command per action: `shutdown`, `reboot`, `suspend`, `hibernate`,
-`hybrid-sleep`, `lock`, `logout`, `screen-off`, and `run -- PROGRAM ARGS…`.
+`hybrid-sleep`, `lock`, `logout`, `screen-off`, `run -- PROGRAM ARGS…` and
+`launch APP [--recipe ID] -- ARGS…` (open an installed application).
 
 | Option | Meaning |
 |---|---|
@@ -299,7 +304,8 @@ as `30s`, `5m`, `2h`, `1d` or combined (`1h30m`).
 | `--warning 2m` | Warn this long before acting (default `60s`; `0s` for none). |
 | `--force` | Do not let applications ask to save. |
 | `--wake 07:30` | (power actions) Also turn the computer on at that time — e.g. suspend now, wake up in the morning. |
-| `--wake` | (`run`) Turn the computer on to run it (with `--in`/`--at`). |
+| `--wake` | (`run`, `launch`) Turn the computer on to run or open it (with `--in`/`--at`). |
+| `--recipe ID` | (`launch`) Take the arguments from a recipe; what it asks for (`<url>`, `<file>`…) goes after `--`, in order. |
 | `--dry-run` | Global option (`powerclock --dry-run shutdown …`): test mode, the power action is only noted down. |
 
 **Other commands**
@@ -307,6 +313,8 @@ as `30s`, `5m`, `2h`, `1d` or combined (`1h30m`).
 | Command | What it does |
 |---|---|
 | `powerclock wake --at TIME` | Turn the computer on at that time (from suspend, or from off if the BIOS allows it). |
+| `powerclock apps [TEXT]` | The installed applications (`launch` opens them by id), with their recipes. |
+| `powerclock recipes [APP]` | Ready-made arguments for common applications. |
 | `powerclock status` | What is running, what comes next, what is being watched, and the next wake-up alarm. |
 | `powerclock cancel [RUN_ID]` | Cancel the countdown in progress; otherwise the quick action running, the next timed one, or the last one waiting for a condition. |
 | `powerclock postpone [10m] [--run RUN_ID]` | Postpone the countdown in progress or the next timed quick action. |
@@ -369,11 +377,12 @@ rules.
 | `net_below` | `kbps`, `for`, `direction` (`down`, `up`, `both`), `interface` (optional) | When the **average** network traffic over the last `for` is below `kbps` kilobits per second. |
 | `battery` | `below` or `above` (%), `for` (optional) | When the battery level crosses that threshold (held for `for`). |
 | `power_source` | `is` (`ac` or `battery`), `for` (optional) | When the computer is on that power source (held for `for`). |
+| `desktop_session` | — | When a desktop session starts (someone logs in), so applications can be opened. |
 | `startup` | `on` (`daemon_start`, `resume`), `delay` | When PowerClock starts (e.g. at boot) and/or after resuming from sleep, after `delay`. |
 | `manual` | — | Only when run by hand. |
 
 **Triggers that watch a state** (`idle`, `process_exit`, `cpu_below`, `net_below`, `battery`,
-`power_source`) fire **once** when the state becomes true, and fire again only after it has been
+`power_source`, `desktop_session`) fire **once** when the state becomes true, and fire again only after it has been
 false. Staying idle does not suspend the computer again and again; using it re-arms the rule. If
 the state already holds when you enable the rule (the battery is already low), it fires.
 
@@ -394,6 +403,7 @@ Both use the same **predicates**:
 | `time_window` | `start`, `end` (`"22:00"`) | The time of day is in that window (it can cross midnight: 22:00 → 07:00). |
 | `weekday` | `days` (`mon` … `sun`) | Today is one of those days. |
 | `wifi_ssid` | `ssid` | Connected to that Wi-Fi network. |
+| `desktop_session` | — | A desktop session is up. |
 
 Combine them with `{"all": [ … ]}`, `{"any": [ … ]}` and `{"not": … }`, nested as you like.
 
@@ -411,12 +421,19 @@ Combine them with `{"all": [ … ]}`, `{"any": [ … ]}` and `{"not": … }`, ne
 |---|---|---|
 | `power` | `action` (`shutdown`, `reboot`, `suspend`, `hibernate`, `hybrid_sleep`, `lock`, `logout`, `screen_off`), `mode` (`graceful` or `force`) | A power action, after the countdown. Shut down, restart and log out must be the last step. |
 | `run` | `cmd` (list: program and arguments), `cwd`, `env`, `shell`, `timeout`, `wait` | Runs a program. With `"shell": true`, `cmd` is one command line. With `wait` (default) it waits for it and fails if it returns an error; its output is kept in the history. On cancel or timeout it is asked to stop, then killed 5 s later. |
+| `launch` | `app` (its id, see `powerclock apps`), `args`, `recipe`, `window` (`screen`, `desktop`, `state`: `normal`/`maximized`/`fullscreen`/`minimized`, `above`), `keep_open`, `stop_signal` (`TERM`, `INT`, `HUP`), `wait_desktop` (default `2m`) | Opens an installed application in your desktop session, waiting up to `wait_desktop` for one. It runs as a unit of its own (`app-powerclock-….service`), so it sees your screen even if PowerClock started before you logged in. `window` places it (KDE Plasma); `keep_open` opens it again if it closes (at most 3 times an hour). |
 | `open` | `target` | Opens a file or URL with your default application. |
-| `close_app` | `name`, `timeout` (default `30s`) | Asks your programs with that name to quit, and kills them after `timeout`. |
+| `close_app` | `name` and `signal` (`TERM`, `INT` or `HUP`), or `app`; `timeout` (default `30s`) | Asks your programs with that name to quit, or closes the instances of `app` that PowerClock opened; kills them after `timeout`. |
 | `notify` | `title`, `body` | A desktop notification (skipped on a computer without a desktop). |
 | `wait` | `duration` | Waits. |
 | `wait_until` | `condition` (a predicate), `timeout` (optional) | Waits until the condition holds; fails after `timeout`. |
 | `set_wake` | `when` or `after` | Programs a wake-up (e.g. "wake me up again in 8 h"). |
+
+**Variables**: in `run` (`cmd`, `cwd`, `env`), `launch` (`args`), `open` and `notify`,
+`{date}` (2026-09-25), `{time}` (07-30), `{datetime}` (2026-09-25_07-30), `{weekday}` (thu),
+`{rule}` (its id), `{home}` and `{data}` (PowerClock's data folder) are replaced when the step
+runs, e.g. `ffmpeg -i URL -t 2h radio-{date}.mp3`. Any other braces stay as they are. `run` also
+gets the variables of your desktop session, so a program with a window finds your screen.
 
 If a step fails, the rule stops (`"on_error": "stop"`) or goes on with the next one
 (`"continue"`); the history says which step failed and why. The same rule never runs twice at the
@@ -562,7 +579,8 @@ curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
 | GET · POST | `/rules` | List · create. |
 | GET · PUT · DELETE | `/rules/{id}` | Read · replace · delete. |
 | POST | `/rules/{id}/enable` · `/disable` · `/run` · `/cancel` · `/postpone` | Act on one rule. |
-| POST | `/quick` | A quick action: `action` or `command`, and `in`, `at`, `when_idle`, `when_exits`, `when_cpu_below`, `when_net_below` (+ `for`), `warning`, `mode`, `wake`, `wake_at`, `dry_run`. |
+| GET | `/apps` · `/recipes` | The installed applications (with their recipes) · the recipes. |
+| POST | `/quick` | A quick action: `action`, `command` or `app` (+ `args`), and `in`, `at`, `when_idle`, `when_exits`, `when_cpu_below`, `when_net_below` (+ `for`), `warning`, `mode`, `wake`, `wake_at`, `dry_run`. |
 | POST | `/wake` | `{"at": "07:30"}`: turn the computer on at that time. |
 | GET | `/pending` | What comes next, what is running, what is watched, the wake-up alarm. |
 | GET | `/runs/{id}` | One run. |

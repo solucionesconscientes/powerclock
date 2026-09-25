@@ -1,12 +1,14 @@
 """Small widgets shared by the tabs and the rule editor."""
 
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import psutil
 from PySide6.QtCore import QDateTime
-from PySide6.QtGui import QValidator
+from PySide6.QtGui import QIcon, QValidator
 from PySide6.QtWidgets import QComboBox, QDateTimeEdit, QLineEdit, QWidget
 
+from powerclock import recipes
 from powerclock.i18n import _
 from powerclock.models import format_duration, parse_duration
 
@@ -125,3 +127,64 @@ def running_programs() -> list[str]:
     except psutil.Error:
         return []
     return sorted(names, key=str.lower)
+
+
+# The installed applications (GET /apps), loaded once by whoever talks to the daemon first;
+# AppCombo lists them. Empty until then: the combo still takes a typed id.
+APP_CATALOG: list[dict[str, Any]] = []
+
+
+def app_icon_of(app: dict[str, Any]) -> QIcon:
+    icon = app.get("icon") or ""
+    if icon.startswith("/"):
+        return QIcon(icon)
+    return QIcon.fromTheme(icon)
+
+
+def app_label(app: dict[str, Any]) -> str:
+    """Its name in the interface's language (the menu's own translation)."""
+    names: dict[str, str] = app.get("names") or {}
+    return names.get(recipes.current_language()) or app["name"]
+
+
+class AppCombo(QComboBox):
+    """An installed application, picked from the menu's list (with its icon) or typed as
+    its id ("org.kde.okular")."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setEditable(True)
+        self.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        line = self.lineEdit()
+        assert line is not None
+        line.setPlaceholderText(_("Pick an application"))
+        self.setMinimumContentsLength(24)
+        self.fill()
+
+    def fill(self) -> None:
+        current = self.value()
+        self.blockSignals(True)
+        self.clear()
+        for app in APP_CATALOG:
+            self.addItem(app_icon_of(app), app_label(app), app["id"])
+        self.blockSignals(False)
+        self.set_value(current)
+
+    def value(self) -> str:
+        """The chosen application's id (what was typed, if it is not in the list)."""
+        index = self.currentIndex()
+        if index >= 0 and self.itemText(index) == self.currentText():
+            return str(self.itemData(index))
+        return self.currentText().strip()
+
+    def set_value(self, app: str | None) -> None:
+        index = self.findData(app) if app else -1
+        if index >= 0:
+            self.setCurrentIndex(index)
+        else:
+            self.setCurrentIndex(-1)
+            self.setEditText(app or "")
+
+    def app(self) -> dict[str, Any] | None:
+        chosen = self.value()
+        return next((app for app in APP_CATALOG if app["id"] == chosen), None)

@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from powerclock.models import (
     BatteryLevel,
     CpuBelow,
+    DesktopSession,
     Idle,
     MediaPlaying,
     NetBelow,
@@ -38,7 +39,7 @@ if TYPE_CHECKING:  # powerclock.engine imports this module
 
 log = logging.getLogger(__name__)
 
-Channel = Literal["idle", "cpu", "net", "processes", "power", "ssh", "media", "wifi"]
+Channel = Literal["idle", "cpu", "net", "processes", "power", "ssh", "media", "wifi", "desktop"]
 Watched = SensorPredicate | ProcessExitTrigger
 
 INTERVALS: dict[Channel, float] = {  # seconds between samples
@@ -50,6 +51,7 @@ INTERVALS: dict[Channel, float] = {  # seconds between samples
     "ssh": 10.0,
     "media": 5.0,
     "wifi": 30.0,
+    "desktop": 5.0,
 }
 FRESH = 0.9  # a reading younger than this fraction of its interval is reused
 GAP = 3.0  # samples further apart than this many intervals break the history
@@ -73,6 +75,8 @@ def channel_of(item: Watched) -> Channel:
             return "media"
         case WifiSsid():
             return "wifi"
+        case DesktopSession():
+            return "desktop"
 
 
 def window_of(item: Watched) -> timedelta:
@@ -172,6 +176,9 @@ class SensorHub:
             case WifiSsid(ssid=ssid):
                 current = await self._fresh("wifi")
                 return None if current is None else current == ssid
+            case DesktopSession():
+                up = await self._fresh("desktop")
+                return None if up is None else bool(up)
 
     async def processes(self) -> list[ProcessInfo] | None:
         return await self._fresh("processes")
@@ -200,6 +207,9 @@ class SensorHub:
                 if not isinstance(state, PowerState) or state.on_ac is None:
                     return None, None
                 return ("ac" if state.on_ac else "battery"), None
+            case DesktopSession():
+                up = series.value
+                return (None if up is None else ("up" if up else "down")), None
         return None, None
 
     # ── Internals ─────────────────────────────────────────────────────────────
@@ -230,6 +240,7 @@ class SensorHub:
             "ssh": self._readings.ssh_sessions,
             "media": self._readings.media_playing,
             "wifi": self._readings.wifi,
+            "desktop": self._readings.desktop,
         }[channel]
         try:
             value = await reader()

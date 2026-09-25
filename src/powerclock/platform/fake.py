@@ -3,11 +3,14 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from datetime import UTC, datetime, tzinfo
+from datetime import UTC, datetime, timedelta, tzinfo
 from typing import Any
 
 from powerclock.platform.base import (
+    AppInfo,
     Capability,
+    LaunchRequest,
+    NotSupported,
     PlatformBackend,
     PowerAction,
     PowerEvent,
@@ -43,6 +46,19 @@ class FakePlatform(PlatformBackend):
         self.wakeup: str | None = None  # what "woke the machine" last
         self.wake: datetime | None = None
         self.inhibited = False
+        self.desktop: bool | None = True  # a desktop session is up
+        self.session_vars: dict[str, str] = {}
+        self.installed: list[AppInfo] = [
+            AppInfo(id="org.kde.okular", name="Okular", icon="okular"),
+            AppInfo(id="vlc", name="VLC media player", icon="vlc"),
+            AppInfo(
+                id="one.ablaze.floorp",
+                name="Floorp",
+                icon="one.ablaze.floorp",
+                flatpak="one.ablaze.floorp",
+            ),
+        ]
+        self.opened: dict[str, int] = {}  # app → instances PowerClock opened
         self.calls: list[FakeCall] = []
         self._callbacks: list[PowerEventCallback] = []
 
@@ -97,6 +113,29 @@ class FakePlatform(PlatformBackend):
 
     async def open(self, target: str) -> None:
         self._record("open", target)
+
+    async def apps(self) -> list[AppInfo]:
+        self._record("apps")
+        return list(self.installed)
+
+    async def launch(self, request: LaunchRequest) -> str:
+        self._record("launch", request)
+        app = next((a for a in self.installed if request.app in (a.id, a.flatpak)), None)
+        if app is None:
+            raise NotSupported("launch", f"{request.app!r} is not an installed application")
+        self.opened[app.id] = self.opened.get(app.id, 0) + 1
+        return f"{app.name} (simulated)"
+
+    async def close_app(self, app: str, grace: timedelta) -> int:
+        self._record("close_app", app, grace)
+        return self.opened.pop(app, 0)
+
+    async def desktop_session(self) -> bool | None:
+        self._record("desktop_session")
+        return self.desktop
+
+    async def session_env(self) -> dict[str, str]:
+        return dict(self.session_vars)
 
     async def subscribe_power_events(self, callback: PowerEventCallback) -> None:
         self._record("subscribe_power_events")

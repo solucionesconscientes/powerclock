@@ -97,24 +97,30 @@ Semántica:
 - `startup`: al arrancar el demonio (`daemon_start`) y/o tras reanudar (`resume`), pasado `delay`. Una regla añadida con el demonio ya en marcha espera al siguiente arranque o reanudación.
 - Las ejecuciones de disparadores de estado y `startup` llevan `cause: "trigger"` (las de tiempo, `schedule`; las manuales, `manual`).
 
-**Disparadores** — MVP: `at`, `countdown`, `cron`, `idle`, `process_exit`, `cpu_below`, `net_below`, `battery`, `power_source`, `startup` (arranque del demonio o tras despertar), `manual`. Más adelante: `file`, `wifi_ssid`, `usb`, `temperature`, `webhook`, `telegram`, `calendar`, `sunrise`/`sunset`.
+**Disparadores** — MVP: `at`, `countdown`, `cron`, `idle`, `process_exit`, `cpu_below`, `net_below`, `battery`, `power_source`, `desktop_session` (M10: cuando se abre la sesión del escritorio), `startup` (arranque del demonio o tras despertar), `manual`. Más adelante: `file`, `wifi_ssid`, `usb`, `temperature`, `webhook`, `telegram`, `calendar`, `sunrise`/`sunset`.
 Los disparadores de estado llevan `for` (condición sostenida N tiempo), p. ej. `{"type":"cpu_below","percent":10,"for":"5m"}`.
 
-**Predicados** (para conditions/guards/wait_until): `process_running`, `power_source`, `battery`, `idle`, `cpu_below`, `net_below`, `media_playing`, `ssh_session`, `time_window`, `weekday`, `wifi_ssid`. Árbol lógico: `all` / `any` / `not`.
+**Predicados** (para conditions/guards/wait_until): `process_running`, `power_source`, `battery`, `idle`, `cpu_below`, `net_below`, `media_playing`, `ssh_session`, `time_window`, `weekday`, `wifi_ssid`, `desktop_session` (hay una sesión del escritorio donde abrir apps). Árbol lógico: `all` / `any` / `not`.
 
-**Acciones**: `power` (`shutdown|reboot|suspend|hibernate|hybrid_sleep|lock|logout|screen_off`, `mode: graceful|force`) · `run` (`cmd` lista, `cwd`, `env`, `shell` false por defecto, `timeout`, `wait`) · `open` (archivo/URL) · `close_app` (término limpio y kill tras timeout) · `notify` · `wait` · `wait_until` · `set_wake` (absoluto/relativo) · más adelante `launch` (M10), reproductores, sonido y ajustes del escritorio (M13), `notify` al móvil y webhooks (M16).
+**Acciones**: `power` (`shutdown|reboot|suspend|hibernate|hybrid_sleep|lock|logout|screen_off`, `mode: graceful|force`) · `run` (`cmd` lista, `cwd`, `env`, `shell` false por defecto, `timeout`, `wait`) · `launch` (abrir una aplicación instalada, M10) · `open` (archivo/URL) · `close_app` (por `name` de proceso, con `signal` TERM/INT/HUP, o por `app`: las que abrió PowerClock; kill tras `timeout`) · `notify` · `wait` · `wait_until` · `set_wake` (absoluto/relativo) · más adelante reproductores, sonido y ajustes del escritorio (M13), `notify` al móvil y webhooks (M16).
 
-**Paso `launch` (M10, decidido el 25-09-2026).** Abre una aplicación instalada en la sesión gráfica. Sale de 32 casos de uso: abrir aplicaciones es la pieza que más piden (13), y la mitad de las apps del equipo del usuario son Flatpak. Borrador:
+**Variables** (M10, `engine/variables.py`): `{date}` (2026-09-25), `{time}` (07-30), `{datetime}` (2026-09-25_07-30), `{weekday}` (thu), `{rule}` (id) y las del demonio `{home}` y `{data}` (su carpeta de datos). Se sustituyen al ejecutarse en `run` (`cmd`, `cwd`, `env`), `launch.args`, `open.target` y `notify`; valen la hora de inicio de la ejecución en la zona de la regla y están escritas para caber en nombres de archivo. Solo se tocan esos nombres exactos: `{a,b}` del shell, `%(ext)s` de yt-dlp o un JSON quedan como están. `run` recibe además el entorno de la sesión del escritorio (ver `session_env`), así ve la pantalla aunque el servicio arrancara antes que la sesión.
+
+**Paso `launch` (M10, hecho el 25-09-2026).** Abre una aplicación instalada en la sesión gráfica. Sale de 32 casos de uso: abrir aplicaciones es la pieza que más piden (13), y 20 de las 76 apps del equipo del usuario son Flatpak.
 ```json
-{"type": "launch", "app": "google-chrome", "recipe": "chrome.kiosk",
+{"type": "launch", "app": "google-chrome", "recipe": "chromium.kiosk",
  "args": ["--kiosk", "https://panel.ejemplo.es"],
- "window": {"screen": 2, "state": "fullscreen"}, "keep_open": true}
+ "window": {"screen": 2, "desktop": null, "state": "fullscreen", "above": false},
+ "keep_open": true, "stop_signal": "TERM", "wait_desktop": "2m"}
 ```
+- Espera hasta `wait_desktop` a que haya sesión del escritorio (`desktop_session`); si no llega, el paso falla con «no desktop session after 2m».
+- Linux (`platform/linux/apps.py`, `session.py`, `kwin.py`): el catálogo lee los `.desktop` según la especificación de freedesktop.org ($XDG_DATA_HOME primero, luego $XDG_DATA_DIRS, más las carpetas de Flatpak y Snap por si al servicio le faltan); `Hidden` y `TryExec` sin programa las quitan, `NoDisplay` las oculta de la lista. La orden sale de `Exec`: los argumentos ocupan el sitio de `%f/%F/%u/%U` (o van al final); tras `--` o en la sección `@@u … @@` de `flatpak run --file-forwarding` solo van archivos y direcciones, así que las opciones (`-…`) se colocan justo antes. `Terminal=true` → `NotSupported` (usar `run` con `konsole -e`).
+- Se arranca como servicio transitorio `app-powerclock-<id>-<aleatorio>.service` del gestor de usuario (`StartTransientUnit`): hereda el entorno que el escritorio publicó, `KillSignal` = `stop_signal`, `TimeoutStopSec` 30 s, `CollectMode=inactive-or-failed`; con `keep_open`, `Restart=always` cada 5 s y como mucho 3 veces por hora (`StartLimitBurst`). Si falla en los 2 primeros segundos, el paso falla y dice qué mirar (`journalctl --user -u …`). Sin gestor de usuario se lanza directamente (y `keep_open` → `NotSupported`). `close_app` con `app` para esas unidades (`StopUnit`).
+- `window`: en KDE Plasma, un guion de KWin cargado por D-Bus (`org.kde.kwin.Scripting`) espera la primera ventana nueva que encaje (por PID, `desktopFileName` o clase) y la coloca; se descarga pasado `wait_window` (30 s). Fuera de KWin el paso funciona y lo anota («window placement needs KDE Plasma»).
 - `app` es el identificador de escritorio (`org.kde.okular`, `one.ablaze.floorp`), no una ruta: sobrevive a actualizaciones y el backend construye la orden desde el `.desktop` (con `flatpak run` si toca). El catálogo de apps instaladas lo da el backend (menú, Flatpak, Snap).
-- `recipe`: opcional; las recetas son datos (JSON en el paquete) que rellenan `args` con opciones comprobadas (Chrome quiosco o ventana de app, VLC en bucle, Okular en presentación…). Añadir programas no toca el código.
+- `recipe`: opcional; las recetas son datos (`src/powerclock/recipes.json`, 25 al empezar) que rellenan `args` con opciones comprobadas (Chrome quiosco o ventana de app, VLC en bucle, Okular en presentación…). Añadir programas no toca el código. En sus `args`, `<nombre>` es lo que rellena el usuario (con su etiqueta en `inputs`, en/es) y `{data}`… se sustituye al ejecutar. Los perfiles de navegador de los quioscos van en `{data}/profiles/` con `--password-store=basic`.
 - `window`: esperar a que aparezca y colocarla (pantalla, escritorio virtual, `fullscreen|maximized|minimized`, encima de todo); en KDE con guiones de KWin por D-Bus. `keep_open`: reabrirla si se cierra, con límite por hora. Al cerrar (`close_app`) se podrá elegir la señal (algunos grabadores solo guardan con SIGINT).
-- Se lanza como unidad transitoria `app-powerclock-…` del gestor de servicios del usuario, con **su** entorno (`WAYLAND_DISPLAY`, `DISPLAY`, `XAUTHORITY`… que publica el escritorio al arrancar). `run` pasa a usar el mismo entorno: hoy hereda el del servicio, que no ve la pantalla si arrancó antes que la sesión.
-- Variables en órdenes, rutas y textos: `{date}`, `{time}`, `{datetime}`, `{weekday}`, `{rule}`. `run` sigue existiendo para guiones y órdenes sin ventana.
+- `run` sigue existiendo para guiones y órdenes sin ventana.
 
 **Tarifa de la luz (M17, decidido el 25-09-2026).** Ajuste opcional del demonio, **desactivado por defecto**: solo compensa a quien tiene discriminación horaria (PVPC o contrato de tres precios; con precio fijo 24 h da igual la hora). Valores: sin tarifa · España 2.0TD (punta 10–14 y 18–22, llano 8–10, 14–18 y 22–24, valle 0–8; fines de semana y festivos nacionales, valle) · franjas propias (otros países). Solo con una tarifa elegida aparece la condición `tariff_period` (`valley|flat|peak`) en el editor y en las recetas.
 
@@ -184,6 +190,11 @@ class PlatformBackend(ABC):
     async def wifi_ssid(self) -> str | None: ...
     async def notify(self, title: str, body: str, actions: list[str] | None = None) -> str | None: ...
     async def open(self, target: str) -> None: ...
+    async def apps(self) -> list[AppInfo]: ...                     # M10: las aplicaciones instaladas
+    async def launch(self, request: LaunchRequest) -> str: ...    # M10: abrir una (app, args, window, keep_open, stop_signal)
+    async def close_app(self, app: str, grace: timedelta) -> int: ...
+    async def desktop_session(self) -> bool | None: ...
+    async def session_env(self) -> dict[str, str]: ...              # el entorno de la sesión del escritorio
     async def subscribe_power_events(self, callback) -> None: ...   # before_sleep, after_resume, before_shutdown
     def inhibit_delay(self) -> AbstractAsyncContextManager: ...
     async def capabilities(self) -> list[Capability]: ...
@@ -226,12 +237,14 @@ class PlatformBackend(ABC):
 | POST | `/runs/{id}/postpone` · `/postpone` | posponer `{"delay": "10m"}` (10 min por defecto) · la cuenta atrás actual, si no la próxima acción rápida (se retrasa su disparador) |
 | GET | `/history` | historial paginado |
 | GET | `/capabilities` | informe doctor |
+| GET | `/apps` | aplicaciones instaladas (id, nombre y traducciones, icono, Flatpak, categorías) con los ids de sus recetas |
+| GET | `/recipes` | las recetas (`recipes.json`) |
 | GET | `/schema/rule` | JSON Schema (GUI y futuro asistente IA) |
 | WS | `/events` | `warning_started`, `tick`, `cancelled`, `postponed`, `run_started`, `run_finished`, `rule_changed`, `wake_changed` |
 
 Solo escucha en 127.0.0.1. El acceso remoto (fase 5) será opt-in. Sin `/docs` ni `/openapi.json`. El WebSocket acepta el token en la cabecera o en `?token=` (para clientes que no pueden poner cabeceras). Todas las rutas son `async` para ejecutarse en el bucle del motor.
 
-`/quick` recibe `{"action" | "command", "in" | "at" | "when_idle" | "when_exits" | "when_cpu_below" | "when_net_below", "for", "mode", "warning", "dry_run", "wake", "wake_at"}`; `at` admite `"23:30"` (su próxima aparición), `"2026-09-24 07:30"` (hora local del demonio) o ISO con zona. `when_exits` es un nombre de proceso o un PID (solo dígitos); `for` solo vale con CPU/red (por defecto `5m`). Crea una regla `one_shot` con id `quick-…` que se borra sola al terminar (o al cancelarse); sin momento se ejecuta ya. `/cancel` elige la cuenta atrás en curso, luego la acción rápida en marcha, luego la próxima con hora y, si no hay, la última que espera una condición. Posponer una que espera una condición → 409 (no tiene hora que retrasar).
+`/quick` recibe `{"action" | "command" | "app" (con `args`), "in" | "at" | "when_idle" | "when_exits" | "when_cpu_below" | "when_net_below", "for", "mode", "warning", "dry_run", "wake", "wake_at"}`; `at` admite `"23:30"` (su próxima aparición), `"2026-09-24 07:30"` (hora local del demonio) o ISO con zona. `when_exits` es un nombre de proceso o un PID (solo dígitos); `for` solo vale con CPU/red (por defecto `5m`). Crea una regla `one_shot` con id `quick-…` que se borra sola al terminar (o al cancelarse); sin momento se ejecuta ya. `/cancel` elige la cuenta atrás en curso, luego la acción rápida en marcha, luego la próxima con hora y, si no hay, la última que espera una condición. Posponer una que espera una condición → 409 (no tiene hora que retrasar).
 
 ## 9. CLI
 ```
@@ -244,6 +257,9 @@ powerclock shutdown --when-net-below 50 --for 5m        # descarga terminada
 powerclock run --when-exits ffmpeg -- notify-send "Render terminado"
 powerclock wake --at "2026-09-24 07:30"
 powerclock run --at 03:00 --wake -- /home/pc/bin/backup.sh
+powerclock launch org.kde.okular --at 09:00 -- --presentation ~/informe.pdf
+powerclock launch vlc --recipe vlc.loop --in 1h -- ~/Música/Ambiente
+powerclock apps [texto] | powerclock recipes [APP]
 powerclock status | powerclock cancel | powerclock postpone 10m
 powerclock rules list|show|add <f.json>|edit <id>|enable|disable|rm|export|import
 powerclock doctor [--json] [--test-wake 120]
@@ -340,12 +356,13 @@ KSHUTDOWN-EVOLUTION/
 │   ├── doctor.py        # powerclock doctor: informe del backend + comprobaciones genéricas
 │   ├── i18n.py          # textos traducibles (gettext)
 │   ├── labels.py        # nombres traducidos (tipos, campos, estados) y motivos del motor en palabras
+│   ├── recipes.py       # recetas por aplicación (recipes.json)
 │   ├── locale/          # es/LC_MESSAGES/powerclock.po + powerclock.mo (scripts/i18n.py)
 │   ├── connection.py    # dónde está el API del demonio, su token y sus errores (CLI y GUI)
-│   ├── engine/          # core.py (Engine) clock.py scheduler.py watcher.py evaluator.py executor.py runs.py processes.py wake.py
+│   ├── engine/          # core.py (Engine) clock.py scheduler.py watcher.py evaluator.py executor.py runs.py processes.py wake.py variables.py
 │   ├── sensors/         # base.py (SensorReader, Readings) system.py (psutil + SystemReadings) fake.py registry.py (SensorHub)
 │   ├── platform/        # __init__.py (get_backend) base.py fake.py dryrun.py
-│   │   ├── linux/       # backend.py logind.py idle.py wayland.py desktop.py notify.py network.py dbus.py commands.py host.py capabilities.py service.py (systemd) helper.py autostart.py (.desktop)
+│   │   ├── linux/       # backend.py logind.py idle.py wayland.py desktop.py notify.py network.py dbus.py commands.py host.py capabilities.py service.py (systemd) helper.py autostart.py (.desktop) apps.py (catálogo de .desktop y su orden) session.py (gestor de usuario de systemd: entorno, sesión, unidades) kwin.py (colocar ventanas)
 │   │   ├── windows/     # fase 3
 │   │   └── macos/       # fase 4
 │   ├── helper/          # powerclock_helper_linux.py org.powerclock.helper.policy 50-powerclock-unattended.rules.in (plantilla por usuario)

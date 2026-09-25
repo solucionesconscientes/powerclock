@@ -5,11 +5,12 @@ step. Values go in and out as JSON (what `model_dump(mode="json")` gives)."""
 import json
 import shlex
 import zoneinfo
+from collections.abc import Callable
 from datetime import datetime, time
 from typing import Any, ClassVar
 
 from pydantic import BaseModel
-from PySide6.QtCore import QTime, Signal
+from PySide6.QtCore import Qt, QTime, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -29,8 +30,15 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from powerclock import recipes
 from powerclock.gui.icons import themed
-from powerclock.gui.widgets import DurationEdit, LocalDateTimeEdit, ProcessCombo, next_quarter
+from powerclock.gui.widgets import (
+    AppCombo,
+    DurationEdit,
+    LocalDateTimeEdit,
+    ProcessCombo,
+    next_quarter,
+)
 from powerclock.i18n import _
 from powerclock.labels import field_label, kind_label, value_label
 from powerclock.models import (
@@ -41,7 +49,9 @@ from powerclock.models import (
     CountdownTrigger,
     CpuBelow,
     CronTrigger,
+    DesktopSession,
     Idle,
+    LaunchStep,
     ManualTrigger,
     MediaPlaying,
     NetBelow,
@@ -73,6 +83,7 @@ TRIGGERS: list[type[BaseModel]] = [
     NetBelow,
     BatteryLevel,
     PowerSource,
+    DesktopSession,
     StartupTrigger,
     ManualTrigger,
 ]
@@ -88,10 +99,12 @@ PREDICATES: list[type[BaseModel]] = [
     TimeWindow,
     Weekday,
     WifiSsid,
+    DesktopSession,
 ]
 ACTIONS: list[type[BaseModel]] = [
     PowerStep,
     RunStep,
+    LaunchStep,
     NotifyStep,
     OpenStep,
     CloseAppStep,
@@ -358,6 +371,139 @@ class EnvField(FieldEditor):
         self.edit.setText(" ".join(shlex.quote(f"{k}={v}") for k, v in (value or {}).items()))
 
 
+class AppField(FieldEditor):
+    """An installed application (its desktop entry id); optional: empty means null."""
+
+    def __init__(self, name: str, *, optional: bool = False) -> None:
+        self.combo = AppCombo()
+        super().__init__(name, self.combo)
+        self.optional = optional
+
+    def get(self) -> Any:
+        value = self.combo.value()
+        return None if self.optional and not value else value
+
+    def set(self, value: Any) -> None:
+        self.combo.set_value(None if value is None else str(value))
+
+
+class RecipeField(FieldEditor):
+    """The recipe that filled the arguments. Picking one fills them in (`on_pick`); what
+    the user must still write (`<url>`…) is listed below it."""
+
+    def __init__(self, name: str) -> None:
+        self.combo = QComboBox()
+        self.hint = QLabel()
+        self.hint.setWordWrap(True)
+        self.hint.hide()
+        box = QWidget()
+        layout = QVBoxLayout(box)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.combo)
+        layout.addWidget(self.hint)
+        super().__init__(name, box)
+        self.on_pick: Callable[[recipes.Recipe], None] | None = None
+        self.offer(None, None)
+        self.combo.activated.connect(self._picked)  # the user's choice, not set()
+
+    def offer(self, app: str | None, flatpak: str | None) -> None:
+        """List the recipes made for `app`, keeping the current one."""
+        current = self.get()
+        self.combo.blockSignals(True)
+        self.combo.clear()
+        self.combo.addItem(_("(none)"), None)
+        for recipe in recipes.for_app(app or "", flatpak):
+            self.combo.addItem(recipe.title(), recipe.id)
+            note = recipe.text(recipe.note)
+            if note:
+                self.combo.setItemData(self.combo.count() - 1, note, Qt.ItemDataRole.ToolTipRole)
+        self.combo.blockSignals(False)
+        self.set(current)
+
+    def get(self) -> Any:
+        return self.combo.currentData()
+
+    def set(self, value: Any) -> None:
+        index = self.combo.findData(value) if value else 0
+        if index < 0:  # a recipe of another app, or one that no longer exists: keep it
+            self.combo.addItem(str(value), value)
+            index = self.combo.count() - 1
+        self.combo.setCurrentIndex(index)
+        self._show_hint(recipes.get(value) if value else None)
+
+    def _picked(self, index: int) -> None:
+        recipe = recipes.get(self.combo.itemData(index) or "")
+        self._show_hint(recipe)
+        if recipe is not None and self.on_pick is not None:
+            self.on_pick(recipe)
+
+    def _show_hint(self, recipe: recipes.Recipe | None) -> None:
+        lines = []
+        if recipe is not None:
+            note = recipe.text(recipe.note)
+            if note:
+                lines.append(note)
+            for key, label in recipe.inputs.items():
+                lines.append(
+                    _("Replace <{key}> with: {what}").format(key=key, what=recipe.text(label))
+                )
+        self.hint.setText("\n".join(lines))
+        self.hint.setVisible(bool(lines))
+
+
+class WindowField(FieldEditor):
+    """Where the window goes: off (null), or a screen, a virtual desktop, a state and
+    whether it stays on top."""
+
+    STATES = ("normal", "maximized", "fullscreen", "minimized")
+
+    def __init__(self, name: str) -> None:
+        self.box = QCheckBox(_("Place it:"))
+        self.screen = QSpinBox()
+        self.screen.setRange(0, 16)
+        self.screen.setSpecialValueText(_("any screen"))
+        self.screen.setPrefix(_("screen") + " ")
+        self.desktop = QSpinBox()
+        self.desktop.setRange(0, 20)
+        self.desktop.setSpecialValueText(_("current desktop"))
+        self.desktop.setPrefix(_("desktop") + " ")
+        self.state = QComboBox()
+        for state in self.STATES:
+            self.state.addItem(value_label("state", state), state)
+        self.above = QCheckBox(_("on top"))
+        row = QWidget()
+        layout = QHBoxLayout(row)
+        layout.setContentsMargins(0, 0, 0, 0)
+        for widget in (self.box, self.screen, self.desktop, self.state, self.above):
+            layout.addWidget(widget)
+        layout.addStretch(1)
+        super().__init__(name, row)
+        self.box.toggled.connect(self._enable)
+        self._enable(False)
+
+    def _enable(self, on: bool) -> None:
+        for widget in (self.screen, self.desktop, self.state, self.above):
+            widget.setEnabled(on)
+
+    def get(self) -> Any:
+        if not self.box.isChecked():
+            return None
+        return {
+            "screen": self.screen.value() or None,
+            "desktop": self.desktop.value() or None,
+            "state": self.state.currentData(),
+            "above": self.above.isChecked(),
+        }
+
+    def set(self, value: Any) -> None:
+        data = value or {}
+        self.box.setChecked(value is not None)
+        self.screen.setValue(int(data.get("screen") or 0))
+        self.desktop.setValue(int(data.get("desktop") or 0))
+        self.state.setCurrentIndex(max(0, self.state.findData(data.get("state", "normal"))))
+        self.above.setChecked(bool(data.get("above")))
+
+
 class OptionalField(FieldEditor):
     """A checkbox that enables a field; unchecked means null (for numbers and dates)."""
 
@@ -424,6 +570,10 @@ def editor_for(
         return PredicateField(name)
     if name == "timezone":
         return TimezoneField(name)
+    if name == "recipe":
+        return RecipeField(name)
+    if name == "window":
+        return WindowField(name)
     optional = False
     if "anyOf" in schema:
         options = [option for option in schema["anyOf"] if option.get("type") != "null"]
@@ -458,6 +608,8 @@ def editor_for(
     if kind == "string":
         if program:
             return ProgramField(name, optional=optional)
+        if name == "app":
+            return AppField(name, optional=optional)
         return TextField(name, optional=optional)
     return JsonField(name)
 
@@ -510,6 +662,10 @@ class ModelForm(QWidget):
             shell = self.fields["shell"]
             assert isinstance(shell, BoolField)
             shell.box.toggled.connect(self._shell_toggled)
+        app, recipe = self.fields.get("app"), self.fields.get("recipe")
+        if isinstance(app, AppField) and isinstance(recipe, RecipeField):
+            app.combo.currentTextChanged.connect(lambda _text: self._offer_recipes())
+            recipe.on_pick = self._apply_recipe
         self.set({})
 
     def get(self) -> dict[str, Any]:
@@ -538,6 +694,22 @@ class ModelForm(QWidget):
         if info is not None and info.default_factory is not None:
             return info.default_factory()  # type: ignore[call-arg]
         return None
+
+    def _offer_recipes(self) -> None:
+        app, recipe = self.fields["app"], self.fields["recipe"]
+        assert isinstance(app, AppField)
+        assert isinstance(recipe, RecipeField)
+        chosen = app.combo.app()
+        recipe.offer(app.get(), chosen.get("flatpak") if chosen else None)
+
+    def _apply_recipe(self, recipe: recipes.Recipe) -> None:
+        """A recipe was picked: its arguments (with `<inputs>` to replace), and whether the
+        app is kept open and where its window goes."""
+        self.fields["args"].set(recipe.fill({}))
+        if "keep_open" in self.fields:
+            self.fields["keep_open"].set(recipe.keep_open)
+        if recipe.window is not None and "window" in self.fields:
+            self.fields["window"].set(recipe.window.model_dump())
 
     def _shell_toggled(self, on: bool) -> None:
         if self._loading:

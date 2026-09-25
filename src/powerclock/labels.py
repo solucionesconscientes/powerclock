@@ -28,6 +28,7 @@ def kind_label(kind: str) -> str:
         "net_below": _("Network quiet (below)"),
         "battery": _("Battery level"),
         "power_source": _("Plugged in or on battery"),
+        "desktop_session": _("The desktop session is up"),
         # predicates
         "process_running": _("A program is running"),
         "media_playing": _("Something is playing"),
@@ -39,6 +40,7 @@ def kind_label(kind: str) -> str:
         # actions
         "power": _("Shut down, restart, suspend…"),
         "run": _("Run a program"),
+        "launch": _("Open an application"),
         "open": _("Open a file or web page"),
         "close_app": _("Close a program"),
         "notify": _("Show a notification"),
@@ -91,6 +93,14 @@ def field_label(name: str) -> str:
         "on_error": _("If a step fails"),
         "dry_run": _("Test mode (nothing really turns off)"),
         "timezone": _("Time zone"),
+        "app": _("Application"),
+        "args": _("Arguments"),
+        "recipe": _("Recipe"),
+        "window": _("Window"),
+        "keep_open": _("Keep it open (open it again if it closes)"),
+        "stop_signal": _("How to close it"),
+        "signal": _("How to close it"),
+        "wait_desktop": _("Wait for the desktop up to"),
         "retry": _("Check again every"),
         "max_wait": _("Give up after"),
     }
@@ -182,6 +192,7 @@ _REASONS: dict[str, Callable[[], str]] = {
         "missed: the computer was off or asleep, or PowerClock was not running"
     ),
     "not running": lambda: _("it was not running"),
+    "waiting for the desktop session": lambda: _("waiting for the desktop session"),
 }
 
 _PATTERNS: list[tuple[re.Pattern[str], Callable[[re.Match[str]], str]]] = [
@@ -230,6 +241,10 @@ _PATTERNS: list[tuple[re.Pattern[str], Callable[[re.Match[str]], str]]] = [
         ),
     ),
     (
+        re.compile(r"no desktop session after (\S+)"),
+        lambda m: _("no desktop session after {time}").format(time=m[1]),
+    ),
+    (
         re.compile(r"internal error: (.*)", re.DOTALL),
         lambda m: _("internal error: {error}").format(error=m[1]),
     ),
@@ -275,6 +290,16 @@ def value_label(field: str, value: str) -> str:
         ("on_error", "continue"): _("Continue with the next step"),
         ("mode", "graceful"): _("Let applications ask to save"),
         ("mode", "force"): _("Force"),
+        ("stop_signal", "TERM"): _("Ask it to quit (TERM)"),
+        ("stop_signal", "INT"): _("Like Ctrl+C (INT: recorders save the video)"),
+        ("stop_signal", "HUP"): _("Hang up (HUP)"),
+        ("signal", "TERM"): _("Ask it to quit (TERM)"),
+        ("signal", "INT"): _("Like Ctrl+C (INT: recorders save the video)"),
+        ("signal", "HUP"): _("Hang up (HUP)"),
+        ("state", "normal"): _("Normal"),
+        ("state", "maximized"): _("Maximized"),
+        ("state", "fullscreen"): _("Full screen"),
+        ("state", "minimized"): _("Minimized"),
         ("days", "mon"): _("Mon"),
         ("days", "tue"): _("Tue"),
         ("days", "wed"): _("Wed"),
@@ -333,6 +358,9 @@ def capability_label(capability_id: str) -> str:
         "wake.authorized": _("Turn on without asking for a password"),
         "wake.unattended": _("Turn on and off with the session closed"),
         "wake.alarm": _("Next wake-up alarm"),
+        "apps": _("Installed applications"),
+        "launch": _("Open applications"),
+        "windows": _("Place windows"),
         "hardware": _("Computer"),
         "linger": _("Work with the session closed"),
         "timezone": _("Time zone"),

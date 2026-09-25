@@ -226,3 +226,28 @@ async def test_countdown_dialog_when_the_gui_starts_late(
     [dialog] = countdowns.dialogs.values()
     assert "will hibernate in" in dialog.headline.text()  # the action comes from the rule
     assert dialog.rule.text().startswith("Hibernate · ")
+
+
+async def test_quick_opens_an_application(link: DaemonLink) -> None:
+    tab = QuickTab(link)
+    await pump()  # the installed apps come from the daemon
+    assert tab.app.count() == 3
+    tab.select("app", "at")
+    assert tab.ok.text() == "Schedule opening"
+    assert tab.app.isVisible() == tab.args.isVisible()
+    tab.app.set_value("vlc")
+    index = tab.recipe.findData("vlc.loop")
+    assert index > 0
+    tab.recipe.setCurrentIndex(index)
+    tab._use_recipe(index)
+    assert tab.args.text() == "--fullscreen --loop --random '<file>'"
+    assert "Replace <file> with: Playlist, folder or file" in tab.recipe_hint.text()
+    tab.args.setText("--fullscreen ~/list.m3u")
+    payload = tab.payload()
+    assert payload["app"] == "vlc"
+    assert payload["args"] == ["--fullscreen", "~/list.m3u"]
+    tab.select("app", "now")
+    assert tab.ok.text() == "Open now"
+    tab.app.set_value("")
+    with pytest.raises(ValueError, match="Pick the application"):
+        tab.payload()

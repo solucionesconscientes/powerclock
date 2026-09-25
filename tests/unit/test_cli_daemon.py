@@ -210,3 +210,28 @@ def test_reasons_are_readable_and_keep_brackets(daemon: Daemon) -> None:
         time.sleep(0.01)
     history = powerclock("history")
     assert "step 1 (Run a program) failed: [Errno 2]" in history
+
+
+def test_apps_recipes_and_launch(daemon: Daemon) -> None:
+    listed = powerclock("apps")
+    assert "Okular" in listed
+    assert "org.kde.okular" in listed
+    assert "(Flatpak)" in listed
+    assert "vlc.loop" in powerclock("apps", "vlc")
+    assert "Okular" not in powerclock("apps", "vlc")
+    assert "--presentation" in powerclock("recipes", "org.kde.okular")
+    output = powerclock("launch", "org.kde.okular", "--in", "10m", "--", "--page=3", "a.pdf")
+    assert "Open Okular in 10m" in output
+    powerclock("launch", "vlc", "--recipe", "vlc.loop", "--at", "23:00", "--", "~/Música")
+    launches = [
+        step
+        for rule in daemon.engine.rules.values()
+        for step in rule.actions
+        if step.type == "launch"
+    ]
+    assert [step.args for step in launches] == [
+        ["--page=3", "a.pdf"],
+        ["--fullscreen", "--loop", "--random", "~/Música"],
+    ]
+    assert "needs: <file>" in powerclock_fails("launch", "vlc", "--recipe", "vlc.loop")
+    assert "no recipe 'nope'" in powerclock_fails("launch", "vlc", "--recipe", "nope")

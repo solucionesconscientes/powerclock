@@ -5,11 +5,12 @@ import contextlib
 import logging
 import os
 from collections import deque
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, tzinfo
 from typing import Any
 
+from powerclock.engine import variables
 from powerclock.engine.clock import Clock
 from powerclock.engine.evaluator import Evaluator, describe
 from powerclock.engine.processes import ProcessManager, PsutilProcesses
@@ -27,6 +28,7 @@ from powerclock.i18n import _, can_cancel_text, countdown_sentence
 from powerclock.models import (
     Action,
     CloseAppStep,
+    LaunchStep,
     NotifyStep,
     OpenStep,
     PowerStep,
@@ -37,7 +39,7 @@ from powerclock.models import (
     WaitUntilStep,
     format_duration,
 )
-from powerclock.platform.base import NotSupported, PlatformBackend
+from powerclock.platform.base import LaunchRequest, NotSupported, PlatformBackend
 
 log = logging.getLogger(__name__)
 
@@ -46,6 +48,7 @@ POLL = 5.0  # seconds between wait_until checks
 POSTPONE = timedelta(minutes=10)  # the countdown notification's "postpone" button
 OUTPUT_TAIL = 4000  # characters of command output kept in the run record
 TERMINATE_GRACE = 5.0  # seconds between asking a command to stop and killing it
+DESKTOP_POLL = 2.0  # seconds between checks while a launch waits for the desktop session
 
 RequestWake = Callable[[datetime], Awaitable[None]]
 Outcome = tuple[StepStatus, str | None]
@@ -76,6 +79,7 @@ class Executor:
         emit: EventSink | None = None,
         processes: ProcessManager | None = None,
         request_wake: RequestWake | None = None,
+        variables: Mapping[str, str] | None = None,
         keep: int = 100,
     ) -> None:
         self._backend = backend
@@ -85,6 +89,7 @@ class Executor:
         self._sink = emit
         self._processes = processes or PsutilProcesses()
         self._request_wake = request_wake  # provided by the WakePlanner (M5)
+        self._variables = dict(variables or {})  # {home}, {data}… for every run
         self._power_lock = asyncio.Lock()  # one power action (and countdown) at a time
         self._active: dict[str, _Active] = {}
         self._background: set[asyncio.Task[Any]] = set()
@@ -232,11 +237,12 @@ class Executor:
     async def _run_actions(self, rule: Rule, tz: tzinfo, run: Run) -> str | None:
         """Run the steps in order; return the first failure (None if all went well)."""
         failure: str | None = None
+        values = variables.context(self._clock.now().astimezone(tz), rule.id, self._variables)
         for index, step in enumerate(rule.actions):
             result = StepResult(index=index, type=step.type, started_at=self._clock.now())
             run.steps.append(result)
             try:
-                result.status, result.detail = await self._do(step, rule, tz, run)
+                result.status, result.detail = await self._do(step, rule, tz, run, values)
             except asyncio.CancelledError:
                 result.status = "cancelled"
                 raise
@@ -252,20 +258,23 @@ class Executor:
                 self._set_state(run, "running", None)
         return failure
 
-    async def _do(self, step: Action, rule: Rule, tz: tzinfo, run: Run) -> Outcome:
+    async def _do(
+        self, step: Action, rule: Rule, tz: tzinfo, run: Run, values: Mapping[str, str]
+    ) -> Outcome:
         match step:
             case PowerStep():
                 return await self._power(step, rule, run)
             case RunStep():
-                return await self._command(step)
+                return await self._command(step, values)
+            case LaunchStep():
+                return await self._launch(step, run, values)
             case OpenStep():
-                await self._backend.open(step.target)
+                await self._backend.open(variables.expand(step.target, values))
                 return "ok", None
             case CloseAppStep():
-                count = await self._processes.close(step.name, step.timeout)
-                return "ok", f"closed {count} process(es)" if count else "not running"
+                return await self._close(step)
             case NotifyStep():
-                return await self._notify(step)
+                return await self._notify(step, values)
             case WaitStep():
                 self._set_state(run, "waiting", None)
                 await self._clock.sleep(step.duration.total_seconds())
@@ -326,9 +335,10 @@ class Executor:
 
     # ── Other actions ─────────────────────────────────────────────────────────
 
-    async def _notify(self, step: NotifyStep) -> Outcome:
+    async def _notify(self, step: NotifyStep, values: Mapping[str, str]) -> Outcome:
+        title, body = variables.expand(step.title, values), variables.expand(step.body, values)
         try:
-            await self._backend.notify(step.title, step.body)
+            await self._backend.notify(title, body)
         except NotSupported as exc:  # best effort: a server may have no desktop
             return "skipped", str(exc)
         return "ok", None
@@ -353,20 +363,68 @@ class Executor:
         await self._request_wake(when.astimezone(UTC))
         return "ok", when.astimezone(UTC).isoformat()
 
-    async def _command(self, step: RunStep) -> Outcome:
-        env = {**os.environ, **step.env} if step.env else None
+    async def _launch(self, step: LaunchStep, run: Run, values: Mapping[str, str]) -> Outcome:
+        await self._wait_for_desktop(step, run)
+        request = LaunchRequest(
+            app=step.app,
+            args=tuple(variables.expand_all(step.args, values)),
+            window=step.window,
+            keep_open=step.keep_open,
+            stop_signal=step.stop_signal,
+        )
+        return "ok", await self._backend.launch(request)
+
+    async def _wait_for_desktop(self, step: LaunchStep, run: Run) -> None:
+        """Wait (up to `wait_desktop`) for a desktop session to open the app in; unknown
+        (a backend that cannot tell) goes ahead and lets the launch explain."""
+        deadline = self._clock.now() + step.wait_desktop
+        while True:
+            try:
+                ready = await self._backend.desktop_session()
+            except NotSupported:
+                return
+            if ready is not False:
+                return
+            if self._clock.now() >= deadline:
+                raise StepFailed(f"no desktop session after {format_duration(step.wait_desktop)}")
+            self._set_state(run, "waiting", "waiting for the desktop session")
+            await self._clock.sleep(DESKTOP_POLL)
+
+    async def _close(self, step: CloseAppStep) -> Outcome:
+        if step.app is not None:
+            count = await self._backend.close_app(step.app, step.timeout)
+        else:
+            assert step.name is not None
+            count = await self._processes.close(step.name, step.timeout, step.signal)
+        return "ok", f"closed {count} process(es)" if count else "not running"
+
+    async def _session_env(self) -> dict[str, str]:
+        """The desktop session's variables: a command started by a service that began
+        before the session would otherwise not reach its screen."""
+        try:
+            return await self._backend.session_env()
+        except NotSupported:
+            return {}
+        except Exception:
+            log.exception("could not read the session environment")
+            return {}
+
+    async def _command(self, step: RunStep, values: Mapping[str, str]) -> Outcome:
+        extra = {**await self._session_env(), **step.env}
+        env = {**os.environ, **_expand_env(extra, values)} if extra else None
+        cmd = variables.expand_all(step.cmd, values)
         output = asyncio.subprocess.PIPE if step.wait else asyncio.subprocess.DEVNULL
         options: dict[str, Any] = {
-            "cwd": step.cwd,
+            "cwd": variables.expand(step.cwd, values) if step.cwd else None,
             "env": env,
             "stdin": asyncio.subprocess.DEVNULL,
             "stdout": output,
             "stderr": asyncio.subprocess.STDOUT,
         }
         if step.shell:
-            process = await asyncio.create_subprocess_shell(step.cmd[0], **options)
+            process = await asyncio.create_subprocess_shell(cmd[0], **options)
         else:
-            process = await asyncio.create_subprocess_exec(*step.cmd, **options)
+            process = await asyncio.create_subprocess_exec(*cmd, **options)
         if not step.wait:
             self._reap(process)
             return "ok", f"started in the background (pid {process.pid})"
@@ -446,6 +504,10 @@ class Executor:
             self._sink(event)
         except Exception:
             log.exception("event listener failed")
+
+
+def _expand_env(env: Mapping[str, str], values: Mapping[str, str]) -> dict[str, str]:
+    return {key: variables.expand(value, values) for key, value in env.items()}
 
 
 async def _read_tail(stream: asyncio.StreamReader | None) -> str:

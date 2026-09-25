@@ -33,6 +33,14 @@ The first release, for Linux.
   Python, and opens an installation window that asks for the password once. A welcome on first
   use; updates and uninstalling from the Diagnostics tab or with `powerclock update` /
   `powerclock uninstall`; `powerclock setup` for technical users.
+- **Opening applications** (`launch` step, Quick tab, `powerclock launch`): pick an installed
+  app from the menu's list (Flatpak and Snap too), fill its arguments from a recipe (25 to
+  start: a web page as a kiosk or an app window, a playlist on a loop, a PDF as a presentation,
+  OBS recording…), place its window (KDE Plasma), keep it open if it closes, close it cleanly.
+  Apps start as units of systemd's user manager, so they reach the desktop even when PowerClock
+  started before the session; `run` now gets the session's variables too. `{date}`, `{time}`…
+  in commands, file names and notifications; a `desktop_session` trigger and condition;
+  `powerclock apps` and `powerclock recipes`.
 - **Plain words** in the interface (English and Spanish): the Quick button says what it will do
   (*Schedule shutdown*, *Shut down now*), the warning says what is about to happen (*The computer
   will shut down in 42 s*), the rule editor asks *When*, *Only if…*, *Wait while…* and *What it

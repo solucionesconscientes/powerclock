@@ -151,6 +151,14 @@ def create_app(daemon: "Daemon") -> FastAPI:
     async def get_capabilities() -> list[dict[str, Any]]:
         return [row.model_dump() for row in await capabilities(daemon.backend)]
 
+    @api.get("/apps")
+    async def installed_apps() -> list[dict[str, Any]]:
+        return await daemon.apps()
+
+    @api.get("/recipes")
+    async def list_recipes() -> list[dict[str, Any]]:
+        return daemon.list_recipes()
+
     @api.get("/schema/rule")
     async def schema() -> dict[str, Any]:
         return rule_json_schema()

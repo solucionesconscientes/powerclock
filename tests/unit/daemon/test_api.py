@@ -396,3 +396,36 @@ async def test_wake_errors_are_visible(http: httpx.AsyncClient, fake: FakePlatfo
     wake = (await http.get("/pending")).json()["wake"]
     assert wake["at"] is None
     assert "powerclock helper install" in wake["error"]
+
+
+# ── Applications ──────────────────────────────────────────────────────────────
+
+
+async def test_apps_and_recipes(http: httpx.AsyncClient) -> None:
+    found = (await http.get("/apps")).json()
+    by_id = {app["id"]: app for app in found}
+    assert by_id["vlc"]["recipes"] == ["vlc.loop", "vlc.once", "vlc.stream"]
+    assert by_id["one.ablaze.floorp"]["flatpak"] == "one.ablaze.floorp"
+    listed = (await http.get("/recipes")).json()
+    assert {"id", "apps", "label", "args", "inputs"} <= set(listed[0])
+
+
+async def test_quick_opens_an_app(http: httpx.AsyncClient, fake: FakePlatform) -> None:
+    await http.get("/apps")  # the daemon learns the names
+    reply = await http.post("/quick", json={"app": "vlc", "args": ["radio.m3u"], "in": "5m"})
+    rule = reply.json()
+    assert rule["name"] == "Open VLC media player in 5m"
+    assert rule["actions"] == [
+        {
+            "type": "launch",
+            "app": "vlc",
+            "args": ["radio.m3u"],
+            "recipe": None,
+            "window": None,
+            "keep_open": False,
+            "stop_signal": "TERM",
+            "wait_desktop": "2m",
+        }
+    ]
+    bad = await http.post("/quick", json={"action": "shutdown", "args": ["x"]})
+    assert bad.status_code == 422

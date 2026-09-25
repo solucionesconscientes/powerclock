@@ -142,6 +142,9 @@ async def test_capabilities_of_the_kde_laptop(linux: LinuxPlatform, tmp_path: Pa
         "media",
         "notify",
         "wifi",
+        "apps",
+        "launch",
+        "windows",
         "power_events",
         "inhibit",
         "wake.rtc",
@@ -156,6 +159,8 @@ async def test_capabilities_of_the_kde_laptop(linux: LinuxPlatform, tmp_path: Pa
         "power.hybrid_sleep",
         "wake.helper",
         "linger",
+        "apps",  # no desktop entries in the test's root
+        "windows",  # no KWin on the fake bus
     }
     assert rows["session"].detail == "KDE · wayland"
     assert rows["power.lock"].detail == "logind session 3"

@@ -27,7 +27,7 @@ from pydantic import (
 )
 from pydantic.json_schema import GenerateJsonSchema
 
-from powerclock.platform.base import PowerAction, PowerMode
+from powerclock.platform.base import PowerAction, PowerMode, StopSignal, WindowPlacement
 
 # ── Durations ─────────────────────────────────────────────────────────────────
 
@@ -190,6 +190,13 @@ class PowerSource(_Tagged):
     for_: Duration = Field(default=timedelta(0), alias="for")
 
 
+class DesktopSession(_Tagged):
+    """A desktop session is up, so applications can be opened in it (as a trigger: when
+    it starts, e.g. after logging in)."""
+
+    type: Literal["desktop_session"] = "desktop_session"
+
+
 # ── Triggers ──────────────────────────────────────────────────────────────────
 
 
@@ -273,6 +280,7 @@ Trigger = Annotated[
     | NetBelow
     | BatteryLevel
     | PowerSource
+    | DesktopSession
     | StartupTrigger
     | ManualTrigger,
     Field(discriminator="type"),
@@ -384,6 +392,7 @@ Predicate = Annotated[
     | Annotated[TimeWindow, Tag("time_window")]
     | Annotated[Weekday, Tag("weekday")]
     | Annotated[WifiSsid, Tag("wifi_ssid")]
+    | Annotated[DesktopSession, Tag("desktop_session")]
     | Annotated[AllOf, Tag("all")]
     | Annotated[AnyOf, Tag("any")]
     | Annotated[NotOf, Tag("not")],
@@ -423,7 +432,10 @@ TERMINAL_POWER_ACTIONS = frozenset({PowerAction.SHUTDOWN, PowerAction.REBOOT, Po
 
 
 class RunStep(_Tagged):
-    """Run a program. `cmd` is an argument list; with `shell: true`, a single command line."""
+    """Run a program. `cmd` is an argument list; with `shell: true`, a single command line.
+
+    `{date}`, `{time}`, `{datetime}`, `{weekday}` and `{rule}` in `cmd`, `cwd` and `env` are
+    replaced when it runs (see engine/variables.py)."""
 
     type: Literal["run"] = "run"
     cmd: list[str] = Field(min_length=1)
@@ -451,12 +463,44 @@ class OpenStep(_Tagged):
     target: str = Field(min_length=1)
 
 
+class LaunchStep(_Tagged):
+    """Open an installed application in the desktop session.
+
+    `app` is its desktop entry id ("org.kde.okular", "one.ablaze.floorp"): the command comes
+    from the entry, so Flatpak and Snap apps work too. `args` go to the app (files, web
+    addresses, options) and accept the same {date}… variables as `run`. `recipe` records
+    which recipe filled them. `stop_signal` is what closing it (close_app with `app`)
+    sends."""
+
+    type: Literal["launch"] = "launch"
+    app: str = Field(min_length=1)
+    args: list[str] = Field(default_factory=list)
+    recipe: str | None = None
+    window: WindowPlacement | None = None
+    keep_open: bool = False
+    stop_signal: StopSignal = "TERM"
+    wait_desktop: Duration = timedelta(minutes=2)
+
+    @field_validator("app")
+    @classmethod
+    def _entry_id(cls, app: str) -> str:
+        return app.strip().removesuffix(".desktop")
+
+
 class CloseAppStep(_Tagged):
-    """Ask a program to quit and kill it if it is still running after `timeout`."""
+    """Ask a program to quit and kill it if it is still running after `timeout`: by process
+    `name` (sending `signal`), or the instances of an `app` that PowerClock opened."""
 
     type: Literal["close_app"] = "close_app"
-    name: str = Field(min_length=1)
+    name: str | None = Field(default=None, min_length=1)
+    app: str | None = Field(default=None, min_length=1)
+    signal: StopSignal = "TERM"
     timeout: PositiveDuration = timedelta(seconds=30)
+
+    @model_validator(mode="after")
+    def _one_target(self) -> Self:
+        _exactly_one(self, "name", "app")
+        return self
 
 
 class NotifyStep(_Tagged):
@@ -494,6 +538,7 @@ class SetWakeStep(_Tagged):
 Action = Annotated[
     PowerStep
     | RunStep
+    | LaunchStep
     | OpenStep
     | CloseAppStep
     | NotifyStep

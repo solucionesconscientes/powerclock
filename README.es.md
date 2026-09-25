@@ -67,10 +67,14 @@ con la sesión cerrada. Puedes manejarlo desde un **icono en la bandeja y una ve
 | Apagar la pantalla | Apaga el monitor (KDE, GNOME o X11). |
 | **Encender / despertar** | Programa el reloj del hardware (RTC) para que el equipo **despierte de la suspensión o incluso se encienda estando apagado** a una hora. |
 
-**Otras acciones** (pasos de una regla, que se ejecutan en orden): ejecutar un programa o una
-orden del shell (con tiempo máximo y su salida guardada en el historial), abrir un archivo o una
-web, cerrar un programa (primero pidiéndoselo y luego forzándolo), mostrar una notificación,
-esperar un rato, esperar a que se cumpla una condición y programar el siguiente encendido.
+**Otras acciones** (pasos de una regla, que se ejecutan en orden): **abrir una aplicación
+instalada** (elegida de la lista del menú, también Flatpak y Snap) con **recetas** ya preparadas
+(una web en modo quiosco, una lista en bucle, un PDF como presentación…), colocando su ventana en
+una pantalla o a pantalla completa y manteniéndola abierta si se cierra · ejecutar un programa o
+una orden del shell (con tiempo máximo y su salida guardada en el historial) · abrir un archivo o
+una web · cerrar un programa (primero pidiéndoselo y luego forzándolo) · mostrar una
+notificación · esperar un rato · esperar a que se cumpla una condición · programar el siguiente
+encendido. Los nombres de archivo y los textos pueden llevar la fecha: `radio-{date}.mp3`.
 
 **Cuándo** (el *trigger*):
 
@@ -80,7 +84,8 @@ esperar un rato, esperar a que se cumpla una condición y programar el siguiente
 - **Cuando se cumple una condición**: no se usa el equipo desde hace un rato · termina un
   programa (un render, una compresión, una copia…) · el equipo queda en reposo (CPU baja un
   tiempo) · termina una descarga (red baja un tiempo) · la batería baja o sube de un nivel · se
-  desenchufa o se enchufa el portátil · arranca PowerClock o el equipo vuelve de la suspensión.
+  desenchufa o se enchufa el portátil · se abre la sesión del escritorio (al entrar) · arranca
+  PowerClock o el equipo vuelve de la suspensión.
 - **Manual**: desde la ventana, la bandeja, la línea de comandos o el API.
 
 **Solo si / esperar mientras**:
@@ -301,7 +306,8 @@ escriben `30s`, `5m`, `2h`, `1d` o combinadas (`1h30m`).
 
 **Acciones rápidas** — una orden por acción: `shutdown` (apagar), `reboot` (reiniciar), `suspend`
 (suspender), `hibernate` (hibernar), `hybrid-sleep` (suspensión híbrida), `lock` (bloquear),
-`logout` (cerrar sesión), `screen-off` (apagar la pantalla) y `run -- PROGRAMA ARGUMENTOS…`.
+`logout` (cerrar sesión), `screen-off` (apagar la pantalla), `run -- PROGRAMA ARGUMENTOS…` y
+`launch APP [--recipe ID] -- ARGUMENTOS…` (abrir una aplicación instalada).
 
 | Opción | Significado |
 |---|---|
@@ -316,7 +322,8 @@ escriben `30s`, `5m`, `2h`, `1d` o combinadas (`1h30m`).
 | `--warning 2m` | Cuenta atrás antes de actuar (por defecto `60s`; `0s` para ninguna). |
 | `--force` | No dejar que las aplicaciones pidan guardar. |
 | `--wake 07:30` | (acciones de energía) Encender también el equipo a esa hora; p. ej. suspender ahora y despertar por la mañana. |
-| `--wake` | (`run`) Encender el equipo para ejecutarlo (con `--in`/`--at`). |
+| `--wake` | (`run`, `launch`) Encender el equipo para ejecutarlo o abrirla (con `--in`/`--at`). |
+| `--recipe ID` | (`launch`) Tomar los argumentos de una receta; lo que pide (`<url>`, `<file>`…) va después de `--`, en orden. |
 | `--dry-run` | Opción global (`powerclock --dry-run shutdown …`): solo anotar la acción de energía. |
 
 **Otras órdenes**
@@ -324,6 +331,8 @@ escriben `30s`, `5m`, `2h`, `1d` o combinadas (`1h30m`).
 | Orden | Qué hace |
 |---|---|
 | `powerclock wake --at HORA` | Encender el equipo a esa hora (desde suspensión, o desde apagado si la BIOS lo permite). |
+| `powerclock apps [TEXTO]` | Las aplicaciones instaladas (`launch` las abre por su id), con sus recetas. |
+| `powerclock recipes [APP]` | Argumentos ya preparados para aplicaciones habituales. |
 | `powerclock status` | Qué está en marcha, qué viene, qué se vigila y la próxima alarma de encendido. |
 | `powerclock cancel [RUN_ID]` | Cancela la cuenta atrás en curso; si no hay, la acción rápida en marcha, la próxima con hora o la última que espera una condición. |
 | `powerclock postpone [10m] [--run RUN_ID]` | Pospone la cuenta atrás en curso o la próxima acción rápida con hora. |
@@ -386,11 +395,12 @@ ignora en silencio. El JSON Schema completo lo sirve el API local en `/schema/ru
 | `net_below` | `kbps`, `for`, `direction` (`down`, `up`, `both`), `interface` (opcional) | Cuando el tráfico de red **medio** de los últimos `for` está por debajo de `kbps` kilobits por segundo. |
 | `battery` | `below` o `above` (%), `for` (opcional) | Cuando el nivel de batería cruza ese umbral (mantenido durante `for`). |
 | `power_source` | `is` (`ac` o `battery`), `for` (opcional) | Cuando el equipo está con esa alimentación (mantenida durante `for`). |
+| `desktop_session` | — | Cuando se abre una sesión del escritorio (alguien entra), así se pueden abrir aplicaciones. |
 | `startup` | `on` (`daemon_start`, `resume`), `delay` | Al arrancar PowerClock (p. ej. al encender) y/o al volver de la suspensión, pasado `delay`. |
 | `manual` | — | Solo cuando se ejecuta a mano. |
 
 **Los que vigilan un estado** (`idle`, `process_exit`, `cpu_below`, `net_below`,
-`battery`, `power_source`) se disparan **una vez** cuando el estado pasa a cumplirse, y solo
+`battery`, `power_source`, `desktop_session`) se disparan **una vez** cuando el estado pasa a cumplirse, y solo
 vuelven a dispararse después de que haya dejado de cumplirse. Seguir inactivo no suspende el equipo
 una y otra vez; volver a usarlo rearma la regla. Si el estado ya se cumple al activar la regla (la
 batería ya está baja), se dispara.
@@ -412,6 +422,7 @@ Las dos usan los mismos **predicados**:
 | `time_window` | `start`, `end` (`"22:00"`) | La hora del día está en esa franja (puede cruzar la medianoche: 22:00 → 07:00). |
 | `weekday` | `days` (`mon` … `sun`) | Hoy es uno de esos días. |
 | `wifi_ssid` | `ssid` | Conectado a esa red Wi-Fi. |
+| `desktop_session` | — | Hay una sesión del escritorio abierta. |
 
 Combínalos con `{"all": [ … ]}` (todas), `{"any": [ … ]}` (alguna) y `{"not": … }` (no), anidados
 como quieras.
@@ -431,12 +442,20 @@ como quieras.
 |---|---|---|
 | `power` | `action` (`shutdown`, `reboot`, `suspend`, `hibernate`, `hybrid_sleep`, `lock`, `logout`, `screen_off`), `mode` (`graceful` o `force`) | Una acción de energía, tras la cuenta atrás. Apagar, reiniciar y cerrar sesión deben ser el último paso. |
 | `run` | `cmd` (lista: programa y argumentos), `cwd`, `env`, `shell`, `timeout`, `wait` | Ejecuta un programa. Con `"shell": true`, `cmd` es una sola línea de órdenes. Con `wait` (por defecto) lo espera y falla si devuelve un error; su salida se guarda en el historial. Al cancelar o agotarse el tiempo se le pide que pare y 5 s después se fuerza. |
+| `launch` | `app` (su id, mira `powerclock apps`), `args`, `recipe`, `window` (`screen`, `desktop`, `state`: `normal`/`maximized`/`fullscreen`/`minimized`, `above`), `keep_open`, `stop_signal` (`TERM`, `INT`, `HUP`), `wait_desktop` (por defecto `2m`) | Abre una aplicación instalada en tu sesión del escritorio, esperando hasta `wait_desktop` a que haya una. Se ejecuta como unidad propia (`app-powerclock-….service`), así ve tu pantalla aunque PowerClock arrancara antes de que entraras. `window` la coloca (KDE Plasma); `keep_open` la vuelve a abrir si se cierra (como mucho 3 veces por hora). |
 | `open` | `target` | Abre un archivo o una URL con tu aplicación predeterminada. |
-| `close_app` | `name`, `timeout` (por defecto `30s`) | Pide a tus programas con ese nombre que se cierren y los fuerza pasado `timeout`. |
+| `close_app` | `name` y `signal` (`TERM`, `INT` o `HUP`), o `app`; `timeout` (por defecto `30s`) | Pide a tus programas con ese nombre que se cierren, o cierra las copias de `app` que abrió PowerClock; las fuerza pasado `timeout`. |
 | `notify` | `title`, `body` | Una notificación del escritorio (se omite en un equipo sin escritorio). |
 | `wait` | `duration` | Espera. |
 | `wait_until` | `condition` (un predicado), `timeout` (opcional) | Espera hasta que se cumpla la condición; falla pasado `timeout`. |
 | `set_wake` | `when` o `after` | Programa un encendido (p. ej. "vuelve a despertarme dentro de 8 h"). |
+
+**Variables**: en `run` (`cmd`, `cwd`, `env`), `launch` (`args`), `open` y `notify`, se
+sustituyen al ejecutarse `{date}` (2026-09-25), `{time}` (07-30), `{datetime}`
+(2026-09-25_07-30), `{weekday}` (thu), `{rule}` (su id), `{home}` y `{data}` (la carpeta de datos de
+PowerClock); p. ej. `ffmpeg -i URL -t 2h radio-{date}.mp3`. Cualquier otra llave queda como está.
+`run` recibe además las variables de tu sesión del escritorio, así un programa con ventana
+encuentra tu pantalla.
 
 Si un paso falla, la regla se detiene (`"on_error": "stop"`) o sigue con el siguiente
 (`"continue"`); el historial dice qué paso falló y por qué. Una misma regla nunca se ejecuta dos
@@ -586,7 +605,8 @@ curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
 | GET · POST | `/rules` | Listar · crear. |
 | GET · PUT · DELETE | `/rules/{id}` | Leer · reemplazar · borrar. |
 | POST | `/rules/{id}/enable` · `/disable` · `/run` · `/cancel` · `/postpone` | Actuar sobre una regla. |
-| POST | `/quick` | Una acción rápida: `action` o `command`, y `in`, `at`, `when_idle`, `when_exits`, `when_cpu_below`, `when_net_below` (+ `for`), `warning`, `mode`, `wake`, `wake_at`, `dry_run`. |
+| GET | `/apps` · `/recipes` | Las aplicaciones instaladas (con sus recetas) · las recetas. |
+| POST | `/quick` | Una acción rápida: `action`, `command` o `app` (+ `args`), y `in`, `at`, `when_idle`, `when_exits`, `when_cpu_below`, `when_net_below` (+ `for`), `warning`, `mode`, `wake`, `wake_at`, `dry_run`. |
 | POST | `/wake` | `{"at": "07:30"}`: encender el equipo a esa hora. |
 | GET | `/pending` | Lo próximo, lo que está en marcha, lo que se vigila y la alarma de encendido. |
 | GET | `/runs/{id}` | Una ejecución. |

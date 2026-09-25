@@ -31,6 +31,7 @@ TRIGGERS: dict[str, dict[str, Any]] = {
     "net_below": {"type": "net_below", "kbps": 50, "for": "5m", "direction": "down"},
     "battery": {"type": "battery", "below": 15},
     "power_source": {"type": "power_source", "is": "battery"},
+    "desktop_session": {"type": "desktop_session"},
     "startup": {"type": "startup", "on": ["resume"], "delay": "30s"},
     "manual": {"type": "manual"},
 }
@@ -47,6 +48,7 @@ PREDICATES: dict[str, dict[str, Any]] = {
     "time_window": {"type": "time_window", "start": "22:00", "end": "07:00"},
     "weekday": {"type": "weekday", "days": ["sat", "sun"]},
     "wifi_ssid": {"type": "wifi_ssid", "ssid": "Casa"},
+    "desktop_session": {"type": "desktop_session"},
     "all": {"all": [{"type": "media_playing"}, {"type": "ssh_session"}]},
     "any": {"any": [{"type": "media_playing"}]},
     "not": {"not": {"type": "ssh_session"}},
@@ -55,6 +57,14 @@ PREDICATES: dict[str, dict[str, Any]] = {
 ACTIONS: dict[str, dict[str, Any]] = {
     "power": {"type": "power", "action": "suspend"},
     "run": {"type": "run", "cmd": ["echo", "hola"], "timeout": "1m"},
+    "launch": {
+        "type": "launch",
+        "app": "google-chrome",
+        "args": ["--kiosk", "https://panel.example.org"],
+        "recipe": "chromium.kiosk",
+        "window": {"screen": 2, "state": "fullscreen"},
+        "keep_open": True,
+    },
     "open": {"type": "open", "target": "https://example.org"},
     "close_app": {"type": "close_app", "name": "firefox"},
     "notify": {"type": "notify", "title": "PowerClock", "body": "hola"},

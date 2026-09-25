@@ -87,13 +87,13 @@ Decidido el 25-09-2026 (ver ARCHITECTURE §10, «Rediseño»). Todo lo nuevo añ
 **DoD:** ninguna de estas palabras a la vista en la GUI: demonio, simulacro, ayudante, desatendido, guarda, disparador; tests y traducciones al día; revisado por el usuario.
 
 ### M10 — Abrir aplicaciones
-Decidido el 25-09-2026 a partir de 32 casos de uso (lo piden 13). Diseño en ARCHITECTURE §4 («Paso `launch`»).
-- [ ] Modelo: paso `launch` (app, receta, argumentos, ventana, mantener abierta) y variables `{date}`, `{time}`… en órdenes, rutas y avisos
-- [ ] Linux: catálogo de aplicaciones instaladas (menú, Flatpak, Snap) leyendo sus `.desktop`
-- [ ] Linux: entorno de la sesión gráfica desde el gestor de servicios del usuario; lanzar como unidad transitoria `app-powerclock-…` (también `run`, que hoy no ve la pantalla si el servicio arrancó antes que la sesión)
-- [ ] Esperar a la ventana y colocarla con guiones de KWin (pantalla, escritorio, pantalla completa…); mantener abierta; cerrar con la señal elegida
-- [ ] Recetas como datos (JSON en el paquete) para los programas del catálogo
-- [ ] GUI: selector de aplicaciones con icono y recetas; CLI: `powerclock apps`
+Decidido el 25-09-2026 a partir de 32 casos de uso (lo piden 13). Diseño en ARCHITECTURE §4 («Paso `launch`»). Hecho el 25-09-2026: además, el disparador y la condición `desktop_session`, y `close_app` por `app` o con señal.
+- [x] Modelo: paso `launch` (app, receta, argumentos, ventana, mantener abierta) y variables `{date}`, `{time}`… en órdenes, rutas y avisos
+- [x] Linux: catálogo de aplicaciones instaladas (menú, Flatpak, Snap) leyendo sus `.desktop`
+- [x] Linux: entorno de la sesión gráfica desde el gestor de servicios del usuario; lanzar como unidad transitoria `app-powerclock-…` (también `run`, que hoy no ve la pantalla si el servicio arrancó antes que la sesión)
+- [x] Esperar a la ventana y colocarla con guiones de KWin (pantalla, escritorio, pantalla completa…); mantener abierta; cerrar con la señal elegida
+- [x] Recetas como datos (JSON en el paquete) para los programas del catálogo
+- [x] GUI: selector de aplicaciones con icono y recetas; CLI: `powerclock apps`
 **DoD:** en el Latitude, una regla abre Chrome en modo app en la pantalla elegida, VLC con una lista y FreeFileSync (Flatpak) con un trabajo, también con el servicio arrancado antes que la sesión.
 
 ### M11 — Publicación 0.1.0

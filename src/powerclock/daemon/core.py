@@ -5,16 +5,18 @@ The API (api.py) is a thin layer over these methods.
 
 import asyncio
 import contextlib
+import dataclasses
 import json
 import logging
 import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta, tzinfo
+from pathlib import Path
 from typing import Any, Self
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
-from powerclock import __version__
+from powerclock import __version__, recipes
 from powerclock.config import Paths, Settings, ensure_token
 from powerclock.daemon.events import EventHub
 from powerclock.daemon.store import History, RulesFileError, RuleStore
@@ -28,6 +30,7 @@ from powerclock.models import (
     CpuBelow,
     Duration,
     Idle,
+    LaunchStep,
     ManualTrigger,
     NetBelow,
     NotifyStep,
@@ -69,6 +72,8 @@ class QuickRequest(BaseModel):
 
     action: PowerAction | None = None
     command: list[str] | None = Field(default=None, min_length=1)
+    app: str | None = Field(default=None, min_length=1)  # open this application…
+    args: list[str] = Field(default_factory=list)  # …with these arguments
     in_: PositiveDuration | None = Field(default=None, alias="in")
     at: str | None = None  # "23:30", "2026-09-24 07:30" or ISO with offset
     mode: PowerMode = PowerMode.GRACEFUL
@@ -84,8 +89,10 @@ class QuickRequest(BaseModel):
 
     @model_validator(mode="after")
     def _consistent(self) -> Self:
-        if (self.action is None) == (self.command is None):
-            raise ValueError("set exactly one of: action, command")
+        if sum(item is not None for item in (self.action, self.command, self.app)) != 1:
+            raise ValueError("set exactly one of: action, command, app")
+        if self.args and self.app is None:
+            raise ValueError("args only apply to app")
         when = ("in_", "at", "when_idle", "when_exits", "when_cpu_below", "when_net_below")
         if sum(getattr(self, name) is not None for name in when) > 1:
             raise ValueError(
@@ -138,9 +145,11 @@ class Daemon:
             dry_run=self.dry_run,
             emit=self._on_event,
             request_wake=self._request_wake,  # the set_wake action
+            variables={"home": str(Path.home()), "data": str(paths.data)},
         )
         self.started_at = self.engine.clock.now()
         self._tasks: list[asyncio.Task[None]] = []
+        self._app_names: dict[str, str] = {}  # id → name, for the names of quick actions
 
         from powerclock.daemon.api import create_app
 
@@ -160,6 +169,7 @@ class Daemon:
         self._tasks = [
             asyncio.create_task(_every(RELOAD_POLL, self.reload_rules), name="powerclock-reload"),
             asyncio.create_task(_every(HEARTBEAT, self._heartbeat), name="powerclock-heartbeat"),
+            asyncio.create_task(self._learn_app_names(), name="powerclock-apps"),
         ]
         log.info("powerclock %s started: %d rule(s)", __version__, len(self.engine.rules))
 
@@ -186,6 +196,31 @@ class Daemon:
             self.engine.remove(rule_id)
             self._publish_rule(rule_id, "deleted")
         log.info("rules.json reloaded: %d changed, %d removed", len(changed), len(removed))
+
+    # ── Applications ──────────────────────────────────────────────────────────
+
+    async def apps(self) -> list[dict[str, Any]]:
+        """The installed applications, each with the ids of the recipes made for it."""
+        try:
+            found = await self.backend.apps()
+        except NotSupported as exc:
+            raise DaemonError(501, str(exc)) from None
+        self._app_names = {app.id: app.name for app in found}
+        return [
+            {
+                **dataclasses.asdict(app),
+                "categories": list(app.categories),
+                "recipes": [recipe.id for recipe in recipes.for_app(app.id, app.flatpak)],
+            }
+            for app in found
+        ]
+
+    def list_recipes(self) -> list[dict[str, Any]]:
+        return [recipe.as_json() for recipe in recipes.recipes()]
+
+    async def _learn_app_names(self) -> None:
+        with contextlib.suppress(Exception):
+            self._app_names = {app.id: app.name for app in await self.backend.apps()}
 
     # ── Rules ─────────────────────────────────────────────────────────────────
 
@@ -231,9 +266,13 @@ class Daemon:
 
     def quick(self, request: QuickRequest) -> Rule:
         now = self.engine.clock.now()
+        step: PowerStep | RunStep | LaunchStep
         if request.action is not None:
-            step: PowerStep | RunStep = PowerStep(action=request.action, mode=request.mode)
+            step = PowerStep(action=request.action, mode=request.mode)
             label = power_action_label(request.action)
+        elif request.app is not None:
+            step = LaunchStep(app=request.app, args=request.args)
+            label = _("Open {app}").format(app=self._app_names.get(request.app, request.app))
         else:
             assert request.command is not None
             step = RunStep(cmd=request.command)

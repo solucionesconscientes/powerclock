@@ -24,17 +24,27 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from powerclock import recipes
+from powerclock.gui import widgets
 from powerclock.gui.client import DaemonLink
 from powerclock.gui.icons import themed
 from powerclock.gui.summary import Item, quick_items
 from powerclock.gui.tasks import spawn
 from powerclock.gui.tray import ACTION_ICONS
-from powerclock.gui.widgets import DurationEdit, LocalDateTimeEdit, ProcessCombo, next_quarter
+from powerclock.gui.widgets import (
+    AppCombo,
+    DurationEdit,
+    LocalDateTimeEdit,
+    ProcessCombo,
+    next_quarter,
+)
 from powerclock.i18n import _, now_label, power_action_label, schedule_label
 from powerclock.models import format_duration
 from powerclock.platform.base import PowerAction
 
 RUN = "run"  # the "Run a program" entry of the action list
+APP = "app"  # the "Open an application" entry
+TASKS = {RUN, APP}  # not power actions: no countdown, force or "turn it back on"
 WHEN = ("now", "at", "in", "idle", "exits", "cpu", "net")
 TIME_WHEN = {"at", "in"}
 
@@ -63,8 +73,16 @@ class QuickTab(QWidget):
                 themed(ACTION_ICONS.get(action, "system-run")), power_action_label(action), action
             )
         self.action.addItem(themed("system-run"), _("Run a program"), RUN)
+        self.action.addItem(themed("applications-other"), _("Open an application"), APP)
         self.command = QLineEdit()
         self.command.setPlaceholderText(_("e.g. /home/pc/bin/backup.sh --full"))
+        self.app = AppCombo()
+        self.recipe = QComboBox()
+        self.args = QLineEdit()
+        self.args.setPlaceholderText(_("Optional: a file, a web address, options…"))
+        self.recipe_hint = QLabel()
+        self.recipe_hint.setWordWrap(True)
+        self._loading_apps = False
 
         self.when = QComboBox()
         for when in WHEN:
@@ -107,6 +125,11 @@ class QuickTab(QWidget):
         form.addRow(_("Action:"), self.action)
         self.command_label = QLabel(_("Program:"))
         form.addRow(self.command_label, self.command)
+        self.app_rows = [QLabel(_("Application:")), QLabel(_("Recipe:")), QLabel(_("Arguments:"))]
+        form.addRow(self.app_rows[0], self.app)
+        form.addRow(self.app_rows[1], self.recipe)
+        form.addRow("", self.recipe_hint)
+        form.addRow(self.app_rows[2], self.args)
         form.addRow(_("When:"), _row(self.when, self.params, stretch=True))
         self.warning_label = QLabel(_("Warn me first:"))
         form.addRow(self.warning_label, self.warning)
@@ -151,9 +174,14 @@ class QuickTab(QWidget):
         self.action.currentIndexChanged.connect(self._update_form)
         self.when.currentIndexChanged.connect(self._update_form)
         self.wake.toggled.connect(self._update_form)
+        self.app.currentTextChanged.connect(lambda _text: self._offer_recipes())
+        self.recipe.activated.connect(self._use_recipe)
         link.changed.connect(self.update_pending)
+        link.changed.connect(self._load_apps)
+        self._offer_recipes()
         self._update_form()
         self.update_pending()
+        self._load_apps()
 
     # ── The form ──────────────────────────────────────────────────────────────
 
@@ -171,8 +199,12 @@ class QuickTab(QWidget):
             if not command:
                 raise ValueError(_("Write the program to run."))
             payload["command"] = command
-            if when in TIME_WHEN and self.wake_to_run.isChecked():
-                payload["wake"] = True
+        elif action == APP:
+            app = self.app.value()
+            if not app:
+                raise ValueError(_("Pick the application to open."))
+            payload["app"] = app
+            payload["args"] = shlex.split(self.args.text())
         else:
             payload["action"] = PowerAction(action).value
             payload["warning"] = format_duration(self.warning.value())
@@ -180,6 +212,8 @@ class QuickTab(QWidget):
                 payload["mode"] = "force"
             if self.wake.isChecked():
                 payload["wake_at"] = self.wake_at.time().toString("HH:mm")
+        if action in TASKS and when in TIME_WHEN and self.wake_to_run.isChecked():
+            payload["wake"] = True
         match when:
             case "at":
                 payload["at"] = self.at.value().isoformat()
@@ -224,17 +258,68 @@ class QuickTab(QWidget):
         self.status.setText(text)
 
     def _update_form(self) -> None:
-        is_run = self.action.currentData() == RUN
+        kind = self.action.currentData()
+        is_task = kind in TASKS
         when = self.when.currentData()
         self.params.setCurrentIndex(WHEN.index(when))
-        self.command_label.setVisible(is_run)
-        self.command.setVisible(is_run)
+        self.command_label.setVisible(kind == RUN)
+        self.command.setVisible(kind == RUN)
+        for widget in (*self.app_rows, self.app, self.recipe, self.args):
+            widget.setVisible(kind == APP)
+        self.recipe_hint.setVisible(kind == APP and bool(self.recipe_hint.text()))
         for widget in (self.warning_label, self.warning, self.force, self.wake, self.wake_at):
-            widget.setVisible(not is_run)
+            widget.setVisible(not is_task)
         self.wake_at.setEnabled(self.wake.isChecked())
-        self.wake_to_run.setVisible(is_run and when in TIME_WHEN)
-        action = None if is_run else PowerAction(self.action.currentData())
+        self.wake_to_run.setVisible(is_task and when in TIME_WHEN)
+        if kind == APP:
+            self.ok.setText(_("Open now") if when == "now" else _("Schedule opening"))
+            return
+        action = None if kind == RUN else PowerAction(kind)
         self.ok.setText(now_label(action) if when == "now" else schedule_label(action))
+
+    # ── Applications ──────────────────────────────────────────────────────────
+
+    def _load_apps(self) -> None:
+        """Ask the daemon for the installed applications once, when it is reachable."""
+        if widgets.APP_CATALOG or self._loading_apps or not self._link.online:
+            return
+        self._loading_apps = True
+        spawn(self._fetch_apps(), self, on_error=self._apps_failed)
+
+    async def _fetch_apps(self) -> None:
+        widgets.APP_CATALOG[:] = await self._link.api.get("/apps")
+        self._loading_apps = False
+        self.app.fill()
+        self._offer_recipes()
+
+    def _apps_failed(self, _error: Exception) -> None:
+        self._loading_apps = False  # typed ids still work; try again on the next change
+
+    def _offer_recipes(self) -> None:
+        chosen = self.app.app()
+        found = recipes.for_app(self.app.value(), chosen.get("flatpak") if chosen else None)
+        self.recipe.clear()
+        self.recipe.addItem(_("(none)"), None)
+        for recipe in found:
+            self.recipe.addItem(recipe.title(), recipe.id)
+        self.recipe.setEnabled(bool(found))
+        self._show_recipe_hint(None)
+
+    def _use_recipe(self, index: int) -> None:
+        recipe = recipes.get(self.recipe.itemData(index) or "")
+        if recipe is not None:
+            self.args.setText(shlex.join(recipe.fill({})))
+        self._show_recipe_hint(recipe)
+
+    def _show_recipe_hint(self, recipe: recipes.Recipe | None) -> None:
+        lines = []
+        if recipe is not None:
+            for key, label in recipe.inputs.items():
+                lines.append(
+                    _("Replace <{key}> with: {what}").format(key=key, what=recipe.text(label))
+                )
+        self.recipe_hint.setText("\n".join(lines))
+        self.recipe_hint.setVisible(bool(lines) and self.action.currentData() == APP)
 
     # ── What is waiting ───────────────────────────────────────────────────────
 

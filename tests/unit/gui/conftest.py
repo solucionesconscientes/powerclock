@@ -19,7 +19,7 @@ from powerclock.config import Paths
 from powerclock.connection import Endpoint
 from powerclock.daemon.core import Daemon
 from powerclock.engine.clock import FakeClock
-from powerclock.gui import tasks
+from powerclock.gui import tasks, widgets
 from powerclock.gui.client import DaemonLink, HttpApi
 from powerclock.platform.fake import FakePlatform
 from powerclock.sensors.fake import FakeReadings
@@ -31,6 +31,14 @@ def qapp() -> QApplication:
     app = QApplication.instance() or QApplication(["powerclock-gui-tests"])
     assert isinstance(app, QApplication)
     return app
+
+
+@pytest.fixture(autouse=True)
+def _no_app_catalog() -> Iterator[None]:
+    """The list of installed apps is loaded once per GUI process: start each test empty."""
+    widgets.APP_CATALOG.clear()
+    yield
+    widgets.APP_CATALOG.clear()
 
 
 @pytest.fixture(autouse=True)

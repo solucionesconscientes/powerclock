@@ -1,0 +1,182 @@
+{
+  "version": 1,
+  "recipes": [
+    {
+      "id": "chromium.app",
+      "apps": ["google-chrome", "com.google.Chrome", "chromium", "chromium-browser", "chromium_chromium", "org.chromium.Chromium", "brave-browser", "com.brave.Browser", "microsoft-edge", "com.microsoft.Edge", "vivaldi-stable"],
+      "label": {"en": "A web page as an app window", "es": "Una web como ventana de aplicación"},
+      "note": {"en": "Uses your browser profile, so your accounts are there.", "es": "Usa tu perfil del navegador, así que tus cuentas están ahí."},
+      "args": ["--app=<url>"],
+      "inputs": {"url": {"en": "Web address", "es": "Dirección web"}}
+    },
+    {
+      "id": "chromium.kiosk",
+      "apps": ["google-chrome", "com.google.Chrome", "chromium", "chromium-browser", "chromium_chromium", "org.chromium.Chromium", "brave-browser", "com.brave.Browser", "microsoft-edge", "com.microsoft.Edge", "vivaldi-stable"],
+      "label": {"en": "Kiosk: a web page full screen, sound on, no way out", "es": "Quiosco: una web a pantalla completa, con sonido y sin salida"},
+      "note": {"en": "Its own profile: it does not touch your tabs or ask for the KDE wallet, and it can be kept open.", "es": "Con su propio perfil: no toca tus pestañas ni pide la cartera de KDE, y se puede mantener abierto."},
+      "args": ["--kiosk", "--noerrdialogs", "--hide-crash-restore-bubble", "--autoplay-policy=no-user-gesture-required", "--password-store=basic", "--user-data-dir={data}/profiles/kiosk", "<url>"],
+      "inputs": {"url": {"en": "Web address", "es": "Dirección web"}},
+      "keep_open": true
+    },
+    {
+      "id": "chromium.fullscreen",
+      "apps": ["google-chrome", "com.google.Chrome", "chromium", "chromium-browser", "chromium_chromium", "org.chromium.Chromium", "brave-browser", "com.brave.Browser", "microsoft-edge", "com.microsoft.Edge", "vivaldi-stable"],
+      "label": {"en": "A web page in a new full-screen window", "es": "Una web en una ventana nueva a pantalla completa"},
+      "args": ["--new-window", "--start-fullscreen", "<url>"],
+      "inputs": {"url": {"en": "Web address", "es": "Dirección web"}}
+    },
+    {
+      "id": "firefox.kiosk",
+      "apps": ["firefox", "firefox_firefox", "org.mozilla.firefox", "one.ablaze.floorp", "floorp", "librewolf", "io.gitlab.librewolf-community", "firefox-esr"],
+      "label": {"en": "Kiosk: a web page full screen, no way out", "es": "Quiosco: una web a pantalla completa y sin salida"},
+      "args": ["--kiosk", "<url>"],
+      "inputs": {"url": {"en": "Web address", "es": "Dirección web"}}
+    },
+    {
+      "id": "firefox.window",
+      "apps": ["firefox", "firefox_firefox", "org.mozilla.firefox", "one.ablaze.floorp", "floorp", "librewolf", "io.gitlab.librewolf-community", "firefox-esr"],
+      "label": {"en": "A web page in a new window", "es": "Una web en una ventana nueva"},
+      "args": ["--new-window", "<url>"],
+      "inputs": {"url": {"en": "Web address", "es": "Dirección web"}}
+    },
+    {
+      "id": "vlc.loop",
+      "apps": ["vlc", "org.videolan.VLC", "vlc_vlc"],
+      "label": {"en": "Play a playlist or folder on a loop, shuffled, full screen", "es": "Reproducir una lista o carpeta en bucle, aleatoria y a pantalla completa"},
+      "args": ["--fullscreen", "--loop", "--random", "<file>"],
+      "inputs": {"file": {"en": "Playlist, folder or file", "es": "Lista, carpeta o archivo"}}
+    },
+    {
+      "id": "vlc.once",
+      "apps": ["vlc", "org.videolan.VLC", "vlc_vlc"],
+      "label": {"en": "Play a video full screen and close", "es": "Reproducir un vídeo a pantalla completa y cerrarse"},
+      "args": ["--fullscreen", "--play-and-exit", "<file>"],
+      "inputs": {"file": {"en": "Video or playlist", "es": "Vídeo o lista"}}
+    },
+    {
+      "id": "vlc.stream",
+      "apps": ["vlc", "org.videolan.VLC", "vlc_vlc"],
+      "label": {"en": "Play a radio station or stream", "es": "Poner una emisora o un directo"},
+      "args": ["<url>"],
+      "inputs": {"url": {"en": "Station or stream address", "es": "Dirección de la emisora o del directo"}}
+    },
+    {
+      "id": "mpv.loop",
+      "apps": ["mpv", "io.mpv.Mpv"],
+      "label": {"en": "Play a folder or playlist on a loop, shuffled, full screen", "es": "Reproducir una carpeta o lista en bucle, aleatoria y a pantalla completa"},
+      "args": ["--fs", "--loop-playlist=inf", "--shuffle", "<file>"],
+      "inputs": {"file": {"en": "Folder, playlist or file", "es": "Carpeta, lista o archivo"}}
+    },
+    {
+      "id": "mpv.radio",
+      "apps": ["mpv", "io.mpv.Mpv"],
+      "label": {"en": "Play a radio station, sound only, at 30 %", "es": "Poner una emisora, solo sonido, al 30 %"},
+      "args": ["--no-video", "--volume=30", "<url>"],
+      "inputs": {"url": {"en": "Station address", "es": "Dirección de la emisora"}}
+    },
+    {
+      "id": "okular.presentation",
+      "apps": ["org.kde.okular", "okular"],
+      "label": {"en": "Show a PDF as a full-screen presentation", "es": "Mostrar un PDF como presentación a pantalla completa"},
+      "args": ["--presentation", "<file>"],
+      "inputs": {"file": {"en": "PDF document", "es": "Documento PDF"}}
+    },
+    {
+      "id": "okular.page",
+      "apps": ["org.kde.okular", "okular"],
+      "label": {"en": "Open a document at a page", "es": "Abrir un documento en una página"},
+      "args": ["--page=<page>", "<file>"],
+      "inputs": {"page": {"en": "Page", "es": "Página"}, "file": {"en": "Document", "es": "Documento"}}
+    },
+    {
+      "id": "gwenview.slideshow",
+      "apps": ["org.kde.gwenview", "gwenview"],
+      "label": {"en": "Slideshow of a folder of pictures", "es": "Pase de las fotos de una carpeta"},
+      "args": ["--fullscreen", "--slideshow", "<folder>"],
+      "inputs": {"folder": {"en": "Folder of pictures", "es": "Carpeta de fotos"}}
+    },
+    {
+      "id": "libreoffice.show",
+      "apps": ["libreoffice-impress", "org.libreoffice.LibreOffice.impress", "libreoffice-startcenter", "org.libreoffice.LibreOffice"],
+      "label": {"en": "Start a slide show", "es": "Empezar una presentación de diapositivas"},
+      "args": ["--show", "--norestore", "<file>"],
+      "inputs": {"file": {"en": "Presentation", "es": "Presentación"}}
+    },
+    {
+      "id": "obs.record",
+      "apps": ["com.obsproject.Studio", "obs", "obs-studio"],
+      "label": {"en": "Start recording, in the tray", "es": "Empezar a grabar, en la bandeja"},
+      "note": {"en": "Without the safe-mode question after a power cut. It stops when PowerClock closes it.", "es": "Sin la pregunta del modo seguro tras un corte de luz. Se para cuando PowerClock lo cierra."},
+      "args": ["--startrecording", "--minimize-to-tray", "--disable-shutdown-check"]
+    },
+    {
+      "id": "obs.stream",
+      "apps": ["com.obsproject.Studio", "obs", "obs-studio"],
+      "label": {"en": "Start streaming, in the tray", "es": "Empezar a emitir, en la bandeja"},
+      "args": ["--startstreaming", "--minimize-to-tray", "--disable-shutdown-check"]
+    },
+    {
+      "id": "obsidian.note",
+      "apps": ["md.obsidian.Obsidian", "obsidian"],
+      "label": {"en": "Open a note of a vault", "es": "Abrir una nota de una bóveda"},
+      "note": {"en": "Use {date} in the note's name for today's daily note.", "es": "Pon {date} en el nombre de la nota para abrir la del día."},
+      "args": ["obsidian://open?vault=<vault>&file=<note>"],
+      "inputs": {"vault": {"en": "Vault", "es": "Bóveda"}, "note": {"en": "Note", "es": "Nota"}}
+    },
+    {
+      "id": "telegram.tray",
+      "apps": ["org.telegram.desktop", "telegramdesktop", "telegram-desktop"],
+      "label": {"en": "Start in the tray, without a window", "es": "Arrancar en la bandeja, sin ventana"},
+      "args": ["-startintray"]
+    },
+    {
+      "id": "steam.silent",
+      "apps": ["steam", "com.valvesoftware.Steam"],
+      "label": {"en": "Start in the tray to update the games", "es": "Arrancar en la bandeja para actualizar los juegos"},
+      "args": ["-silent"]
+    },
+    {
+      "id": "steam.game",
+      "apps": ["steam", "com.valvesoftware.Steam"],
+      "label": {"en": "Start a game", "es": "Abrir un juego"},
+      "args": ["steam://rungameid/<game>"],
+      "inputs": {"game": {"en": "Game number (Steam app id)", "es": "Número del juego (app id de Steam)"}}
+    },
+    {
+      "id": "spotify.uri",
+      "apps": ["com.spotify.Client", "spotify", "spotify_spotify"],
+      "label": {"en": "Open a playlist, album or song", "es": "Abrir una lista, un álbum o una canción"},
+      "args": ["--uri=<uri>"],
+      "inputs": {"uri": {"en": "Spotify link (spotify:playlist:…)", "es": "Enlace de Spotify (spotify:playlist:…)"}}
+    },
+    {
+      "id": "freefilesync.batch",
+      "apps": ["org.freefilesync.FreeFileSync", "freefilesync", "FreeFileSync"],
+      "label": {"en": "Run a saved batch job", "es": "Ejecutar un trabajo guardado"},
+      "note": {"en": "Save the job in FreeFileSync as a batch job (.ffs_batch); it sets whether it closes when done.", "es": "Guarda el trabajo en FreeFileSync como trabajo por lotes (.ffs_batch); ahí eliges si se cierra al terminar."},
+      "args": ["<file>"],
+      "inputs": {"file": {"en": "Batch job (.ffs_batch)", "es": "Trabajo por lotes (.ffs_batch)"}}
+    },
+    {
+      "id": "code.folder",
+      "apps": ["code", "com.visualstudio.code", "codium", "com.vscodium.codium"],
+      "label": {"en": "Open a project folder in a new window", "es": "Abrir la carpeta de un proyecto en una ventana nueva"},
+      "args": ["--new-window", "<folder>"],
+      "inputs": {"folder": {"en": "Project folder", "es": "Carpeta del proyecto"}}
+    },
+    {
+      "id": "kate.line",
+      "apps": ["org.kde.kate", "kate"],
+      "label": {"en": "Open a file at a line", "es": "Abrir un archivo en una línea"},
+      "args": ["--line=<line>", "<file>"],
+      "inputs": {"line": {"en": "Line", "es": "Línea"}, "file": {"en": "File", "es": "Archivo"}}
+    },
+    {
+      "id": "dolphin.split",
+      "apps": ["org.kde.dolphin", "dolphin"],
+      "label": {"en": "Two folders side by side", "es": "Dos carpetas lado a lado"},
+      "args": ["--split", "<folder>", "<other>"],
+      "inputs": {"folder": {"en": "Left folder", "es": "Carpeta de la izquierda"}, "other": {"en": "Right folder", "es": "Carpeta de la derecha"}}
+    }
+  ]
+}

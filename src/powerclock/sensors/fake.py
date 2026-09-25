@@ -28,6 +28,7 @@ class FakeReadings:
         self.ssh: int | None = 0
         self.media: bool | None = False
         self.ssid: str | None = ""
+        self.desktop_up: bool | None = True
         self.reads: Counter[str] = Counter()
 
     def start(self, name: str, pid: int, started: float = 1.0) -> None:
@@ -72,3 +73,7 @@ class FakeReadings:
     async def wifi(self) -> str | None:
         self.reads["wifi"] += 1
         return self.ssid
+
+    async def desktop(self) -> bool | None:
+        self.reads["desktop"] += 1
+        return self.desktop_up

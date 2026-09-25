@@ -25,7 +25,7 @@ from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 
-from powerclock import __version__
+from powerclock import __version__, recipes
 from powerclock.cli import client as api
 from powerclock.cli.format import local, relative, span, trigger, watch_detail
 from powerclock.config import Paths
@@ -310,6 +310,83 @@ def run_command(
     payload: dict[str, Any] = {"command": command, "wake": wake}
     _when(payload, in_, at, when_idle, when_exits, when_cpu_below, when_net_below, for_)
     _quick(ctx, payload)
+
+
+@app.command("launch")
+def launch_command(
+    ctx: typer.Context,
+    app_id: Annotated[str, typer.Argument(metavar="APP", help="Its id: see powerclock apps.")],
+    args: Annotated[
+        list[str] | None, typer.Argument(help="Files, web addresses or options, after --.")
+    ] = None,
+    recipe: Annotated[
+        str | None,
+        typer.Option("--recipe", help="Fill the arguments from a recipe: see powerclock recipes."),
+    ] = None,
+    in_: InOption = None,
+    at: AtOption = None,
+    when_idle: WhenIdleOption = None,
+    when_exits: WhenExitsOption = None,
+    when_cpu_below: WhenCpuOption = None,
+    when_net_below: WhenNetOption = None,
+    for_: ForOption = None,
+    wake: Annotated[
+        bool, typer.Option("--wake", help="Wake the computer up to open it (needs --in/--at).")
+    ] = False,
+) -> None:
+    """Open an installed application now, after a delay, at a time or when a condition is
+    met: powerclock launch org.kde.okular --at 09:00 -- ~/informe.pdf"""
+    arguments = list(args or [])
+    if recipe is not None:
+        found = recipes.get(recipe)
+        if found is None:
+            _fail(_("There is no recipe {recipe!r}: see powerclock recipes.").format(recipe=recipe))
+        arguments = [*_fill_inputs(found, arguments), *arguments[len(found.inputs) :]]
+    payload: dict[str, Any] = {"app": app_id, "args": arguments, "wake": wake}
+    _when(payload, in_, at, when_idle, when_exits, when_cpu_below, when_net_below, for_)
+    _quick(ctx, payload)
+
+
+def _fill_inputs(recipe: recipes.Recipe, values: list[str]) -> list[str]:
+    """A recipe's arguments, its <inputs> taken in order from the command line."""
+    keys = list(recipe.inputs)
+    if len(values) < len(keys):
+        wanted = ", ".join(f"<{key}>" for key in keys)
+        _fail(_("The recipe {recipe} needs: {inputs}").format(recipe=recipe.id, inputs=wanted))
+    return recipe.fill(dict(zip(keys, values, strict=False)))
+
+
+@app.command("apps")
+def apps_command(
+    search: Annotated[str | None, typer.Argument(help="Part of its name or id.")] = None,
+) -> None:
+    """The installed applications that launch can open, with their recipes."""
+    with _daemon() as client:
+        found = client.get("/apps")
+    if search:
+        needle = search.lower()
+        found = [a for a in found if needle in a["name"].lower() or needle in a["id"].lower()]
+    table = Table(header_style="bold")
+    for column in (_("Name"), _("Id"), _("Recipes")):
+        table.add_column(column)
+    for item in found:
+        name = escape(item["name"]) + (" [dim](Flatpak)[/]" if item.get("flatpak") else "")
+        table.add_row(name, escape(item["id"]), escape(", ".join(item.get("recipes", []))))
+    console.print(table)
+
+
+@app.command("recipes")
+def recipes_command(
+    app_id: Annotated[str | None, typer.Argument(metavar="APP", help="Only this app's.")] = None,
+) -> None:
+    """Ready-made arguments for common applications (use them with launch --recipe)."""
+    found = recipes.for_app(app_id) if app_id else list(recipes.recipes())
+    table = Table(header_style="bold", show_lines=True)
+    for column in (_("Recipe"), _("What it does"), _("Arguments")):
+        table.add_column(column)
+    for recipe in found:
+        table.add_row(recipe.id, escape(recipe.title()), escape(" ".join(recipe.args)))
+    console.print(table)
 
 
 # ── Status, cancel, postpone, history ──────────────────────────────────────────

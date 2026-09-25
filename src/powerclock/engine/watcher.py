@@ -1,5 +1,5 @@
-"""State triggers (idle, cpu_below, net_below, battery, power_source, process_exit) and the
-loop that samples the sensors active rules use.
+"""State triggers (idle, cpu_below, net_below, battery, power_source, desktop_session,
+process_exit) and the loop that samples the sensors active rules use.
 
 A watched rule fires when its trigger's state becomes true (sustained for its `for`), and
 only once: it is armed again when the state is false. A rule added while the state
@@ -23,6 +23,7 @@ from powerclock.models import (
     AnyOf,
     BatteryLevel,
     CpuBelow,
+    DesktopSession,
     Idle,
     NetBelow,
     NotOf,
@@ -37,7 +38,8 @@ from powerclock.sensors.registry import SensorHub, Watched
 
 log = logging.getLogger(__name__)
 
-STATE_TRIGGERS = (Idle, CpuBelow, NetBelow, BatteryLevel, PowerSource, ProcessExitTrigger)
+SENSOR_TRIGGERS = (Idle, CpuBelow, NetBelow, BatteryLevel, PowerSource, DesktopSession)
+STATE_TRIGGERS = (*SENSOR_TRIGGERS, ProcessExitTrigger)
 
 OnFire = Callable[[Rule], None]
 Demand = Callable[[], Iterable[Watched]]
@@ -159,7 +161,7 @@ class Watcher:
         if isinstance(trigger, ProcessExitTrigger):
             table = await self._hub.processes()
             return None if table is None else _exited(trigger, watch, table)
-        assert isinstance(trigger, Idle | CpuBelow | NetBelow | BatteryLevel | PowerSource)
+        assert isinstance(trigger, SENSOR_TRIGGERS)
         return await self._hub.check(trigger)
 
     def _status(self, watch: _Watch) -> WatchStatus:
@@ -168,7 +170,7 @@ class Watcher:
         measured = None
         if isinstance(trigger, ProcessExitTrigger):
             value = "running" if watch.seen else "not_seen"
-        elif isinstance(trigger, Idle | CpuBelow | NetBelow | BatteryLevel | PowerSource):
+        elif isinstance(trigger, SENSOR_TRIGGERS):
             value, window = self._hub.measure(trigger)
             measured = None if window is None else window.total_seconds()
         return WatchStatus(

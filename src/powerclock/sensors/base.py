@@ -6,6 +6,7 @@ from typing import Protocol
 from powerclock.models import (
     BatteryLevel,
     CpuBelow,
+    DesktopSession,
     Idle,
     MediaPlaying,
     NetBelow,
@@ -25,6 +26,7 @@ SensorPredicate = (
     | MediaPlaying
     | SshSession
     | WifiSsid
+    | DesktopSession
 )
 
 
@@ -86,6 +88,10 @@ class Readings(Protocol):
         """SSID of the Wi-Fi network; "" when not on Wi-Fi."""
         ...
 
+    async def desktop(self) -> bool | None:
+        """Whether a desktop session is up (applications can be opened in it)."""
+        ...
+
 
 class NoReadings:
     """Sensors of a machine that tells nothing: every value is unknown."""
@@ -112,4 +118,7 @@ class NoReadings:
         return None
 
     async def wifi(self) -> str | None:
+        return None
+
+    async def desktop(self) -> bool | None:
         return None

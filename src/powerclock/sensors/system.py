@@ -135,3 +135,9 @@ class SystemReadings:
         except NotSupported:
             return None
         return ssid or ""
+
+    async def desktop(self) -> bool | None:
+        try:
+            return await self._backend.desktop_session()
+        except NotSupported:
+            return None

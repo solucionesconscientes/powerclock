@@ -7,11 +7,12 @@ and use psutil; only what differs between operating systems belongs here.
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable
 from contextlib import AbstractAsyncContextManager
-from datetime import datetime, tzinfo
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, tzinfo
 from enum import StrEnum
-from typing import NoReturn
+from typing import Literal, NoReturn
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PowerAction(StrEnum):
@@ -47,6 +48,45 @@ class NotSupported(Exception):
         self.feature = feature
         self.detail = detail
         self.fix_hint = fix_hint
+
+
+class WindowPlacement(BaseModel):
+    """Where and how the window of an opened application goes (part of the `launch` step)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    screen: int | None = Field(default=None, ge=1)  # 1 = the first screen; None: any
+    desktop: int | None = Field(default=None, ge=1)  # virtual desktop; None: the current one
+    state: Literal["normal", "maximized", "fullscreen", "minimized"] = "normal"
+    above: bool = False  # keep it above the other windows
+
+
+StopSignal = Literal["TERM", "INT", "HUP"]
+
+
+@dataclass(frozen=True)
+class AppInfo:
+    """An installed application, as the desktop's menu knows it."""
+
+    id: str  # desktop entry id: "org.kde.okular", "one.ablaze.floorp", "google-chrome"
+    name: str
+    names: dict[str, str] = field(default_factory=dict)  # translations: {"es": "…"}
+    icon: str | None = None
+    flatpak: str | None = None  # the Flatpak application id, when it is one
+    categories: tuple[str, ...] = ()
+    terminal: bool = False
+
+
+@dataclass(frozen=True)
+class LaunchRequest:
+    """Open an installed application in the user's desktop session."""
+
+    app: str
+    args: tuple[str, ...] = ()
+    window: WindowPlacement | None = None
+    keep_open: bool = False  # open it again if it closes (a few times per hour)
+    stop_signal: StopSignal = "TERM"  # what closing it sends (some recorders save on INT)
+    wait_window: timedelta = timedelta(seconds=30)  # how long to look for its window
 
 
 class Capability(BaseModel):
@@ -110,6 +150,29 @@ class PlatformBackend(ABC):
     async def open(self, target: str) -> None:
         """Open a file or URL with the user's default application."""
         self._unsupported("open")
+
+    async def apps(self) -> list[AppInfo]:
+        """The applications installed for this user (the desktop's menu, Flatpak, Snap…)."""
+        self._unsupported("apps")
+
+    async def launch(self, request: LaunchRequest) -> str:
+        """Open an application in the desktop session; returns what was started (for the
+        history). Raises NotSupported without a desktop session."""
+        self._unsupported("launch")
+
+    async def close_app(self, app: str, grace: timedelta) -> int:
+        """Close the instances of `app` that PowerClock opened (killing them after `grace`);
+        returns how many."""
+        self._unsupported("close_app")
+
+    async def desktop_session(self) -> bool | None:
+        """Whether a desktop session is up and apps can be opened in it (None: unknown)."""
+        self._unsupported("desktop_session")
+
+    async def session_env(self) -> dict[str, str]:
+        """Variables that programs need to reach the desktop session (display, bus…), for
+        commands started by a service that began before the session."""
+        self._unsupported("session_env")
 
     async def subscribe_power_events(self, callback: PowerEventCallback) -> None:
         self._unsupported("subscribe_power_events")

@@ -21,10 +21,12 @@ from PySide6.QtWidgets import (
 )
 
 from powerclock.connection import format_detail
+from powerclock.gui import widgets
 from powerclock.gui.client import DaemonLink
 from powerclock.gui.forms import ActionEditor, EditorList, ModelForm, PredicateEditor, TriggerEditor
 from powerclock.gui.icons import app_icon
 from powerclock.gui.tasks import spawn
+from powerclock.gui.widgets import AppCombo
 from powerclock.i18n import _
 from powerclock.models import Guards, Rule
 
@@ -116,6 +118,14 @@ class RuleEditor(QDialog):
         self.resize(720, 640)
 
         self.set_rule(rule or _new_rule())
+        if link is not None and not widgets.APP_CATALOG:
+            spawn(self._load_apps(), self, on_error=lambda _error: None)
+
+    async def _load_apps(self) -> None:
+        """The installed applications, for the "Open an application" steps."""
+        widgets.APP_CATALOG[:] = await self._link.api.get("/apps")
+        for combo in self.findChildren(AppCombo):
+            combo.fill()
 
     # ── Form ↔ JSON ───────────────────────────────────────────────────────────
 

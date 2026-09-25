@@ -2,11 +2,13 @@
 
 import logging
 from contextlib import AbstractAsyncContextManager
-from datetime import datetime, tzinfo
+from datetime import datetime, timedelta, tzinfo
 from typing import Any
 
 from powerclock.platform.base import (
+    AppInfo,
     Capability,
+    LaunchRequest,
     PlatformBackend,
     PowerAction,
     PowerEventCallback,
@@ -57,6 +59,21 @@ class DryRunPlatform(PlatformBackend):
 
     async def open(self, target: str) -> None:
         await self.inner.open(target)
+
+    async def apps(self) -> list[AppInfo]:
+        return await self.inner.apps()
+
+    async def launch(self, request: LaunchRequest) -> str:
+        return await self.inner.launch(request)
+
+    async def close_app(self, app: str, grace: timedelta) -> int:
+        return await self.inner.close_app(app, grace)
+
+    async def desktop_session(self) -> bool | None:
+        return await self.inner.desktop_session()
+
+    async def session_env(self) -> dict[str, str]:
+        return await self.inner.session_env()
 
     async def subscribe_power_events(self, callback: PowerEventCallback) -> None:
         await self.inner.subscribe_power_events(callback)

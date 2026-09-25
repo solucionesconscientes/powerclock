@@ -161,6 +161,36 @@ async def _wifi(p: "LinuxPlatform") -> list[Capability]:
     return [row("wifi", True, _("NetworkManager · Wi-Fi {ssid}").format(ssid=ssid))]
 
 
+async def _applications(p: "LinuxPlatform") -> list[Capability]:
+    found = await p.apps()
+    flatpak = sum(app.flatpak is not None for app in found)
+    rows = [
+        row(
+            "apps",
+            bool(found),
+            _("{count} applications ({flatpak} Flatpak)").format(count=len(found), flatpak=flatpak),
+        )
+    ]
+    try:
+        graphical = await p.session.graphical()
+    except DBusError:
+        rows.append(
+            row(
+                "launch",
+                True,
+                _("without systemd's user manager: apps start directly and cannot be kept open"),
+            )
+        )
+    else:
+        state = _("desktop session up") if graphical else _("no desktop session now")
+        rows.append(row("launch", True, _("systemd user manager · {state}").format(state=state)))
+    if await p.windows.available():
+        rows.append(row("windows", True, "KWin"))
+    else:
+        rows.append(row("windows", False, _("only on KDE Plasma (KWin)")))
+    return rows
+
+
 async def _power_events(p: "LinuxPlatform") -> list[Capability]:
     try:
         delay = await p.logind.inhibit_delay_max()
@@ -273,6 +303,7 @@ CHECKS: list[Check] = [
     _media,
     _notify,
     _wifi,
+    _applications,
     _power_events,
     _wake,
     _hardware,

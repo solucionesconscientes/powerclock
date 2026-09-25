@@ -16,6 +16,7 @@ from powerclock.gui.forms import (
     PREDICATES,
     TRIGGERS,
     ActionEditor,
+    AppField,
     ArgsField,
     PredicateEditor,
     TextField,
@@ -97,9 +98,12 @@ async def test_starting_values_are_valid(
         editor = editor_class()
         editor.kind.setCurrentIndex(editor.kind.findData(type_of(model)))
         form = editor._form(type_of(model))
-        for field in form.fields.values():  # what the user must type (a program, a URL…)
-            if isinstance(field, TextField | ArgsField) and not field.get():
-                field.set(["x"] if isinstance(field, ArgsField) else "x")
+        if type_of(model) == "close_app":  # by name or by app: the user picks one
+            form.fields["name"].set("x")
+        else:
+            for field in form.fields.values():  # what the user must type (a program, a URL…)
+                if isinstance(field, TextField | ArgsField | AppField) and not field.get():
+                    field.set(["x"] if isinstance(field, ArgsField) else "x")
         model.model_validate(editor.get())
 
 
@@ -178,3 +182,32 @@ async def test_tabs_use_the_users_words(qapp: object) -> None:
     names = [editor.tabs.tabText(index) for index in range(editor.tabs.count())]
     assert names == ["When", "Only if…", "Wait while…", "What it does", "Options", "JSON"]
     editor.close()
+
+
+async def test_launch_step_with_a_recipe_and_a_window(qapp: object) -> None:
+    from powerclock.gui import widgets
+    from powerclock.models import LaunchStep
+
+    widgets.APP_CATALOG[:] = [
+        {"id": "vlc", "name": "VLC", "names": {"es": "VLC (es)"}, "icon": "vlc", "flatpak": None}
+    ]
+    editor = ActionEditor()
+    editor.kind.setCurrentIndex(editor.kind.findData("launch"))
+    form = editor._form("launch")
+    form.fields["app"].set("vlc")
+    recipe = form.fields["recipe"]
+    index = recipe.combo.findData("vlc.loop")
+    assert index > 0
+    recipe.combo.setCurrentIndex(index)
+    recipe._picked(index)
+    assert "Replace <file>" in recipe.hint.text()
+    form.fields["window"].set({"screen": 2, "state": "fullscreen"})
+    data = editor.get()
+    assert data["app"] == "vlc"
+    assert data["recipe"] == "vlc.loop"
+    assert data["args"] == ["--fullscreen", "--loop", "--random", "<file>"]
+    assert data["window"] == {"screen": 2, "desktop": None, "state": "fullscreen", "above": False}
+    step = LaunchStep.model_validate(data)
+    again = ActionEditor()
+    again.set(step.model_dump(mode="json"))
+    assert again.get() == step.model_dump(mode="json")
