@@ -154,6 +154,9 @@ def _digest(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+Periods = list[Period]  # outside History, whose `list` method would hide the builtin
+
+
 class History:
     """Every finished run (done, failed, cancelled, skipped…) with its reason."""
 
@@ -256,7 +259,7 @@ class History:
                 (now.isoformat(), how),
             )
 
-    def awake(self, since: datetime) -> list[Period]:
+    def awake(self, since: datetime) -> Periods:
         """The periods awake that end after `since`, plus the one before (its gap counts)."""
         rows = self._db.execute(
             "SELECT since, until, ended FROM awake WHERE rowid >= COALESCE("

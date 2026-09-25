@@ -28,6 +28,7 @@ from powerclock.platform.base import (
     Release,
 )
 from powerclock.platform.linux import apps, devices, session
+from powerclock.platform.linux.apps import DesktopEntry
 from powerclock.platform.linux.commands import Commands, SystemCommands
 from powerclock.platform.linux.dbus import Bus, DBusError, DBusFastBus
 from powerclock.platform.linux.desktop import Desktop
@@ -208,7 +209,7 @@ class LinuxPlatform(PlatformBackend):
         return detail
 
     async def _start(
-        self, entry: apps.DesktopEntry, argv: list[str], request: LaunchRequest
+        self, entry: DesktopEntry, argv: list[str], request: LaunchRequest
     ) -> tuple[str, int | None]:
         name = session.unit_name(entry.id)
         try:
@@ -229,9 +230,7 @@ class LinuxPlatform(PlatformBackend):
             raise OSError(f"{entry.name} failed to start (journalctl --user -u {name})")
         return f"{entry.name} ({name})", pid
 
-    async def _spawn(
-        self, entry: apps.DesktopEntry, argv: list[str], request: LaunchRequest
-    ) -> str:
+    async def _spawn(self, entry: DesktopEntry, argv: list[str], request: LaunchRequest) -> str:
         """Without systemd's user manager: start it directly, with the display we can find."""
         if request.keep_open:
             raise NotSupported(
@@ -242,9 +241,7 @@ class LinuxPlatform(PlatformBackend):
             raise OSError(f"{entry.name} ended with exit code {code}")
         return entry.name
 
-    async def _place(
-        self, entry: apps.DesktopEntry, pid: int | None, request: LaunchRequest
-    ) -> str:
+    async def _place(self, entry: DesktopEntry, pid: int | None, request: LaunchRequest) -> str:
         assert request.window is not None
         if not await self.windows.available():
             return " · window placement needs KDE Plasma (KWin)"
@@ -375,7 +372,7 @@ class LinuxPlatform(PlatformBackend):
         except DBusError:
             return self.desktop.graphical_env()
 
-    async def _catalog(self, env: Mapping[str, str] | None = None) -> dict[str, apps.DesktopEntry]:
+    async def _catalog(self, env: Mapping[str, str] | None = None) -> dict[str, DesktopEntry]:
         if env is None:
             env = await self.session_env()
         merged = {**self.env, **env}
