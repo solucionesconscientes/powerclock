@@ -65,6 +65,7 @@ def kind_label(kind: str) -> str:
         "wait": _("Wait"),
         "wait_until": _("Wait until"),
         "set_wake": _("Turn the computer on later"),
+        "wake_lan": _("Turn on another computer (Wake-on-LAN)"),
     }
     return labels.get(kind, kind)
 
@@ -159,6 +160,9 @@ def field_label(name: str, kind: str | None = None) -> str:
         "extra": _("Other days off"),
         "period": _("Period"),
         "service": _("Send with"),
+        "mac": _("MAC address"),
+        "broadcast": _("Broadcast address"),
+        "port": _("Port"),
         "url": _("Address (ntfy topic or webhook)"),
         "chat": _("Telegram chat"),
         "message": _("Message"),
@@ -330,6 +334,10 @@ _PATTERNS: list[tuple[re.Pattern[str], Callable[[re.Match[str]], str]]] = [
         lambda m: _("test mode: {action} was not really done").format(
             action=value_label("action", m[1])
         ),
+    ),
+    (
+        re.compile(r"dry run: wake_lan (\S+) not sent"),
+        lambda m: _("test mode: the packet to {mac} was not sent").format(mac=m[1]),
     ),
     (
         re.compile(r"no desktop session after (\S+)"),
@@ -504,3 +512,45 @@ def capability_label(capability_id: str) -> str:
         "sensors": _("Sensors"),
     }
     return labels.get(capability_id, capability_id)
+
+
+def savings_text(stats: dict[str, Any]) -> str:
+    """GET /stats in a few lines."""
+    days = stats["days"]
+    lines = [
+        _("Last {days} days: on {on} h, off or asleep {off} h.").format(
+            days=days, on=_hours(stats["on_hours"]), off=_hours(stats["off_hours"])
+        )
+    ]
+    actions = stats.get("actions") or {}
+    if stats["saved_hours"] > 0 or actions:
+        done = ", ".join(
+            f"{power_action_label(PowerAction(kind))}: {count}" for kind, count in actions.items()
+        )
+        lines.append(
+            _("Thanks to PowerClock: {hours} h off ({actions}).").format(
+                hours=_hours(stats["saved_hours"]), actions=done or "-"
+            )
+        )
+        estimated = stats["watts_estimated"] or stats["price_estimated"]
+        lines.append(
+            _("Saved about {kwh} kWh, {money} {currency}{note}.").format(
+                kwh=_hours(stats["kwh"]),
+                money=f"{stats['money']:.2f}",
+                currency=stats["currency"],
+                note=_(" (with typical values: {watts} W, {price} {currency}/kWh)").format(
+                    watts=_hours(stats["watts"]),
+                    price=stats["price_kwh"],
+                    currency=stats["currency"],
+                )
+                if estimated
+                else "",
+            )
+        )
+    else:
+        lines.append(_("PowerClock has not shut down or suspended the computer in this time."))
+    return "\n".join(lines)
+
+
+def _hours(value: float) -> str:
+    return f"{value:g}"

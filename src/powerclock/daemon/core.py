@@ -17,10 +17,17 @@ from typing import Any, Self
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from powerclock import __version__, recipes
-from powerclock.config import Paths, Settings, atomic_write, ensure_token, read_secrets
+from powerclock.config import (
+    USER_SETTINGS,
+    Paths,
+    Settings,
+    atomic_write,
+    ensure_token,
+    read_secrets,
+)
 from powerclock.daemon.events import EventHub
 from powerclock.daemon.store import History, RulesFileError, RuleStore
-from powerclock.engine import Engine
+from powerclock.engine import Engine, savings
 from powerclock.engine.clock import Clock
 from powerclock.engine.runs import Event, Run
 from powerclock.i18n import _, power_action_label
@@ -58,6 +65,9 @@ log = logging.getLogger(__name__)
 
 QUICK_PREFIX = "quick-"  # one-shot rules created by quick actions; removed once they end
 HEARTBEAT = 60.0  # seconds between "still alive" marks, used to detect missed fires
+AWAKE_GAP = timedelta(seconds=HEARTBEAT * 3)  # a longer silence: the computer was off or asleep
+# Power actions that stop the computer: the period awake ends there (see engine/savings.py).
+STOPPING = frozenset({"shutdown", "reboot", "suspend", "hibernate", "hybrid_sleep"})
 RELOAD_POLL = 2.0  # seconds between checks of rules.json for hand edits
 AUTOLOGIN_WATCH = 600.0  # seconds after starting to look for this boot's automatic log-in
 AUTOLOGIN_POLL = 2.0
@@ -141,6 +151,7 @@ class Daemon:
         self.paths = paths
         self.settings = settings or Settings()
         self.backend = backend
+        self._readings = readings or SystemReadings(backend)
         self.dry_run = (
             (self.settings.dry_run or dry_run_requested()) if dry_run is None else dry_run
         )
@@ -153,7 +164,7 @@ class Daemon:
             backend,
             tz=self.tz,
             clock=clock,
-            readings=readings or SystemReadings(backend),
+            readings=self._readings,
             dry_run=self.dry_run,
             emit=self._on_event,
             request_wake=self._request_wake,  # the set_wake action
@@ -552,14 +563,57 @@ class Daemon:
         }
 
     def set_tariff(self, tariff: str | None) -> dict[str, Any]:
-        """Choose the electricity tariff (None: none); saved in daemon.json."""
+        """Choose the electricity tariff (None: none)."""
+        return {"tariff": self.update_settings({"tariff": tariff})["tariff"]}
+
+    def update_settings(self, changes: dict[str, Any]) -> dict[str, Any]:
+        """Change the settings clients may change (USER_SETTINGS); saved in daemon.json."""
+        unknown = set(changes) - USER_SETTINGS
+        if unknown:
+            raise DaemonError(422, f"these settings cannot be changed here: {sorted(unknown)}")
         try:
-            updated = Settings.model_validate({**self.settings.model_dump(), "tariff": tariff})
+            updated = Settings.model_validate({**self.settings.model_dump(), **changes})
         except ValidationError as exc:
             raise DaemonError(422, json.loads(exc.json(include_url=False))) from None
         atomic_write(self.paths.settings, updated.model_dump_json(indent=2) + "\n")
         self.settings = updated
-        return {"tariff": updated.tariff}
+        return {name: getattr(updated, name) for name in sorted(USER_SETTINGS)}
+
+    # ── Use and savings ───────────────────────────────────────────────────────
+
+    async def stats(self, days: int = 30) -> dict[str, Any]:
+        """Time on and off over the last `days`, and what PowerClock saved (estimated)."""
+        now = self.engine.clock.now()
+        found = savings.stats(
+            self.history.awake(now - timedelta(days=days)), now - timedelta(days=days), now
+        )
+        watts = self.settings.watts
+        if watts is None:
+            try:
+                state = await self._readings.power()
+            except Exception:
+                state = None
+            watts = savings.default_watts(None if state is None else state.percent is not None)
+        price = (
+            self.settings.price_kwh if self.settings.price_kwh is not None else savings.PRICE_KWH
+        )
+        kwh = found.saved_kwh(watts)
+        return {
+            "days": days,
+            "since": found.since,
+            "until": found.until,
+            "on_hours": round(found.on.total_seconds() / 3600, 1),
+            "off_hours": round(found.off.total_seconds() / 3600, 1),
+            "saved_hours": round(found.off_by_powerclock.total_seconds() / 3600, 1),
+            "actions": found.actions,
+            "watts": watts,
+            "watts_estimated": self.settings.watts is None,
+            "price_kwh": price,
+            "price_estimated": self.settings.price_kwh is None,
+            "currency": self.settings.currency,
+            "kwh": round(kwh, 2),
+            "money": round(kwh * price, 2),
+        }
 
     # ── Internals ─────────────────────────────────────────────────────────────
 
@@ -593,6 +647,8 @@ class Daemon:
         return None, None
 
     def _on_event(self, event: Event) -> None:
+        if event.type == "power_action" and event.data.get("action") in STOPPING:
+            self.history.mark_ended(event.at, str(event.data["action"]))
         if event.type == "run_finished" and event.run_id is not None:
             run = self.engine.executor.get(event.run_id)
             if run is not None:
@@ -625,7 +681,9 @@ class Daemon:
         )
 
     def _heartbeat(self) -> None:
-        self.history.set_last_alive(self.engine.clock.now())
+        now = self.engine.clock.now()
+        self.history.set_last_alive(now)
+        self.history.mark_awake(now, AWAKE_GAP)
 
 
 def _validate(data: dict[str, Any]) -> Rule:

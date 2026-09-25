@@ -22,6 +22,7 @@ EventType = Literal[
     "run_finished",
     "rule_changed",
     "wake_changed",
+    "power_action",  # PowerClock is about to shut down, suspend… the computer
 ]
 
 

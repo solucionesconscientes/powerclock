@@ -95,6 +95,7 @@ ACTIONS: dict[str, dict[str, Any]] = {
     "wait": {"type": "wait", "duration": "10s"},
     "wait_until": {"type": "wait_until", "condition": {"type": "idle", "for": "1m"}},
     "set_wake": {"type": "set_wake", "after": "8h"},
+    "wake_lan": {"type": "wake_lan", "mac": "00:1a:2b:3c:4d:5e"},
 }
 
 

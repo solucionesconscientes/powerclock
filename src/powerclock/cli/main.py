@@ -30,13 +30,15 @@ from powerclock.cli import client as api
 from powerclock.cli.format import local, relative, span, trigger, watch_detail
 from powerclock.config import Paths, read_secrets, write_secret
 from powerclock.doctor import WakeTest, collect, run_wake_test, verdict_message
+from powerclock.engine import wol
 from powerclock.i18n import _
 from powerclock.install.helper import helper_module
 from powerclock.install.program import commands as program_commands
 from powerclock.install.program import latest_version, newer
 from powerclock.install.service import service_module
 from powerclock.install.steps import Options, Report, Setup
-from powerclock.labels import reason_label
+from powerclock.labels import reason_label, savings_text
+from powerclock.models import WakeLanStep
 from powerclock.platform import dry_run_requested, get_backend
 from powerclock.platform.base import NotSupported, PowerAction
 
@@ -427,6 +429,59 @@ def tariff_command(
             chosen = None if tariff.lower() == "none" else tariff
             current = client.put("/settings/tariff", json={"tariff": chosen})["tariff"]
     console.print(current or _("No tariff: the tariff_period condition stays unknown."))
+
+
+@app.command("wake-lan")
+def wake_lan_command(
+    mac: Annotated[str, typer.Argument(help="The other computer's MAC address.")],
+    broadcast: Annotated[str, typer.Option(help="Broadcast address of its network.")] = (
+        "255.255.255.255"
+    ),
+    port: Annotated[int, typer.Option(help="UDP port (7 or 9).")] = 9,
+) -> None:
+    """Turn on another computer on the local network (Wake-on-LAN), now."""
+    try:
+        WakeLanStep(mac=mac, broadcast=broadcast, port=port)
+    except ValueError:
+        _fail(_("{mac} is not a MAC address (e.g. 00:1a:2b:3c:4d:5e).").format(mac=mac))
+    if dry_run_requested():
+        console.print(_("TEST MODE: the packet to {mac} was not sent.").format(mac=mac))
+        return
+    try:
+        asyncio.run(wol.send(mac, broadcast, port))
+    except OSError as exc:
+        _fail(_("Could not send the packet: {error}").format(error=exc))
+    console.print(_("Wake-on-LAN packet sent to {mac}.").format(mac=mac))
+
+
+@app.command("stats")
+def stats_command(
+    days: Annotated[int, typer.Option(min=1, max=3660, help="How many days back.")] = 30,
+    watts: Annotated[
+        str | None, typer.Option(help="Your computer's consumption when on, or auto.")
+    ] = None,
+    price: Annotated[str | None, typer.Option(help="Price of a kWh, or auto.")] = None,
+    currency: Annotated[str | None, typer.Option(help="Currency symbol (€, $…).")] = None,
+) -> None:
+    """Time on and off, and what PowerClock saved by shutting down and suspending."""
+    changes: dict[str, Any] = {}
+    for name, value in (("watts", watts), ("price_kwh", price)):
+        if value is not None:
+            changes[name] = None if value.lower() == "auto" else _number(value)
+    if currency is not None:
+        changes["currency"] = currency
+    with _daemon() as client:
+        if changes:
+            client.patch("/settings", json=changes)
+        found = client.get("/stats", params={"days": days})
+    console.print(savings_text(found))
+
+
+def _number(text: str) -> float:
+    try:
+        return float(text.replace(",", "."))
+    except ValueError:
+        _fail(_("{value} is not a number.").format(value=text))
 
 
 secrets_app = typer.Typer(

@@ -2,7 +2,7 @@ from collections.abc import AsyncIterator
 
 import pytest
 
-from powerclock.engine import Engine
+from powerclock.engine import Engine, wol
 from powerclock.engine.clock import FakeClock
 from powerclock.engine.evaluator import Evaluator
 from powerclock.engine.executor import Executor
@@ -24,6 +24,7 @@ def _no_real_system(monkeypatch: pytest.MonkeyPatch) -> None:
     def forbidden_sync(*args: object, **kwargs: object) -> None:
         raise AssertionError("a unit test tried to run a real system command")
 
+    monkeypatch.setattr(wol, "_udp", forbidden)  # a real Wake-on-LAN packet on the network
     try:
         from powerclock.platform.linux import service
         from powerclock.platform.linux.commands import SystemCommands

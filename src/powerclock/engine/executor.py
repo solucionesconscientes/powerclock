@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, tzinfo
 from typing import Any
 
-from powerclock.engine import variables
+from powerclock.engine import variables, wol
 from powerclock.engine.clock import Clock
 from powerclock.engine.evaluator import Evaluator, describe
 from powerclock.engine.processes import ProcessManager, PsutilProcesses
@@ -47,6 +47,7 @@ from powerclock.models import (
     VolumeStep,
     WaitStep,
     WaitUntilStep,
+    WakeLanStep,
     format_duration,
 )
 from powerclock.platform.base import LaunchRequest, NotSupported, PlatformBackend
@@ -97,6 +98,7 @@ class Executor:
         variables: Mapping[str, str] | None = None,
         secrets: Callable[[], Mapping[str, str]] | None = None,
         http: ClientFactory | None = None,
+        wake_lan: wol.Sender | None = None,
         keep: int = 100,
     ) -> None:
         self._backend = backend
@@ -109,6 +111,7 @@ class Executor:
         self._variables = dict(variables or {})  # {home}, {data}… for every run
         self._secrets = secrets or dict  # tokens by name (telegram_token…), read when used
         self._http = http or default_client
+        self._wake_lan = wake_lan or wol.send
         self._power_lock = asyncio.Lock()  # one power action (and countdown) at a time
         self._active: dict[str, _Active] = {}
         self._background: set[asyncio.Task[Any]] = set()
@@ -359,6 +362,11 @@ class Executor:
                 return await self._wait_until(step, tz, run)
             case SetWakeStep():
                 return await self._set_wake(step)
+            case WakeLanStep():
+                if self._dry_run or rule.dry_run:
+                    return "dry_run", f"dry run: wake_lan {step.mac} not sent"
+                await self._wake_lan(step.mac, step.broadcast, step.port)
+                return "ok", step.mac
         raise StepFailed(f"unknown action {step.type!r}")
 
     # ── Power and countdown ───────────────────────────────────────────────────
@@ -371,6 +379,7 @@ class Executor:
             if self._dry_run or rule.dry_run:
                 log.warning("dry run: %s (%s) not executed", step.action, step.mode)
                 return "dry_run", f"dry run: {step.action} ({step.mode}) not executed"
+            self._emit("power_action", run, action=step.action.value)  # for the statistics
             await self._backend.power(step.action, step.mode)
             return "ok", None
 

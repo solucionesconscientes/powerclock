@@ -87,6 +87,7 @@ from powerclock.models import (
     VolumeStep,
     WaitStep,
     WaitUntilStep,
+    WakeLanStep,
     Weekday,
     WifiSsid,
     model_json_schema,
@@ -157,6 +158,7 @@ ACTIONS: list[type[BaseModel]] = [
     WaitStep,
     WaitUntilStep,
     SetWakeStep,
+    WakeLanStep,
 ]
 HIDDEN = {"type", "armed_at"}  # the discriminator and what the daemon fills in
 PROCESS_MODELS = (ProcessRunning, ProcessExitTrigger, CloseAppStep)  # their `name` is a program
@@ -193,6 +195,7 @@ STARTERS: dict[tuple[str, str], Any] = {
     ("file", "pattern"): "*.pdf",
     ("temperature", "above"): 85,
     ("push", "url"): "https://ntfy.sh/",
+    ("wake_lan", "mac"): "",
     ("push", "message"): "{rule}: {error}",
     ("ask", "title"): "PowerClock",
     ("ask", "buttons"): ["OK"],

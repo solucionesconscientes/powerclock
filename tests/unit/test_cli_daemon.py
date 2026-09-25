@@ -15,6 +15,7 @@ from powerclock.cli import client as api
 from powerclock.cli.main import app
 from powerclock.config import Paths
 from powerclock.daemon.core import Daemon
+from powerclock.engine import wol
 from powerclock.models import RunStep
 from powerclock.platform.fake import FakePlatform
 from powerclock.sensors.fake import FakeReadings
@@ -250,3 +251,32 @@ def test_tariff(daemon: Daemon) -> None:
     assert "es-2.0td" in powerclock("tariff", "es-2.0td")
     assert daemon.settings.tariff == "es-2.0td"
     assert "No tariff" in powerclock("tariff", "none")
+
+
+def test_wake_lan(monkeypatch: pytest.MonkeyPatch) -> None:
+    sent: list[tuple[str, str, int]] = []
+
+    async def send(mac: str, broadcast: str, port: int) -> None:
+        sent.append((mac, broadcast, port))
+
+    monkeypatch.setattr(wol, "send", send)
+    monkeypatch.delenv("POWERCLOCK_DRY_RUN", raising=False)
+    assert "sent to 00:1a:2b:3c:4d:5e" in powerclock("wake-lan", "00:1a:2b:3c:4d:5e")
+    powerclock("wake-lan", "001a2b3c4d5e", "--broadcast", "192.168.1.255", "--port", "7")
+    assert sent == [
+        ("00:1a:2b:3c:4d:5e", "255.255.255.255", 9),
+        ("001a2b3c4d5e", "192.168.1.255", 7),
+    ]
+    assert "not a MAC address" in powerclock_fails("wake-lan", "nas")
+    monkeypatch.setenv("POWERCLOCK_DRY_RUN", "1")
+    assert "TEST MODE" in powerclock("wake-lan", "00:1a:2b:3c:4d:5e")
+    assert len(sent) == 2
+
+
+def test_stats(daemon: Daemon) -> None:
+    assert "has not shut down or suspended" in powerclock("stats")
+    powerclock("stats", "--watts", "45", "--price", "0,21", "--days", "7")
+    assert (daemon.settings.watts, daemon.settings.price_kwh) == (45, 0.21)
+    powerclock("stats", "--watts", "auto")
+    assert daemon.settings.watts is None
+    assert "not a number" in powerclock_fails("stats", "--price", "cheap")

@@ -322,6 +322,8 @@ as `30s`, `5m`, `2h`, `1d` or combined (`1h30m`).
 | `powerclock wake --at TIME` | Turn the computer on at that time (from suspend, or from off if the BIOS allows it). |
 | `powerclock apps [TEXT]` | The installed applications (`launch` opens them by id), with their recipes. |
 | `powerclock recipes [APP]` | Ready-made arguments for common applications. |
+| `powerclock wake-lan MAC [--broadcast IP] [--port 9]` | Turns on another computer on the network now (Wake-on-LAN). |
+| `powerclock stats [--days 30] [--watts W\|auto] [--price P\|auto]` | Hours on and off and what PowerClock saved (estimated; see below). |
 | `powerclock tariff [es-2.0td\|none]` | The electricity tariff for the tariff period condition (only with time-of-use prices). |
 | `powerclock secrets set NAME` · `list` · `rm NAME` | Tokens that steps use by name (`telegram_token`), kept out of `rules.json` in `secrets.json` (0600). |
 | `powerclock status` | What is running, what comes next, what is being watched, and the next wake-up alarm. |
@@ -458,6 +460,7 @@ Combine them with `{"all": [ … ]}`, `{"any": [ … ]}` and `{"not": … }`, ne
 | `wait` | `duration` | Waits. |
 | `wait_until` | `condition` (a predicate), `timeout` (optional) | Waits until the condition holds; fails after `timeout`. |
 | `set_wake` | `when` or `after` | Programs a wake-up (e.g. "wake me up again in 8 h"). |
+| `wake_lan` | `mac`, `broadcast` (`255.255.255.255`), `port` (`9`) | Turns on **another** computer on the local network (Wake-on-LAN): the NAS before the backup, the office PC… Its network card must have it enabled in the BIOS/UEFI. Not sent in test mode. |
 
 **Variables**: in `run` (`cmd`, `cwd`, `env`), `launch` (`args`), `open` and `notify`,
 `{date}` (2026-09-25), `{time}` (07-30), `{datetime}` (2026-09-25_07-30), `{weekday}` (thu),
@@ -570,6 +573,14 @@ national holidays; peak 10–14 and 18–22; flat the rest) and the "Electricity
 condition appears, e.g. to leave backups and downloads for the valley. `powerclock tariff none`
 turns it off.
 
+**Savings (estimated).** PowerClock notes every minute the computer is on; a gap is time off or
+asleep, and if PowerClock shut it down or suspended it just before the gap, that time counts as
+saved. The energy is that time times the computer's consumption when on (minus the 1 W it still
+draws), and the money, times the price of a kWh. Without your figures it uses typical values
+(15 W a laptop, 60 W a desktop, 0.15 €/kWh): set them in Diagnostics → Electricity or with
+`powerclock stats --watts 45 --price 0.18`. The last 30 days are summed up at the top of History.
+It is an estimate: time with PowerClock stopped counts as off.
+
 ## Safety
 
 - **Nothing turns off without warning**: every power action has a cancellable countdown (unless
@@ -608,7 +619,7 @@ virtual machines.
 | File | What it is |
 |---|---|
 | `~/.config/powerclock/rules.json` | Your rules (`{"version": 1, "rules": [ … ]}`). You can edit it by hand: the daemon reloads it within 2 seconds. If it has an error, the daemon keeps the last good rules, shows the error in `powerclock status` and does not write the file until you fix it, so your edit is never lost. |
-| `~/.config/powerclock/daemon.json` | Daemon settings: `port` (default `47831`), `dry_run` (`false`), `log_level` (`info`), `tariff` (`null` or `"es-2.0td"`). |
+| `~/.config/powerclock/daemon.json` | Daemon settings: `port` (default `47831`), `dry_run` (`false`), `log_level` (`info`), `tariff` (`null` or `"es-2.0td"`), `watts` and `price_kwh` (for the savings; `null`: typical values), `currency` (`€`). |
 | `~/.config/powerclock/api.token` | The API's secret token (readable only by you). |
 | `~/.local/share/powerclock/history.sqlite` | The history of runs. |
 | `~/.config/systemd/user/powerclock.service` | The user service (`powerclock service install`). |
@@ -639,6 +650,8 @@ curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
 | GET · PUT · DELETE | `/rules/{id}` | Read · replace · delete. |
 | POST | `/rules/{id}/enable` · `/disable` · `/run` · `/cancel` · `/postpone` | Act on one rule. |
 | GET | `/apps` · `/recipes` | The installed applications (with their recipes) · the recipes. |
+| GET | `/stats?days=30` | Hours on, off and off thanks to PowerClock, actions and estimated savings. |
+| GET · PATCH | `/settings` | The settings that change while running: `tariff`, `watts`, `price_kwh`, `currency`. |
 | POST | `/quick` | A quick action: `action`, `command` or `app` (+ `args`), and `in`, `at`, `when_idle`, `when_exits`, `when_cpu_below`, `when_net_below` (+ `for`), `warning`, `mode`, `wake`, `wake_at`, `dry_run`. |
 | POST | `/wake` | `{"at": "07:30"}`: turn the computer on at that time. |
 | GET | `/pending` | What comes next, what is running, what is watched, the wake-up alarm. |

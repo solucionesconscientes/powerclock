@@ -804,6 +804,19 @@ class SetWakeStep(_Tagged):
         return self
 
 
+MAC_PATTERN = r"^(([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}|[0-9A-Fa-f]{12})$"
+
+
+class WakeLanStep(_Tagged):
+    """Turn on another computer on the local network (Wake-on-LAN): its network card must
+    have it enabled in the BIOS/UEFI and the system (`ethtool -s eth0 wol g`)."""
+
+    type: Literal["wake_lan"] = "wake_lan"
+    mac: str = Field(pattern=MAC_PATTERN)
+    broadcast: str = Field(default="255.255.255.255", min_length=1)
+    port: int = Field(default=9, ge=1, le=65535)
+
+
 Action = Annotated[
     PowerStep
     | RunStep
@@ -822,7 +835,8 @@ Action = Annotated[
     | NotifyStep
     | WaitStep
     | WaitUntilStep
-    | SetWakeStep,
+    | SetWakeStep
+    | WakeLanStep,
     Field(discriminator="type"),
 ]
 

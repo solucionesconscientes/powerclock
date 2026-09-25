@@ -116,7 +116,7 @@ Orden decidido el 25-09-2026: lo que desbloquea más casos de uso, primero.
 - **M15 — Rediseño, fase 4:** editor que se lee como una frase, horarios sin cron, galería de recetas por caso de uso.
 - **M16 — Avisos y respuestas** (✅ hecho el 25-09-2026: `push` con ntfy, Telegram y webhooks; `ask`; `on_failure`; secretos): ntfy primero (sin cuenta ni dependencias nuevas), después Telegram y webhooks de salida; avisos con botones que esperan respuesta; pasos «si algo falla».
 - **M17 — Más disparadores** (✅ hecho el 25-09-2026; falta «franjas propias» para tarifas de otros países): amanecer y anochecer, calendario (ICS) y festivos, tiempo de uso, ficheros y carpetas, dispositivos, `wifi_ssid` como disparador, `temperature`; tarifa de la luz como **ajuste opcional** (desactivado por defecto; España 2.0TD o franjas propias) con la condición «tramo de la luz».
-- **M18 — Varios equipos:** Wake-on-LAN; estadísticas de uso y ahorro (horas apagado, kWh y € estimados).
+- **M18 — Varios equipos** (✅ hecho el 25-09-2026: paso `wake_lan` y `powerclock wake-lan`; `powerclock stats`, resumen en Historial y caja Electricidad en Diagnóstico): Wake-on-LAN; estadísticas de uso y ahorro (horas apagado, kWh y € estimados).
 Pendiente de decidir más adelante: navegador automatizado (Playwright, dependencia nueva), accesibilidad AT-SPI, teclado y ratón virtuales, sesión fantasma.
 
 ## Fase 3 — Windows (v0.3)

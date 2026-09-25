@@ -163,6 +163,18 @@ def create_app(daemon: "Daemon") -> FastAPI:
     async def put_tariff(body: JsonBody) -> dict[str, Any]:
         return daemon.set_tariff(body.get("tariff"))
 
+    @api.get("/settings")
+    async def get_settings() -> dict[str, Any]:
+        return daemon.update_settings({})
+
+    @api.patch("/settings")
+    async def patch_settings(body: JsonBody) -> dict[str, Any]:
+        return daemon.update_settings(body)
+
+    @api.get("/stats")
+    async def stats(days: Annotated[int, Query(ge=1, le=3660)] = 30) -> dict[str, Any]:
+        return await daemon.stats(days)
+
     @api.get("/schema/rule")
     async def schema() -> dict[str, Any]:
         return rule_json_schema()

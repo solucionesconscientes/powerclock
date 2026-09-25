@@ -71,6 +71,15 @@ class Settings(BaseModel):
     dry_run: bool = False
     log_level: Literal["debug", "info", "warning", "error"] = "info"
     tariff: Literal["es-2.0td"] | None = None  # time-of-use electricity prices, if any
+    # For the savings estimate: the computer's average consumption when on and the price of
+    # electricity (None: a typical value is used).
+    watts: float | None = Field(default=None, gt=0, le=5000)
+    price_kwh: float | None = Field(default=None, ge=0, le=10)
+    currency: str = Field(default="€", min_length=1, max_length=5)
+
+
+# What clients may change (PATCH /settings); the rest needs a restart of the daemon.
+USER_SETTINGS = frozenset({"tariff", "watts", "price_kwh", "currency"})
 
 
 class SettingsError(Exception):

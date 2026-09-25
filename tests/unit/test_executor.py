@@ -51,7 +51,7 @@ async def test_actions_run_in_order(
     assert [step.status for step in run.steps] == ["ok", "ok", "ok"]
     assert [call.method for call in fake.calls] == ["notify", "open", "power"]
     assert power_calls(fake) == [FakeCall("power", (PowerAction.LOCK, PowerMode.GRACEFUL))]
-    assert event_types(events) == ["run_started", "run_finished"]
+    assert event_types(events) == ["run_started", "power_action", "run_finished"]
     assert run in executor.recent
 
 
@@ -138,7 +138,7 @@ async def test_countdown_then_power(
     assert power_calls(fake) == [FakeCall("power", (PowerAction.SHUTDOWN, PowerMode.GRACEFUL))]
     ticks = [event.data["remaining"] for event in events if event.type == "tick"]
     assert ticks == list(range(60, 0, -1))
-    assert event_types(events) == ["run_started", "warning_started", "run_finished"]
+    assert event_types(events) == ["run_started", "warning_started", "power_action", "run_finished"]
 
 
 async def test_countdown_notification_offers_cancel_and_postpone(

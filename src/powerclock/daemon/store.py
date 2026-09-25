@@ -5,7 +5,7 @@ import hashlib
 import json
 import logging
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +13,7 @@ from pydantic import ValidationError
 
 from powerclock.config import atomic_write
 from powerclock.engine.runs import Run
+from powerclock.engine.savings import Period
 from powerclock.models import Rule
 
 log = logging.getLogger(__name__)
@@ -172,6 +173,12 @@ class History:
             CREATE INDEX IF NOT EXISTS runs_by_rule ON runs (rule_id, finished_at);
             CREATE INDEX IF NOT EXISTS runs_by_time ON runs (finished_at);
             CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS awake (
+                since TEXT NOT NULL,
+                until TEXT NOT NULL,
+                ended TEXT
+            );
+            CREATE INDEX IF NOT EXISTS awake_by_time ON awake (until);
             """
         )
 
@@ -217,6 +224,49 @@ class History:
                 "INSERT OR REPLACE INTO meta (key, value) VALUES ('last_alive', ?)",
                 (moment.isoformat(),),
             )
+
+    # ── Periods awake (for the savings statistics) ────────────────────────────
+
+    def mark_awake(self, now: datetime, gap: timedelta) -> None:
+        """Still awake: extend the current period, or start a new one after a gap (the
+        computer was off or asleep) or after PowerClock ended the previous one."""
+        row = self._db.execute(
+            "SELECT rowid, until, ended FROM awake ORDER BY rowid DESC LIMIT 1"
+        ).fetchone()
+        with self._db:
+            if row is not None:
+                recent = timedelta(0) <= now - datetime.fromisoformat(row[1]) <= gap
+                if recent and row[2] is not None:
+                    return  # PowerClock is shutting it down: the last marks before it stops
+                if recent:
+                    self._db.execute(
+                        "UPDATE awake SET until = ? WHERE rowid = ?", (now.isoformat(), row[0])
+                    )
+                    return
+            self._db.execute(
+                "INSERT INTO awake (since, until) VALUES (?, ?)", (now.isoformat(), now.isoformat())
+            )
+
+    def mark_ended(self, now: datetime, how: str) -> None:
+        """PowerClock is about to shut down or suspend the computer."""
+        with self._db:
+            self._db.execute(
+                "UPDATE awake SET until = ?, ended = ? "
+                "WHERE rowid = (SELECT MAX(rowid) FROM awake) AND ended IS NULL",
+                (now.isoformat(), how),
+            )
+
+    def awake(self, since: datetime) -> list[Period]:
+        """The periods awake that end after `since`, plus the one before (its gap counts)."""
+        rows = self._db.execute(
+            "SELECT since, until, ended FROM awake WHERE rowid >= COALESCE("
+            "(SELECT MAX(rowid) FROM awake WHERE until < ?), 0) ORDER BY rowid",
+            (since.isoformat(),),
+        ).fetchall()
+        return [
+            Period(datetime.fromisoformat(a), datetime.fromisoformat(b), ended)
+            for a, b, ended in rows
+        ]
 
     def close(self) -> None:
         self._db.close()

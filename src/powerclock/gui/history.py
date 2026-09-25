@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 
 from powerclock.cli.format import local
 from powerclock.gui.client import DaemonLink
+from powerclock.gui.energy import SavingsLabel
 from powerclock.gui.icons import themed
 from powerclock.gui.summary import when_text
 from powerclock.gui.tasks import spawn
@@ -70,13 +71,16 @@ class HistoryTab(QWidget):
         buttons.addStretch(1)
         buttons.addWidget(refresh)
 
+        self.savings = SavingsLabel(link)
         layout = QVBoxLayout(self)
+        layout.addWidget(self.savings)
         layout.addWidget(splitter, 1)
         layout.addLayout(buttons)
         link.event.connect(self._on_event)
 
     def reload(self) -> None:
         spawn(self._load(), self)
+        self.savings.reload()
 
     async def _load(self) -> None:
         data = await self._link.api.get("/history", params={"limit": LIMIT})

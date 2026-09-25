@@ -19,6 +19,7 @@ from powerclock.engine.scheduler import Scheduler
 from powerclock.engine.tariff import Tariff
 from powerclock.engine.wake import WakeNeed, WakePlanner
 from powerclock.engine.watcher import STATE_TRIGGERS, Watcher, WatchStatus, sensor_predicates
+from powerclock.engine.wol import Sender
 from powerclock.models import CalendarTrigger, CountdownTrigger, Rule, StartupTrigger
 from powerclock.platform.base import NotSupported, PlatformBackend, PowerEvent
 from powerclock.sensors.base import NoReadings, Readings
@@ -50,6 +51,7 @@ class Engine:
         variables: Mapping[str, str] | None = None,
         secrets: Callable[[], Mapping[str, str]] | None = None,
         tariff: Callable[[], Tariff | None] | None = None,
+        wake_lan: Sender | None = None,
     ) -> None:
         self.clock = clock or SystemClock()
         self._backend = backend
@@ -69,6 +71,7 @@ class Engine:
             request_wake=request_wake,
             variables=variables,
             secrets=secrets,
+            wake_lan=wake_lan,
         )
         self.scheduler = Scheduler(self.clock, self._on_due, calendars=self.calendars.next_start)
         self.watcher = Watcher(self.sensors, self.clock, self._on_state, self._demand)

@@ -115,6 +115,8 @@ async def test_history_tab(link: DaemonLink) -> None:
     assert [tab.table.item(0, c).text() for c in (1, 2, 3)] == ["Backup", "done", "Manual"]
     tab.table.selectRow(0)
     assert "1. Show a notification: ok" in tab.steps.toPlainText()
+    assert tab.savings.text().startswith("Last 30 days: on ")
+    assert "has not shut down or suspended" in tab.savings.text()
 
 
 # ── Diagnostics ───────────────────────────────────────────────────────────────
@@ -140,6 +142,30 @@ async def test_capabilities_and_status(link: DaemonLink) -> None:
     assert "powerclock " in tab.daemon.text()
     assert tab.alarm.text() == "No wake-up alarm programmed."
     assert tab.start_service.isHidden()
+
+
+async def test_electricity_settings(link: DaemonLink, daemon: Daemon) -> None:
+    tab = diagnostics(link)
+    tab.reload()
+    await pump()
+    energy = tab.energy
+    assert energy.values() == {"tariff": None, "watts": None, "price_kwh": None}
+    assert energy.watts.text() == "Typical"
+    energy.tariff.setCurrentIndex(energy.tariff.findData("es-2.0td"))
+    energy.tariff.activated.emit(1)
+    energy.watts.setValue(45)
+    energy.price.setValue(0.18)
+    energy.price.editingFinished.emit()
+    await pump()
+    assert (daemon.settings.tariff, daemon.settings.watts, daemon.settings.price_kwh) == (
+        "es-2.0td",
+        45,
+        0.18,
+    )
+    shown = diagnostics(link)
+    shown.reload()
+    await pump()
+    assert shown.energy.values() == {"tariff": "es-2.0td", "watts": 45, "price_kwh": 0.18}
 
 
 async def test_desktop_checkboxes(link: DaemonLink) -> None:

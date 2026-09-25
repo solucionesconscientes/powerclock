@@ -340,6 +340,8 @@ escriben `30s`, `5m`, `2h`, `1d` o combinadas (`1h30m`).
 | `powerclock wake --at HORA` | Encender el equipo a esa hora (desde suspensión, o desde apagado si la BIOS lo permite). |
 | `powerclock apps [TEXTO]` | Las aplicaciones instaladas (`launch` las abre por su id), con sus recetas. |
 | `powerclock recipes [APP]` | Argumentos ya preparados para aplicaciones habituales. |
+| `powerclock wake-lan MAC [--broadcast IP] [--port 9]` | Enciende ya otro equipo de la red (Wake-on-LAN). |
+| `powerclock stats [--days 30] [--watts W\|auto] [--price P\|auto]` | Horas encendido y apagado y lo que ha ahorrado PowerClock (estimado; ver abajo). |
 | `powerclock tariff [es-2.0td\|none]` | La tarifa de la luz para la condición de tramo (solo con discriminación horaria). |
 | `powerclock secrets set NOMBRE` · `list` · `rm NOMBRE` | Tokens que los pasos usan por su nombre (`telegram_token`), fuera de `rules.json`, en `secrets.json` (0600). |
 | `powerclock status` | Qué está en marcha, qué viene, qué se vigila y la próxima alarma de encendido. |
@@ -479,6 +481,7 @@ como quieras.
 | `wait` | `duration` | Espera. |
 | `wait_until` | `condition` (un predicado), `timeout` (opcional) | Espera hasta que se cumpla la condición; falla pasado `timeout`. |
 | `set_wake` | `when` o `after` | Programa un encendido (p. ej. "vuelve a despertarme dentro de 8 h"). |
+| `wake_lan` | `mac`, `broadcast` (`255.255.255.255`), `port` (`9`) | Enciende **otro** equipo de la red local (Wake-on-LAN): el NAS antes de la copia, el PC de la oficina… Su tarjeta de red tiene que tenerlo activado en la BIOS/UEFI. En modo prueba no se envía. |
 
 **Variables**: en `run` (`cmd`, `cwd`, `env`), `launch` (`args`), `open` y `notify`, se
 sustituyen al ejecutarse `{date}` (2026-09-25), `{time}` (07-30), `{datetime}`
@@ -596,6 +599,14 @@ festivos nacionales; punta de 10 a 14 y de 18 a 22; llano el resto) y aparecerá
 «Tramo de la tarifa de la luz» para, por ejemplo, dejar las copias y descargas para el valle.
 `powerclock tariff none` la quita.
 
+**El ahorro (estimado).** PowerClock anota cada minuto que el equipo está encendido; un hueco es
+tiempo apagado o en reposo, y si antes del hueco lo apagó o suspendió PowerClock, ese tiempo cuenta
+como ahorro. La energía es ese tiempo por el consumo del equipo encendido (menos 1 W que sigue
+gastando), y el dinero, por el precio del kWh. Sin tus datos usa valores típicos (15 W un portátil,
+60 W un sobremesa, 0,15 €/kWh): ponlos en Diagnóstico → Electricidad o con `powerclock stats
+--watts 45 --price 0.18`. El resumen de los últimos 30 días sale arriba en Historial. Es una
+estimación: el tiempo con PowerClock parado cuenta como apagado.
+
 ## Seguridad
 
 - **Nada se apaga sin avisar**: cada acción de energía tiene una cuenta atrás que se puede cancelar
@@ -635,7 +646,7 @@ Encender desde apagado no suele estar disponible en máquinas virtuales.
 | Archivo | Qué es |
 |---|---|
 | `~/.config/powerclock/rules.json` | Tus reglas (`{"version": 1, "rules": [ … ]}`). Puedes editarlo a mano: PowerClock lo vuelve a cargar en menos de 2 segundos. Si tiene un error, PowerClock mantiene las últimas reglas buenas, muestra el error en `powerclock status` y no escribe el archivo hasta que lo arregles, así nunca se pierde tu edición. |
-| `~/.config/powerclock/daemon.json` | Ajustes del servicio: `port` (por defecto `47831`), `dry_run` (`false`), `log_level` (`info`), `tariff` (`null` o `"es-2.0td"`). |
+| `~/.config/powerclock/daemon.json` | Ajustes del servicio: `port` (por defecto `47831`), `dry_run` (`false`), `log_level` (`info`), `tariff` (`null` o `"es-2.0td"`), `watts` y `price_kwh` (para el ahorro; `null`: valores típicos), `currency` (`€`). |
 | `~/.config/powerclock/api.token` | El token secreto del API (solo lo puedes leer tú). |
 | `~/.local/share/powerclock/history.sqlite` | El historial de ejecuciones. |
 | `~/.config/systemd/user/powerclock.service` | El servicio de usuario (`powerclock service install`). |
@@ -666,6 +677,8 @@ curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
 | GET · PUT · DELETE | `/rules/{id}` | Leer · reemplazar · borrar. |
 | POST | `/rules/{id}/enable` · `/disable` · `/run` · `/cancel` · `/postpone` | Actuar sobre una regla. |
 | GET | `/apps` · `/recipes` | Las aplicaciones instaladas (con sus recetas) · las recetas. |
+| GET | `/stats?days=30` | Horas encendido, apagado y apagado gracias a PowerClock, acciones y ahorro estimado. |
+| GET · PATCH | `/settings` | Los ajustes que se cambian en marcha: `tariff`, `watts`, `price_kwh`, `currency`. |
 | POST | `/quick` | Una acción rápida: `action`, `command` o `app` (+ `args`), y `in`, `at`, `when_idle`, `when_exits`, `when_cpu_below`, `when_net_below` (+ `for`), `warning`, `mode`, `wake`, `wake_at`, `dry_run`. |
 | POST | `/wake` | `{"at": "07:30"}`: encender el equipo a esa hora. |
 | GET | `/pending` | Lo próximo, lo que está en marcha, lo que se vigila y la alarma de encendido. |

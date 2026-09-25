@@ -14,7 +14,6 @@ from PySide6.QtGui import QBrush, QColor, QFontDatabase
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
-    QComboBox,
     QDialog,
     QDialogButtonBox,
     QGroupBox,
@@ -33,6 +32,7 @@ from powerclock.cli.format import local, relative, span
 from powerclock.config import Paths
 from powerclock.doctor import WakeTest, run_wake_test, verdict_message
 from powerclock.gui.client import DaemonLink
+from powerclock.gui.energy import EnergyBox
 from powerclock.gui.icons import themed
 from powerclock.gui.maintenance import MaintenanceBox
 from powerclock.gui.summary import not_running_text, test_mode_text
@@ -156,17 +156,7 @@ class DiagnosticsTab(QWidget):
         self.menu_box.toggled.connect(lambda on: self._set_desktop("set_menu", on))
         self.login_box.toggled.connect(lambda on: self._set_desktop("set_login", on))
 
-        # Electricity tariff (for the tariff_period condition)
-        self.tariff = QComboBox()
-        self.tariff.addItem(_("No time-of-use prices"), None)
-        self.tariff.addItem(_("Spain 2.0TD (peak, flat, valley)"), "es-2.0td")
-        self.tariff.setToolTip(
-            _("Only for contracts with a different price by hour (PVPC or three periods).")
-        )
-        self.tariff.activated.connect(self._tariff_chosen)
-        tariff_box = QGroupBox(_("Electricity tariff"))
-        tariff_layout = QHBoxLayout(tariff_box)
-        tariff_layout.addWidget(self.tariff, 1)
+        self.energy = EnergyBox(link)  # tariff, consumption and price
 
         setup = Setup(service=self._service, helper=self._helper, desktop=self._desktop)
         self.maintenance = maintenance or MaintenanceBox(setup)
@@ -176,7 +166,7 @@ class DiagnosticsTab(QWidget):
         layout.addWidget(checks_box, 1)
         layout.addWidget(wake_box)
         layout.addWidget(desktop_box)
-        layout.addWidget(tariff_box)
+        layout.addWidget(self.energy)
         layout.addWidget(self.maintenance)
 
         link.changed.connect(self.update_status)
@@ -216,15 +206,14 @@ class DiagnosticsTab(QWidget):
         else:
             self.alarm.setText(_("No wake-up alarm programmed."))
         self.install_helper.setEnabled(self._helper is not None)
-        chosen = (link.health or {}).get("tariff") if link.online else None
-        self.tariff.setCurrentIndex(max(0, self.tariff.findData(chosen)))
-        self.tariff.setEnabled(link.online)
+        self.energy.setEnabled(link.online)
 
     def reload(self) -> None:
         spawn(self._load(), self)
 
     async def _load(self) -> None:
         self.show_capabilities(await self._link.api.get("/capabilities"))
+        self.energy.show_settings(await self._link.api.get("/settings"))
 
     def show_capabilities(self, rows: list[dict[str, Any]]) -> None:
         self.table.setRowCount(len(rows))
@@ -238,14 +227,6 @@ class DiagnosticsTab(QWidget):
             self.table.setItem(row, 1, QTableWidgetItem(capability["detail"]))
             self.table.setItem(row, 2, QTableWidgetItem(capability.get("fix_hint") or ""))
         self.table.resizeRowsToContents()
-
-    def _tariff_chosen(self, index: int) -> None:
-        tariff = self.tariff.itemData(index)
-        spawn(self._set_tariff(tariff), self)
-
-    async def _set_tariff(self, tariff: str | None) -> None:
-        await self._link.api.put("/settings/tariff", json={"tariff": tariff})
-        self._link.refresh()
 
     # ── The service ───────────────────────────────────────────────────────────
 
