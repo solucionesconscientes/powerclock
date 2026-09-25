@@ -1,24 +1,25 @@
-"""The countdown before a power action: a small window on top of the others that says what
-is about to happen, with Cancel and Postpone 10 minutes. The desktop notification sent from
-the background offers the same buttons."""
+"""The countdown before a power action: a small window on top of the others with a ring that
+empties as time passes, what is about to happen, and Cancel (the highlighted button: it is
+the safe choice) and Postpone 10 minutes. The desktop notification sent from the background
+offers the same buttons."""
 
 import time
 from datetime import UTC, datetime
 from typing import Any
 
 from PySide6.QtCore import QObject, Qt, QTimer
-from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QHBoxLayout,
     QLabel,
-    QProgressBar,
     QPushButton,
     QVBoxLayout,
 )
 
 from powerclock.cli.format import moment
+from powerclock.gui import style
+from powerclock.gui.cards import Ring
 from powerclock.gui.client import DaemonLink
 from powerclock.gui.icons import app_icon, themed
 from powerclock.gui.tasks import spawn
@@ -43,20 +44,13 @@ class CountdownDialog(QDialog):
         self.setWindowIcon(app_icon())
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
-        icon = QLabel()
-        icon.setPixmap(app_icon().pixmap(48, 48))
+        self.ring = Ring()
         self.headline = QLabel()
-        font = QFont(self.headline.font())
-        font.setPointSizeF(font.pointSizeF() * 1.4)
-        font.setBold(True)
-        self.headline.setFont(font)
+        self.headline.setFont(style.tabular(style.scaled(self.headline.font(), 2, bold=True)))
         self.headline.setWordWrap(True)
         self._rule_name = run.get("rule_name", "")
         self.rule = QLabel()
         self.rule.setWordWrap(True)
-        self.bar = QProgressBar()
-        self.bar.setTextVisible(False)
-        self.bar.setRange(0, 1000)
 
         buttons = QDialogButtonBox()
         self.cancel_button = QPushButton(themed("dialog-cancel"), _("Cancel"))
@@ -66,18 +60,23 @@ class CountdownDialog(QDialog):
         self.cancel_button.clicked.connect(self._cancel)
         self.postpone_button.clicked.connect(self._postpone)
         self.cancel_button.setDefault(True)
+        style.primary(self.cancel_button)
 
         top = QHBoxLayout()
-        top.addWidget(icon, 0, Qt.AlignmentFlag.AlignTop)
+        top.setSpacing(style.SPACE[4])
+        top.addWidget(self.ring, 0, Qt.AlignmentFlag.AlignVCenter)
         texts = QVBoxLayout()
+        texts.addStretch(1)
         texts.addWidget(self.headline)
         texts.addWidget(self.rule)
+        texts.addStretch(1)
         top.addLayout(texts, 1)
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(style.SPACE[4], style.SPACE[4], style.SPACE[4], style.SPACE[4])
+        layout.setSpacing(style.SPACE[4])
         layout.addLayout(top)
-        layout.addWidget(self.bar)
         layout.addWidget(buttons)
-        self.setMinimumWidth(420)
+        self.setMinimumWidth(style.SPACE[7] * 5)  # 445 px
 
         self._timer = QTimer(self)
         self._timer.setInterval(250)
@@ -114,7 +113,7 @@ class CountdownDialog(QDialog):
             self._ended_at = None
         self.headline.setText(countdown_sentence(self._action, seconds))
         left = (self._deadline - datetime.now(UTC)).total_seconds()
-        self.bar.setValue(round(1000 * max(0.0, min(1.0, left / self._total))))
+        self.ring.set(left / self._total, f"{seconds} s")
 
     def reject(self) -> None:  # Esc or the window's close button: cancel, like KShutdown
         self._cancel()

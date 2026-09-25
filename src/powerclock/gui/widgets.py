@@ -12,7 +12,7 @@ from powerclock import recipes
 from powerclock.i18n import _
 from powerclock.models import format_duration, parse_duration
 
-INVALID_STYLE = "QLineEdit { border: 1px solid #da4453; }"
+INVALID_STYLE = "QLineEdit { border: 1px solid #B42323; }"  # Grana: failed
 
 
 class _DurationValidator(QValidator):

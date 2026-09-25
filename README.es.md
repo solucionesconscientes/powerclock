@@ -253,28 +253,40 @@ vez muestra la ventana que ya está en marcha. Cerrar la ventana deja el icono e
 *Ocultar el icono (PowerClock sigue funcionando)*, en su menú, cierra la interfaz (tus reglas
 siguen funcionando en segundo plano).
 
-**Icono de la bandeja.** Su color dice qué pasa: gris (nada programado), azul con un reloj (algo
-programado o vigilando), rojo (hay un aviso en curso) y gris tachado (PowerClock no está
-funcionando en segundo plano). Pasa el ratón por encima para ver lo próximo. Su menú tiene: lo próximo, **Cancelar**,
+**Colores y estados.** Los colores propios solo marcan estados; el resto sigue el tema de tu
+escritorio (claro u oscuro) y su fuente. Cada estado lleva además símbolo y texto: ◷ **Programado**
+(azul crepúsculo), ☀ **Encenderá** (ámbar), ◉ **Vigilando** una condición (lavanda), ◴ **Cuenta
+atrás** (brasa), ✔ **Hecho** (verde), ✘ **Falló** (grana) y ⊘ **Omitido o cancelado** (pizarra).
+
+**Franja «Próximo».** Arriba de la ventana: qué hará PowerClock después y cuándo («Apagar · hoy
+23:30 · dentro de 5 h 12 min · se volverá a encender mañana 07:30»), en el color de su estado, con
+**Posponer 10 min** y **Cancelar**; si PowerClock no está funcionando, lo dice y ofrece
+**Iniciar PowerClock**.
+
+**Icono de la bandeja.** Con los mismos colores: gris (nada programado), azul con un reloj (algo
+programado), lavanda con un ojo (vigilando una condición), ámbar con un sol (va a encender el
+equipo), brasa (hay un aviso en curso) y gris tachado (PowerClock no está funcionando en segundo
+plano). Pasa el ratón por encima para ver lo próximo. Su menú tiene: lo próximo, **Cancelar**,
 **Posponer 10 minutos**, **Ahora ▸** (apagar, reiniciar, suspender, hibernar, bloquear, cerrar
 sesión, apagar la pantalla; las primeras con su cuenta atrás, y bloquear y apagar la pantalla al
 momento), **Programar…**, **Abrir PowerClock** y **Ocultar el icono**. Un clic izquierdo abre la
 ventana.
 
-**Pestaña Rápido** (como KShutdown): elige una **Acción** (cualquier acción de energía o
-*Ejecutar un programa*), **Cuándo** (ahora, en una fecha y hora, dentro de un tiempo, tras un
-tiempo sin usar el equipo, cuando termine un programa — elígelo entre los que están en marcha o
-escribe su nombre o su PID —, cuando el equipo quede en reposo (CPU por debajo de…), cuando termine
-la descarga (red por debajo de…), con cuánto tiempo debe durar), **Avisar antes**, si **forzar**
-(sin esperar a que las aplicaciones guarden) y **Volver a encenderlo a las** una hora. El botón
-dice lo que hará (*Apagar ahora*, *Programar apagado*…). Debajo, **Programado** muestra las acciones
-rápidas que aún no han actuado, cada una con
-**Cancelar** y, si tiene hora, **+10 min**. En las que esperan una condición se ve lo que mide el
+**Pestaña Rápido** (como KShutdown): **Qué hacer** son botones con icono (apagar, reiniciar,
+suspender, hibernar, híbrida, bloquear, cerrar sesión, pantalla, un programa o una aplicación);
+**Cuándo** se elige entre *Ahora*, *A las*, *Dentro de* y *Cuando…*, que abre las condiciones: tras
+un tiempo sin usar el equipo, cuando termine un programa — elígelo entre los que están en marcha o
+escribe su nombre o su PID —, cuando el equipo quede en reposo (CPU por debajo de…) o cuando termine
+la descarga (red por debajo de…), con cuánto tiempo debe durar. Después, **Avisar antes**, si
+**forzar** (sin esperar a que las aplicaciones guarden) y **Volver a encenderlo a las** una hora.
+El único botón destacado dice lo que hará (*Apagar ahora*, *Programar apagado*…). A la derecha,
+**Programado** muestra en tarjetas las acciones rápidas que aún no han actuado, con su estado,
+**Cancelar** y, si tiene hora, **Posponer 10 min**. En las que esperan una condición se ve lo que mide el
 sensor en ese momento ("ffmpeg está en marcha", "inactivo desde hace 5m 12s", "CPU 35 % · midiendo:
 2m de 5m").
 
 **Pestaña Reglas.** Todas las reglas, con una casilla para activarlas o desactivarlas, cuándo
-actúan, lo próximo y su id. **Nueva…**, **Editar…** (o doble clic), **Ejecutar ahora**,
+actúan y lo próximo con su estado (el id sale al pasar el ratón por el nombre). **Nueva…**, **Editar…** (o doble clic), **Ejecutar ahora**,
 **Borrar**, **Importar…** y **Exportar…** (archivos JSON).
 
 **Editor de reglas.** Pestañas *Cuándo* (nombre, activada y cuándo actúa), *Solo si…* (las
@@ -286,7 +298,8 @@ pestaña, así que puedes editar en cualquiera de las dos. Las condiciones más 
 lista (un *any*, grupos anidados) se conservan y se editan como JSON dentro del formulario. Los
 errores se explican antes de guardar (por ejemplo, que apagar debe ser el último paso).
 
-**Pestaña Historial.** Todas las ejecuciones con cuándo terminaron, la regla, el resultado, su
+**Pestaña Historial.** Arriba, el resumen de los últimos 30 días (horas encendido y apagado y lo
+ahorrado). Debajo, todas las ejecuciones con cuándo terminaron, la regla, el resultado (✔ ✘ ⊘), su
 origen y el motivo; elige una para ver sus pasos y su salida.
 
 **Pestaña Diagnóstico.** Si PowerClock está funcionando en segundo plano (y un botón para
@@ -294,13 +307,15 @@ iniciarlo), todo lo que comprueba `powerclock doctor`, con nombres claros y cóm
 funciona, la próxima alarma de encendido, **Permitir encender el equipo…** (muestra las órdenes
 exactas y las ejecuta pidiendo tu contraseña en una ventana del escritorio), **Probar un despertar dentro de 2 minutos…** y dos
 casillas: *Mostrar PowerClock en el menú de aplicaciones* e *Iniciar el icono de la bandeja al iniciar la
-sesión*.
+sesión*, y **Electricidad**: la tarifa (solo con discriminación horaria), el consumo del equipo y
+el precio del kWh para calcular el ahorro.
 
 **Ventana de aviso.** Aparece por encima de las demás cuando una acción de energía está a punto de
-ocurrir y dice qué va a pasar («El equipo se apagará en 42 s») y que puedes cancelarlo hasta el
-último segundo: **Cancelar** (o Esc) y **Posponer 10 minutos**.
+ocurrir: un anillo que se vacía con los segundos en grande, qué va a pasar («El equipo se apagará
+en 42 s») y que puedes cancelarlo hasta el último segundo. **Cancelar** (o Esc) es el botón
+destacado, porque es lo seguro; al lado, **Posponer 10 minutos**.
 
-La interfaz sigue los colores, los iconos y el modo claro u oscuro de tu escritorio. Instalada con
+La interfaz sigue los colores, los iconos, la fuente y el modo claro u oscuro de tu escritorio. Instalada con
 pipx, Qt dibuja los controles con su propio estilo *Fusion*; mira
 [aspecto nativo en KDE](#aspecto-nativo-en-kde) para tener Breeze exacto.
 

@@ -44,6 +44,15 @@ def dry_run_requested() -> bool:
     return any(os.environ.get(n, "").strip().lower() in {"1", "true", "yes", "on"} for n in names)
 
 
+def desktop_font() -> tuple[str, float] | None:
+    """The desktop's font (family, points), for the GUI; None when it cannot be known."""
+    if current_os() == "linux":
+        from powerclock.platform.linux.look import desktop_font as linux_font
+
+        return linux_font()
+    return None  # Windows and macOS: Qt already uses the system font
+
+
 def get_backend(name: str | None = None, *, dry_run: bool | None = None) -> PlatformBackend:
     """Return the backend `name`, else the one in $POWERCLOCK_BACKEND, else the current OS's.
 

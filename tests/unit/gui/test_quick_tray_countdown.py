@@ -117,16 +117,15 @@ async def test_submit_cancel_and_postpone(link: DaemonLink, errors: list[Excepti
     tab.submit()
     await pump()
     assert names(link) == ["Shut down in 30m", "Suspend after 20m without use"]
-    assert tab.pending.rowCount() == 2
-    timed = tab.pending.cellWidget(0, 2)
-    watched = tab.pending.cellWidget(1, 2)
-    assert len(timed.findChildren(type(tab.ok))) == 2  # Cancel and +10 min
-    assert len(watched.findChildren(type(tab.ok))) == 1  # Cancel only
-    postpone = timed.findChildren(type(tab.ok))[1]
-    postpone.click()
+    timed, watched = tab.cards
+    assert timed.badge.text() == "◷ Scheduled"
+    assert watched.badge.text() == "◉ Watching"
+    assert [b.text() for b in timed.buttons] == ["Postpone 10 min", "Cancel"]
+    assert [b.text() for b in watched.buttons] == ["Cancel"]  # no time to postpone
+    timed.buttons[0].click()
     await pump()
     assert link.pending["next"][0]["at"] == "2026-09-24T08:40:00Z"
-    watched.findChildren(type(tab.ok))[0].click()
+    watched.buttons[0].click()
     await pump()
     assert names(link) == ["Shut down in 30m"]
     assert errors == []

@@ -38,6 +38,9 @@ def application() -> "QApplication":
     app.setApplicationName("powerclock")
     app.setApplicationDisplayName("PowerClock")
     app.setDesktopFileName("powerclock")  # Wayland: matches powerclock.desktop and its icon
+    from powerclock.gui import style
+
+    style.apply(app)  # the desktop's font
     translator = QTranslator(app)
     folder = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
     if translator.load(QLocale.system(), "qtbase", "_", folder):

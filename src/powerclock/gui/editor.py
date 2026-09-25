@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from powerclock.connection import format_detail
-from powerclock.gui import forms, widgets
+from powerclock.gui import forms, style, widgets
 from powerclock.gui.client import DaemonLink
 from powerclock.gui.forms import ActionEditor, EditorList, ModelForm, PredicateEditor, TriggerEditor
 from powerclock.gui.icons import app_icon
@@ -120,7 +120,7 @@ class RuleEditor(QDialog):
 
         self.error = QLabel()
         self.error.setWordWrap(True)
-        self.error.setStyleSheet("color: #da4453;")
+        self.error.setStyleSheet(f"color: {style.text_color('failed').name()};")
         self.error.hide()
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel

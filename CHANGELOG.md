@@ -41,6 +41,10 @@ The first release, for Linux.
   started before the session; `run` now gets the session's variables too. `{date}`, `{time}`…
   in commands, file names and notifications; a `desktop_session` trigger and condition;
   `powerclock apps` and `powerclock recipes`.
+- **A new look**: the «Next» band at the top says what PowerClock will do next and when; actions
+  are buttons, "When" is a choice of four, what is scheduled shows as cards, and the countdown
+  has a ring. States have their own colours ("night and dawn"), always with a symbol and a word;
+  new tray icons for watching and turning on; the desktop's font on Plasma and GNOME.
 - **Other computers and savings**: a `wake_lan` step and `powerclock wake-lan` turn on another
   computer on the network (Wake-on-LAN); `powerclock stats` and the History tab show the hours
   on and off and what PowerClock saved by shutting down and suspending (kWh and money, with

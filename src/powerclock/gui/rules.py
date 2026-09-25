@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from powerclock.cli.format import relative, watch_detail
+from powerclock.gui import style
 from powerclock.gui.client import DaemonLink
 from powerclock.gui.editor import RuleEditor
 from powerclock.gui.icons import themed
@@ -49,11 +50,12 @@ class RulesTab(QWidget):
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.setColumnHidden(4, True)  # technical: the id is in the name's tooltip
         self.table.itemChanged.connect(self._toggled)
         self.table.itemDoubleClicked.connect(lambda _item: self.edit())
         self.table.itemSelectionChanged.connect(self._update_buttons)
 
-        self.new_button = _button("list-add", _("New…"), self.new)
+        self.new_button = style.primary(_button("list-add", _("New…"), self.new))
         self.edit_button = _button("document-edit", _("Edit…"), self.edit)
         self.run_button = _button("media-playback-start", _("Run now"), self.run)
         self.delete_button = _button("edit-delete", _("Delete"), self.delete)
@@ -95,7 +97,9 @@ class RulesTab(QWidget):
             )
             enabled.setToolTip(_("Enabled"))
             self.table.setItem(row, 0, enabled)
-            self.table.setItem(row, 1, _cell(rule["name"]))
+            name = _cell(rule["name"])
+            name.setToolTip(f"{rule['name']}\n{_('Id:')} {rule['id']}")
+            self.table.setItem(row, 1, name)
             self.table.setItem(row, 2, _cell(describe_trigger(rule["trigger"])))
             self.table.setItem(row, 3, QTableWidgetItem(""))
             self.table.setItem(row, 4, QTableWidgetItem(rule["id"]))
@@ -112,18 +116,22 @@ class RulesTab(QWidget):
         running = {run["rule_id"] for run in pending.get("active", [])}
         for row, rule in enumerate(self.rules):
             rule_id = rule["id"]
+            tone: style.State | None = None
             if rule_id in running:
-                text = _("running")
+                tone, text = "countdown", _("running")
             elif rule_id in upcoming:
-                text = f"{when_text(upcoming[rule_id])} ({relative(upcoming[rule_id])})"
+                when = upcoming[rule_id]
+                tone, text = "scheduled", f"{when_text(when)} ({relative(when)})"
             elif rule_id in watched:
-                text = f"👁 {watch_detail(watched[rule_id])}"
+                tone, text = "watching", watch_detail(watched[rule_id])
             else:
                 text = ""
             item = self.table.item(row, 3)
             if item is not None:
-                item.setText(text)
+                item.setText(style.badge(tone, text) if tone else text)
                 item.setToolTip(text)
+                if tone is not None:
+                    item.setForeground(style.text_color(tone))
 
     def selected(self) -> dict[str, Any] | None:
         rows = self.table.selectionModel().selectedRows() if self.table.selectionModel() else []

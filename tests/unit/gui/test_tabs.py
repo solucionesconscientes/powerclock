@@ -112,7 +112,7 @@ async def test_history_tab(link: DaemonLink) -> None:
     tab.reload()
     await pump()
     assert tab.table.rowCount() == 1
-    assert [tab.table.item(0, c).text() for c in (1, 2, 3)] == ["Backup", "done", "Manual"]
+    assert [tab.table.item(0, c).text() for c in (1, 2, 3)] == ["Backup", "✔ done", "Manual"]
     tab.table.selectRow(0)
     assert "1. Show a notification: ok" in tab.steps.toPlainText()
     assert tab.savings.text().startswith("Last 30 days: on ")
@@ -278,12 +278,16 @@ async def test_wake_test_can_be_cancelled(link: DaemonLink) -> None:
 
 async def test_window_tabs_and_offline_banner(link: DaemonLink) -> None:
     window = MainWindow(link)
-    assert window.banner.isHidden()
+    assert window.band.state == "idle"
+    assert window.band.title.text() == "Nothing scheduled"
+    assert window.band.start.isHidden()
+    assert (window.width(), window.height()) == (987, 610)  # a golden rectangle
     window.show_tab("history")
     assert window.tabs.currentWidget() is window.history
     link._offline("gone")
-    assert not window.banner.isHidden()
-    assert window.statusBar().currentMessage() == "PowerClock isn't running"
+    assert window.band.state == "offline"
+    assert window.band.title.text() == "PowerClock isn't running"
+    assert not window.band.start.isHidden()
     window.close()
 
 

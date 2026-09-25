@@ -241,25 +241,38 @@ brings up the window that is already running. Closing the window leaves the tray
 icon (PowerClock keeps working)* in its menu quits the interface (your rules keep running in the
 background).
 
-**Tray icon.** Its colour says what is going on: grey (nothing scheduled), blue with a clock
-(something scheduled or being watched), red (a countdown is running), grey and crossed out
-(PowerClock is not running in the background). Hover it to see what comes next. Its menu has: what comes next,
+**Colours and states.** PowerClock's own colours only mark states; everything else follows your
+desktop's theme (light or dark) and font. Every state also has a symbol and a word: ◷
+**Scheduled** (dusk blue), ☀ **Will turn on** (amber), ◉ **Watching** a condition (lavender), ◴
+**Countdown** (ember), ✔ **Done** (green), ✘ **Failed** (crimson) and ⊘ **Skipped or cancelled**
+(slate).
+
+**The «Next» band.** At the top of the window: what PowerClock will do next and when ("Shut down ·
+today 23:30 · in 5 h 12 min · turns the computer back on tomorrow 07:30"), in its state's colour,
+with **Postpone 10 min** and **Cancel**; if PowerClock is not running, it says so and offers
+**Start PowerClock**.
+
+**Tray icon.** In the same colours: grey (nothing scheduled), blue with a clock (something
+scheduled), lavender with an eye (watching a condition), amber with a sun (it will turn the
+computer on), ember (a countdown is running) and grey crossed out (PowerClock is not running in
+the background). Hover it to see what comes next. Its menu has: what comes next,
 **Cancel**, **Postpone 10 minutes**, **Now ▸** (shut down, restart, suspend, hibernate, lock, log
 out, turn off the screen; the first ones with their countdown, locking and screen off at once),
 **Schedule…**, **Open PowerClock** and **Hide the icon**. A left click opens the window.
 
-**Quick tab** (like KShutdown): choose an **Action** (any power action or *Run a program*),
-**When** (now, at a date and time, after a delay, after a period without use, when a program ends
-— pick it from the running ones or type its name or PID —, when the computer goes quiet (CPU
-below…), when the download finishes (network below…), with how long it must last), **Warn me
-first**, whether to **force** (without waiting for applications to save) and **Turn it back on at**
-a time. The button says what it will do (*Shut down now*, *Schedule shutdown*…). Below,
-**Scheduled** lists the quick actions not done yet, each with **Cancel**
-and, if it has a time, **+10 min**. For the ones waiting for a condition it shows what the sensor
+**Quick tab** (like KShutdown): **What to do** is a set of buttons with icons (shut down,
+restart, suspend, hibernate, hybrid, lock, log out, screen off, a program or an application);
+**When** is one of *Now*, *At a time*, *In a while* and *When…*, which opens the conditions: after a
+period without use, when a program ends — pick it from the running ones or type its name or PID —,
+when the computer goes quiet (CPU below…) or when the download finishes (network below…), with how
+long it must last. Then **Warn me first**, whether to **force** (without waiting for applications
+to save) and **Turn it back on at** a time. The one highlighted button says what it will do (*Shut
+down now*, *Schedule shutdown*…). On the right, **Scheduled** shows the quick actions not done yet
+as cards, with their state, **Cancel** and, if they have a time, **Postpone 10 min**. For the ones waiting for a condition it shows what the sensor
 sees now ("ffmpeg is running", "idle for 5m 12s", "CPU 35 % · measuring: 2m of 5m").
 
-**Rules tab.** Every rule with a checkbox to enable or disable it, when it fires, what comes next
-and its id. **New…**, **Edit…** (or double click), **Run now**, **Delete**, **Import…** and
+**Rules tab.** Every rule with a checkbox to enable or disable it, when it fires and what comes
+next with its state (hover the name to see its id). **New…**, **Edit…** (or double click), **Run now**, **Delete**, **Import…** and
 **Export…** (JSON files).
 
 **Rule editor.** Tabs *When* (name, enabled, and when it acts), *Only if…* (the conditions that
@@ -270,20 +283,24 @@ more complex than a list (an *any*, nested groups) are kept and can be edited as
 form. Mistakes are explained before saving (for example, that shutting down must be the last
 step).
 
-**History tab.** Every run with when it finished, the rule, the result, its source and the reason;
+**History tab.** At the top, the last 30 days in brief (hours on and off and what was saved).
+Below, every run with when it finished, the rule, the result (✔ ✘ ⊘), its source and the reason;
 select one to see its steps and their output.
 
 **Diagnostics tab.** Whether PowerClock is running in the background (and a button to start
 it), everything `powerclock doctor` checks, by name, with how to fix what does not work, the next
 wake-up alarm, **Allow turning the computer on…** (shows the exact commands and runs them asking
 for your password in a desktop window), **Test a wake-up in 2 minutes…** and two checkboxes: *Show PowerClock in the
-applications menu* and *Start the tray icon when the session starts*.
+applications menu* and *Start the tray icon when the session starts*, and **Electricity**: the
+tariff (only with time-of-use prices), the computer's consumption and the price of a kWh to
+estimate the savings.
 
-**Warning window.** Appears on top of the others when a power action is about to happen and says
-what will happen ("The computer will shut down in 42 s") and that you can cancel it until the last
-second: **Cancel** (or Esc) and **Postpone 10 minutes**.
+**Warning window.** Appears on top of the others when a power action is about to happen: a ring
+that empties with the seconds in large type, what will happen ("The computer will shut down in
+42 s") and that you can cancel it until the last second. **Cancel** (or Esc) is the highlighted
+button, because it is the safe choice; next to it, **Postpone 10 minutes**.
 
-The interface follows your desktop's colours, icons and light or dark mode. Installed with pipx,
+The interface follows your desktop's colours, icons, font and light or dark mode. Installed with pipx,
 Qt draws the controls in its own *Fusion* style; see
 [native look on KDE](#native-look-on-kde) to get Breeze exactly.
 

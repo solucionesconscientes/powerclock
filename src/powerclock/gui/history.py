@@ -3,7 +3,7 @@
 from typing import Any
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QBrush, QColor
+from PySide6.QtGui import QBrush
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QHBoxLayout,
@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from powerclock.cli.format import local
+from powerclock.gui import style
 from powerclock.gui.client import DaemonLink
 from powerclock.gui.energy import SavingsLabel
 from powerclock.gui.icons import themed
@@ -27,12 +28,6 @@ from powerclock.i18n import _
 from powerclock.labels import cause_label, detail_label, kind_label, reason_label, state_label
 
 LIMIT = 200
-STATE_COLORS = {
-    "done": "#27ae60",
-    "failed": "#da4453",
-    "cancelled": "#f67400",
-    "skipped": "#7f8c8d",
-}
 
 
 class HistoryTab(QWidget):
@@ -90,9 +85,11 @@ class HistoryTab(QWidget):
         self.runs = runs
         self.table.setRowCount(len(runs))
         for row, run in enumerate(runs):
-            state = QTableWidgetItem(state_label(run["state"]))
-            if run["state"] in STATE_COLORS:
-                state.setForeground(QBrush(QColor(STATE_COLORS[run["state"]])))
+            tone = style.RUN_TONES.get(run["state"])
+            text = state_label(run["state"])
+            state = QTableWidgetItem(style.badge(tone, text) if tone else text)
+            if tone is not None:
+                state.setForeground(QBrush(style.text_color(tone)))
             cause = cause_label(run["cause"]) + (" · " + _("late") if run.get("missed") else "")
             cells = [
                 QTableWidgetItem(when_text(run.get("finished_at"))),

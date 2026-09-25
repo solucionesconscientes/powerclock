@@ -8,7 +8,7 @@ from typing import Literal
 
 from PySide6.QtGui import QIcon
 
-TrayState = Literal["idle", "scheduled", "countdown", "offline"]
+TrayState = Literal["idle", "scheduled", "watching", "wake", "countdown", "offline"]
 
 
 def path(name: str) -> Path:

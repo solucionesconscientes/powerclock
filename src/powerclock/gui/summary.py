@@ -7,10 +7,11 @@ from typing import Any
 
 from powerclock.cli.format import moment, relative, watch_detail
 from powerclock.gui.icons import TrayState
-from powerclock.i18n import _
+from powerclock.i18n import _, can_cancel_text
 from powerclock.labels import reason_label
 
 QUICK_PREFIX = "quick-"
+WAKE_FIRST = timedelta(minutes=5)  # a wake alarm this much before the next rule is "for it"
 
 
 @dataclass(frozen=True)
@@ -28,10 +29,12 @@ class Item:
 @dataclass(frozen=True)
 class Summary:
     state: TrayState
-    headline: str
+    headline: str  # one line: the tray's tooltip and menu
     countdown: dict[str, Any] | None = None  # the run counting down, if any
     quick: list[Item] = field(default_factory=list)
     upcoming: int = 0  # timed or watched rules, quick or not
+    title: str = ""  # the «Next» band: what…
+    detail: str = ""  # …and when
 
     @property
     def can_cancel(self) -> bool:
@@ -46,7 +49,8 @@ class Summary:
 
 def summarize(online: bool, pending: dict[str, Any], now: datetime | None = None) -> Summary:
     if not online:
-        return Summary("offline", _("PowerClock isn't running"))
+        text = _("PowerClock isn't running")
+        return Summary("offline", text, title=text, detail=not_running_text())
     now = now or datetime.now(UTC)
     active = pending.get("active", [])
     upcoming = pending.get("next", [])
@@ -54,20 +58,40 @@ def summarize(online: bool, pending: dict[str, Any], now: datetime | None = None
     countdown = next((run for run in active if run.get("state") == "warning"), None)
     quick = quick_items(pending, now)
     total = len(upcoming) + len(watching)
+    wake = moment((pending.get("wake") or {}).get("at"))
     if countdown is not None:
-        return Summary(
-            "countdown", countdown_text(countdown, now), countdown, quick, upcoming=total
-        )
+        text = countdown_text(countdown, now)
+        deadline = moment(countdown.get("deadline"))
+        seconds = max(0, round((deadline - now).total_seconds())) if deadline else 0
+        detail = remaining_text(seconds)
+        return Summary("countdown", text, countdown, quick, total, countdown["rule_name"], detail)
+    first_at = moment(upcoming[0]["at"]) if upcoming else None
+    if wake is not None and wake > now and (first_at is None or wake < first_at - WAKE_FIRST):
+        title = _("Turn the computer on")
+        when = f"{when_text(wake, now)} · {relative(wake, now)}"
+        return Summary("wake", f"{title} · {relative(wake, now)}", None, quick, total, title, when)
     if upcoming:
         first = upcoming[0]
         headline = f"{first['name']} · {relative(first['at'], now)}"
-    elif watching:
-        headline = f"{watching[0]['name']} · {watch_detail(watching[0])}"
-    elif active:
-        headline = f"{active[0]['rule_name']} · {_('running')}"
-    else:
-        return Summary("idle", _("Nothing scheduled"), quick=quick)
-    return Summary("scheduled", headline, quick=quick, upcoming=total)
+        detail = f"{when_text(first['at'], now)} · {relative(first['at'], now)}"
+        if wake is not None and first_at is not None and wake > first_at:
+            detail += " · " + _("turns the computer back on {when}").format(
+                when=when_text(wake, now)
+            )
+        return Summary("scheduled", headline, None, quick, total, first["name"], detail)
+    if watching:
+        detail = watch_detail(watching[0])
+        headline = f"{watching[0]['name']} · {detail}"
+        return Summary("watching", headline, None, quick, total, watching[0]["name"], detail)
+    if active:
+        name = active[0]["rule_name"]
+        return Summary(
+            "scheduled", f"{name} · {_('running')}", None, quick, total, name, _("running")
+        )
+    text = _("Nothing scheduled")
+    return Summary(
+        "idle", text, quick=quick, title=text, detail=_("Nothing will turn off or on by itself.")
+    )
 
 
 def not_running_text() -> str:
@@ -91,6 +115,11 @@ def when_text(value: str | datetime | None, now: datetime | None = None) -> str:
     if here.date() == today + timedelta(days=1):
         return _("tomorrow {time}").format(time=clock)
     return here.strftime("%Y-%m-%d %H:%M")
+
+
+def remaining_text(seconds: int) -> str:
+    """The «Next» band during a countdown."""
+    return _("acts in {seconds} s").format(seconds=seconds) + " · " + can_cancel_text()
 
 
 def countdown_text(run: dict[str, Any], now: datetime | None = None) -> str:
@@ -118,6 +147,6 @@ def quick_items(pending: dict[str, Any], now: datetime | None = None) -> list[It
             items.append(Item(entry["rule_id"], entry["name"], detail))
     for watch in pending.get("watching", []):
         if watch["rule_id"].startswith(QUICK_PREFIX) and watch["rule_id"] not in seen:
-            detail = f"👁 {watch_detail(watch)}"
+            detail = watch_detail(watch)
             items.append(Item(watch["rule_id"], watch["name"], detail, watched=True))
     return items

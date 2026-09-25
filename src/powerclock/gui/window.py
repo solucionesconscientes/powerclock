@@ -1,27 +1,28 @@
-"""The main window: Quick, Rules, History and Diagnostics tabs, and a banner when PowerClock
-is not running in the background. It is created when opened and destroyed when closed (the
-tray stays)."""
+"""The main window: the «Next» band on top (what PowerClock will do next and when, or that it
+isn't running), then the Quick, Rules, History and Diagnostics tabs. It is created when
+opened and destroyed when closed (the tray stays)."""
+
+from typing import Any
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
-    QFrame,
-    QHBoxLayout,
-    QLabel,
     QMainWindow,
-    QPushButton,
     QTabWidget,
     QVBoxLayout,
     QWidget,
 )
 
+from powerclock.gui import style
+from powerclock.gui.cards import NextBand, scrollable
 from powerclock.gui.client import DaemonLink
 from powerclock.gui.diagnostics import DiagnosticsTab
 from powerclock.gui.history import HistoryTab
 from powerclock.gui.icons import app_icon, themed
 from powerclock.gui.quick import QuickTab
 from powerclock.gui.rules import RulesTab
-from powerclock.gui.summary import not_running_text, summarize
+from powerclock.gui.summary import remaining_text, summarize
+from powerclock.gui.tasks import spawn
 from powerclock.i18n import _
 
 LIVE_REFRESH = 5000  # ms: what the sensors see (CPU, network…) while the window is open
@@ -44,33 +45,30 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.quick, themed("chronometer"), _("Quick"))
         self.tabs.addTab(self.rules, themed("view-list-details"), _("Rules"))
         self.tabs.addTab(self.history, themed("view-history"), _("History"))
-        self.tabs.addTab(self.diagnostics, themed("help-about"), _("Diagnostics"))
+        self.tabs.addTab(scrollable(self.diagnostics), themed("help-about"), _("Diagnostics"))
         self.tabs.currentChanged.connect(self._load_tab)
 
-        self.banner = QFrame()
-        self.banner.setStyleSheet(
-            "QFrame { background: #fdecea; border: 1px solid #da4453; border-radius: 4px; }"
-            "QLabel { border: none; color: #232629; }"
+        self.band = NextBand()
+        self.band.start.clicked.connect(self._start_service)
+        self.band.cancel.clicked.connect(lambda: spawn(link.api.post("/cancel"), self))
+        self.band.postpone.clicked.connect(
+            lambda: spawn(link.api.post("/postpone", json={"delay": "10m"}), self)
         )
-        banner_layout = QHBoxLayout(self.banner)
-        self.banner_text = QLabel()
-        self.banner_text.setWordWrap(True)
-        start = QPushButton(themed("media-playback-start"), _("Start PowerClock"))
-        start.clicked.connect(self._start_service)
-        banner_layout.addWidget(self.banner_text, 1)
-        banner_layout.addWidget(start)
 
         central = QWidget()
         layout = QVBoxLayout(central)
-        layout.addWidget(self.banner)
+        layout.setContentsMargins(style.SPACE[3], style.SPACE[3], style.SPACE[3], style.SPACE[3])
+        layout.setSpacing(style.SPACE[3])
+        layout.addWidget(self.band)
         layout.addWidget(self.tabs, 1)
         self.setCentralWidget(central)
-        self.resize(760, 620)
+        self.resize(*style.WINDOW)
 
         self._timer = QTimer(self)
         self._timer.setInterval(LIVE_REFRESH)
         self._timer.timeout.connect(link.refresh)
         link.changed.connect(self._update)
+        link.event.connect(self._on_event)
         self._update()
         self._load_tab(0)
 
@@ -89,12 +87,16 @@ class MainWindow(QMainWindow):
 
     def _update(self) -> None:
         link = self._link
-        self.banner.setVisible(not link.online)
-        self.banner_text.setText(not_running_text())
-        summary = summarize(link.online, link.pending)
-        self.statusBar().showMessage(summary.headline)
+        self.summary = summarize(link.online, link.pending)
+        self.band.show_summary(self.summary)
         dry = link.online and bool(link.health and link.health.get("dry_run"))
         self.setWindowTitle("PowerClock" + (" — " + _("test mode") if dry else ""))
+
+    def _on_event(self, event: dict[str, Any]) -> None:
+        countdown = self.summary.countdown
+        if event.get("type") == "tick" and countdown is not None:
+            seconds = event.get("data", {}).get("remaining", 0)
+            self.band.show_remaining(remaining_text(seconds))
 
     def _load_tab(self, index: int) -> None:
         if not self._link.online:

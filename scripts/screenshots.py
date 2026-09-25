@@ -154,6 +154,9 @@ async def shoot(language: str) -> None:
     out = OUT / language
     out.mkdir(parents=True, exist_ok=True)
     app = QApplication(["powerclock-gui"])
+    from powerclock.gui import style
+
+    style.apply(app)  # the desktop's font, as the app does
     translator = QTranslator(app)
     folder = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
     if translator.load(QLocale.system(), "qtbase", "_", folder):
@@ -210,7 +213,7 @@ async def shoot(language: str) -> None:
     await pump(app, 1.5)
     window = controller.window
     assert window is not None
-    window.resize(860, 620)
+    window.resize(*style.WINDOW)
     for name in ("quick", "rules", "history", "diagnostics"):
         window.show_tab(name)
         await pump(app, 0.8)

@@ -10,7 +10,7 @@ from types import ModuleType
 from typing import Any
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QBrush, QColor, QFontDatabase
+from PySide6.QtGui import QBrush, QFontDatabase
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
 from powerclock.cli.format import local, relative, span
 from powerclock.config import Paths
 from powerclock.doctor import WakeTest, run_wake_test, verdict_message
+from powerclock.gui import style
 from powerclock.gui.client import DaemonLink
 from powerclock.gui.energy import EnergyBox
 from powerclock.gui.icons import themed
@@ -221,8 +222,8 @@ class DiagnosticsTab(QWidget):
             mark = "✔" if capability["supported"] else "✘"
             name = QTableWidgetItem(f"{mark} {capability_label(capability['id'])}")
             name.setToolTip(capability["id"])
-            color = "#27ae60" if capability["supported"] else "#da4453"
-            name.setForeground(QBrush(QColor(color)))
+            tone = "done" if capability["supported"] else "failed"
+            name.setForeground(QBrush(style.text_color(tone)))
             self.table.setItem(row, 0, name)
             self.table.setItem(row, 1, QTableWidgetItem(capability["detail"]))
             self.table.setItem(row, 2, QTableWidgetItem(capability.get("fix_hint") or ""))

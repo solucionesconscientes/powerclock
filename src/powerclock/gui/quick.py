@@ -1,5 +1,6 @@
-"""The Quick tab, in the spirit of KShutdown: an action, when, a few options and a button
-that says what it will do. Below, the quick actions scheduled, each with Cancel and Postpone."""
+"""The Quick tab, in the spirit of KShutdown: the action as a button, when, a few options and
+one button that says what it will do. On the right, the quick actions scheduled, as cards
+with Cancel and Postpone (the form takes 61.8 % of the width, the cards 38.2 %)."""
 
 import shlex
 from typing import Any
@@ -10,22 +11,19 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
     QFormLayout,
-    QGroupBox,
     QHBoxLayout,
-    QHeaderView,
     QLabel,
     QLineEdit,
     QPushButton,
     QStackedWidget,
-    QTableWidget,
-    QTableWidgetItem,
     QTimeEdit,
     QVBoxLayout,
     QWidget,
 )
 
 from powerclock import recipes
-from powerclock.gui import widgets
+from powerclock.gui import style, widgets
+from powerclock.gui.cards import ChoiceButtons, ItemCard, WhenPicker, scrollable
 from powerclock.gui.client import DaemonLink
 from powerclock.gui.icons import themed
 from powerclock.gui.summary import Item, quick_items
@@ -47,13 +45,50 @@ APP = "app"  # the "Open an application" entry
 TASKS = {RUN, APP}  # not power actions: no countdown, force or "turn it back on"
 WHEN = ("now", "at", "in", "idle", "exits", "cpu", "net")
 TIME_WHEN = {"at", "in"}
+SEGMENTS = ("now", "at", "in", "when")  # the last one opens the list of conditions
+CONDITIONS = ("idle", "exits", "cpu", "net")
+BUTTON_ORDER = (  # two rows of five
+    PowerAction.SHUTDOWN,
+    PowerAction.REBOOT,
+    PowerAction.SUSPEND,
+    PowerAction.HIBERNATE,
+    PowerAction.HYBRID_SLEEP,
+    PowerAction.LOCK,
+    PowerAction.LOGOUT,
+    PowerAction.SCREEN_OFF,
+    RUN,
+    APP,
+)
+
+
+def button_label(action: PowerAction | str) -> str:
+    """Short names for the action buttons (the tooltip has the long one)."""
+    labels = {
+        PowerAction.HYBRID_SLEEP: _("Hybrid"),
+        PowerAction.LOCK: _("Lock"),
+        PowerAction.SCREEN_OFF: _("Screen off"),
+        RUN: _("Program"),
+        APP: _("Application"),
+    }
+    if action in labels:
+        return labels[action]
+    return power_action_label(PowerAction(action))
+
+
+def long_label(action: PowerAction | str) -> str:
+    if action == RUN:
+        return _("Run a program")
+    if action == APP:
+        return _("Open an application")
+    return power_action_label(PowerAction(action))
 
 
 def when_label(when: str) -> str:
     labels = {
         "now": _("Now"),
-        "at": _("At a date and time"),
-        "in": _("After a delay"),
+        "at": _("At a time"),
+        "in": _("In a while"),
+        "when": _("When…"),
         "idle": _("After a period without use"),
         "exits": _("When a program ends"),
         "cpu": _("When the computer goes quiet"),
@@ -67,13 +102,13 @@ class QuickTab(QWidget):
         super().__init__(parent)
         self._link = link
 
-        self.action = QComboBox()
-        for action in PowerAction:
-            self.action.addItem(
-                themed(ACTION_ICONS.get(action, "system-run")), power_action_label(action), action
-            )
-        self.action.addItem(themed("system-run"), _("Run a program"), RUN)
-        self.action.addItem(themed("applications-other"), _("Open an application"), APP)
+        icons = {**ACTION_ICONS, RUN: "system-run", APP: "applications-other"}
+        self.action = ChoiceButtons(
+            [(a, button_label(a), themed(icons.get(a, "system-run"))) for a in BUTTON_ORDER],
+            columns=5,
+        )
+        for action, button in zip(BUTTON_ORDER, self.action.buttons, strict=True):
+            button.setToolTip(long_label(action))
         self.command = QLineEdit()
         self.command.setPlaceholderText(_("e.g. /home/pc/bin/backup.sh --full"))
         self.app = AppCombo()
@@ -84,9 +119,10 @@ class QuickTab(QWidget):
         self.recipe_hint.setWordWrap(True)
         self._loading_apps = False
 
-        self.when = QComboBox()
-        for when in WHEN:
-            self.when.addItem(when_label(when), when)
+        self.when = WhenPicker(
+            [(when, when_label(when)) for when in SEGMENTS],
+            [(when, when_label(when)) for when in CONDITIONS],
+        )
         self.at = LocalDateTimeEdit()
         self.at.set_value(next_quarter())
         self.in_ = DurationEdit("30m")
@@ -128,8 +164,10 @@ class QuickTab(QWidget):
             )
         )
 
+        what = QLabel(_("What to do"))
+        style.use_scale(what, 1, bold=True)
         form = QFormLayout()
-        form.addRow(_("Action:"), self.action)
+        form.setVerticalSpacing(style.SPACE[2])
         self.command_label = QLabel(_("Program:"))
         form.addRow(self.command_label, self.command)
         self.app_rows = [QLabel(_("Application:")), QLabel(_("Recipe:")), QLabel(_("Arguments:"))]
@@ -137,7 +175,11 @@ class QuickTab(QWidget):
         form.addRow(self.app_rows[1], self.recipe)
         form.addRow("", self.recipe_hint)
         form.addRow(self.app_rows[2], self.args)
-        form.addRow(_("When:"), _row(self.when, self.params, stretch=True))
+        when_title = QLabel(_("When"))
+        style.use_scale(when_title, 1, bold=True)
+        form.addRow(when_title)
+        form.addRow(self.when)
+        form.addRow(self.params)
         self.warning_label = QLabel(_("Warn me first:"))
         form.addRow(self.warning_label, self.warning)
         form.addRow("", self.force)
@@ -145,7 +187,7 @@ class QuickTab(QWidget):
         form.addRow("", self.wake_to_run)
         form.addRow("", self.log_in)
 
-        self.ok = QPushButton(themed("dialog-ok-apply"), "")
+        self.ok = style.primary(QPushButton())
         self.ok.setDefault(True)
         self.ok.clicked.connect(self.submit)
         self.status = QLabel()
@@ -154,30 +196,40 @@ class QuickTab(QWidget):
         buttons.addWidget(self.status, 1)
         buttons.addWidget(self.ok)
 
-        box = QGroupBox(_("New quick action"))
-        inner = QVBoxLayout(box)
+        left = QWidget()
+        inner = QVBoxLayout(left)
+        inner.setContentsMargins(0, 0, 0, 0)
+        inner.setSpacing(style.SPACE[3])
+        inner.addWidget(what)
+        inner.addWidget(self.action)
         inner.addLayout(form)
+        inner.addStretch(1)
         inner.addLayout(buttons)
 
-        self.pending = QTableWidget(0, 3)
-        self.pending.setHorizontalHeaderLabels([_("Action"), _("When"), ""])
-        self.pending.verticalHeader().setVisible(False)
-        self.pending.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.pending.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
-        header = self.pending.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        scheduled = QLabel(_("Scheduled"))
+        style.use_scale(scheduled, 1, bold=True)
+        self.cards: list[ItemCard] = []
+        self.pending = QWidget()
+        self._cards = QVBoxLayout(self.pending)
+        self._cards.setContentsMargins(0, 0, 0, 0)
+        self._cards.setSpacing(style.SPACE[2])
+        self._cards.addStretch(1)
+        scroll = scrollable(self.pending)
         self.empty = QLabel(_("No quick actions scheduled."))
         self.empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        waiting = QGroupBox(_("Scheduled"))
-        waiting_layout = QVBoxLayout(waiting)
-        waiting_layout.addWidget(self.pending)
-        waiting_layout.addWidget(self.empty)
+        self.empty.setWordWrap(True)
+        right = QWidget()
+        side = QVBoxLayout(right)
+        side.setContentsMargins(0, 0, 0, 0)
+        side.setSpacing(style.SPACE[2])
+        side.addWidget(scheduled)
+        side.addWidget(self.empty)
+        side.addWidget(scroll, 1)
 
-        layout = QVBoxLayout(self)
-        layout.addWidget(box)
-        layout.addWidget(waiting, 1)
+        layout = QHBoxLayout(self)
+        layout.setSpacing(style.SPACE[4])
+        layout.addWidget(scrollable(left), style.MAIN_SHARE[0])
+        layout.addWidget(right, style.MAIN_SHARE[1])
 
         self.action.currentIndexChanged.connect(self._update_form)
         self.when.currentIndexChanged.connect(self._update_form)
@@ -269,7 +321,8 @@ class QuickTab(QWidget):
         self._say(str(error), error=True)
 
     def _say(self, text: str, *, error: bool = False) -> None:
-        self.status.setStyleSheet("color: #da4453;" if error else "")
+        tone = style.text_color("failed").name()
+        self.status.setStyleSheet(f"color: {tone};" if error else "")
         self.status.setText(text)
 
     def _update_form(self) -> None:
@@ -344,26 +397,16 @@ class QuickTab(QWidget):
 
     def update_pending(self) -> None:
         items = quick_items(self._link.pending) if self._link.online else []
-        self.pending.setRowCount(len(items))
-        for row, item in enumerate(items):
-            for column, text in enumerate((item.name, item.detail)):
-                cell = QTableWidgetItem(text)
-                cell.setToolTip(text)
-                self.pending.setItem(row, column, cell)
-            self.pending.setCellWidget(row, 2, self._buttons(item))
-        self.pending.setVisible(bool(items))
+        for card in self.cards:
+            card.setParent(None)
+            card.deleteLater()
+        self.cards = []
+        for item in items:
+            can_postpone = item.counting_down or (item.run_id is None and not item.watched)
+            card = ItemCard(item, self._cancel, self._postpone if can_postpone else None)
+            self._cards.insertWidget(len(self.cards), card)
+            self.cards.append(card)
         self.empty.setVisible(not items)
-
-    def _buttons(self, item: Item) -> QWidget:
-        cancel = QPushButton(themed("dialog-cancel"), _("Cancel"))
-        cancel.clicked.connect(lambda: self._cancel(item))
-        widgets: list[QWidget] = [cancel]
-        if item.counting_down or (item.run_id is None and not item.watched):
-            postpone = QPushButton(themed("chronometer"), _("+10 min"))
-            postpone.setToolTip(_("Postpone 10 minutes"))
-            postpone.clicked.connect(lambda: self._postpone(item))
-            widgets.append(postpone)
-        return _row(*widgets)
 
     def _cancel(self, item: Item) -> None:
         spawn(self._link.api.post(f"/rules/{item.rule_id}/cancel"), self)
