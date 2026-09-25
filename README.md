@@ -755,13 +755,13 @@ that read the real system are marked `real` and skipped by default.
 
 ## Roadmap
 
-- **0.1 — Linux** (now): everything above, with clearer wording and a step to **open installed
-  applications** (Flatpak ones too) with recipes: Chrome as a kiosk, VLC on a loop, Okular as a
-  presentation…
-- **0.2**: logging in when PowerClock turns the computer on (only that boot, with the screen
-  locked), media players, volume and desktop settings, the new design, phone notifications (ntfy,
-  Telegram), more conditions (sunrise and sunset, calendar, files, devices, electricity tariff
-  periods as an option) and turning other computers on (Wake-on-LAN).
+- **0.1 — Linux** (now): everything above: shutting down, suspending and turning on at a time or
+  on conditions, logging in when it turns the computer on (only that boot, with the screen
+  locked), opening applications with recipes, media players, volume and desktop settings, phone
+  notifications, sunrise and sunset, calendars, holidays, files and devices, the electricity
+  tariff as an option, Wake-on-LAN, estimated savings and the new design.
+- **0.2**: what the tests on real computers bring up, and custom electricity tariff periods (other
+  countries).
 - **0.3 — Windows** and **0.4 — macOS**.
 - **1.0**: remote control (Telegram bot, web interface), several computers, MQTT/Home Assistant,
   KDE Connect, and describing rules in plain language.

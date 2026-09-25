@@ -99,7 +99,7 @@ Decidido el 25-09-2026 a partir de 32 casos de uso (lo piden 13). Diseño en ARC
 ### M11 — Publicación 0.1.0
 - [x] README (es/en) con capturas; `examples/` documentados (`README.md`, `README.es.md`; capturas con `scripts/screenshots.py`. Al publicar en PyPI, las imágenes necesitan URL absolutas)
 - [ ] Comprobar el nombre en PyPI (PowerClock ✅, libre); `pipx install .` limpio en Kubuntu y en el VPS (sin GUI)
-- [ ] GitHub Actions: lint + tests (Linux), build sdist/wheel (`ci.yml` con Python 3.11–3.14 y `release.yml`, que publica en PyPI con Trusted Publishing al etiquetar `vX.Y.Z`; falta verlos en verde en GitHub)
+- [ ] GitHub Actions: lint + tests (Linux), build sdist/wheel (`ci.yml` con Python 3.11–3.14 y `release.yml`, que publica en PyPI con Trusted Publishing al etiquetar `vX.Y.Z`). Repositorio público creado el 25-09-2026: https://github.com/solucionesconscientes/powerclock
 - [x] CHANGELOG; licencia definitiva (GPL-3.0-or-later, `LICENSE`)
 
 ## Empaquetado (opcional, cuando se decida)
@@ -108,7 +108,7 @@ De momento la distribución es el instalador (lanzador + uv, M8) y `pipx`. Opcio
 - macOS: `.app` firmada vía Homebrew cask (necesaria para notificaciones con botones y un icono propio en el Dock).
 - Linux: paquetes `powerclock` + `powerclock-gui` (PPA, AUR, COPR/OBS): instalación en un paso, actualizaciones del sistema y Breeze nativo. Ubuntu 26.04 tiene todas las dependencias, pero más antiguas que los mínimos actuales: habría que bajar los mínimos y probarlas, o llevar las propias dentro del paquete.
 
-## Fase 2 — Sesión, escritorio y avisos (v0.2)
+## Fase 2 — Sesión, escritorio y avisos (entra en la 0.1.0: se hizo antes de publicar)
 Orden decidido el 25-09-2026: lo que desbloquea más casos de uso, primero.
 - **M12 — Encender y entrar** (✅ hecho el 25-09-2026 con SDDM y LightDM; falta la prueba real en el Latitude: reinstalar el permiso de encendido y un apagado con encendido programado): llave de un solo uso (entrada automática solo en el arranque que provoca la alarma de PowerClock, con bloqueo inmediato; ARCHITECTURE §6); quiosco con usuario dedicado; margen de 3 min cuando hay que entrar.
 - **M13 — Sonido, reproductores y escritorio** (✅ hecho el 25-09-2026; pasos `media`, `volume`, `sound`, `desktop`, `network`, `inhibit` y `screenshot`): MPRIS (lista, emisora, pausa), volumen y fundidos, sonidos y voz, tema y fondo, brillo, perfil de energía, VPN, No molestar, pantalla siempre encendida, capturas para el historial.

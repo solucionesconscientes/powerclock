@@ -782,13 +782,13 @@ omiten por defecto.
 
 ## Hoja de ruta
 
-- **0.1 — Linux** (ahora): todo lo anterior, con textos más claros y un paso para **abrir
-  aplicaciones** instaladas (también Flatpak) con recetas: Chrome en modo quiosco, VLC en bucle,
-  Okular en presentación…
-- **0.2**: entrar en la sesión al encender el equipo (solo ese arranque, con la pantalla
-  bloqueada), reproductores, volumen y ajustes del escritorio, el nuevo diseño, avisos al móvil
-  (ntfy, Telegram), más condiciones (amanecer y anochecer, calendario, ficheros, dispositivos,
-  tramos de la tarifa de la luz como opción) y encender otros equipos (Wake-on-LAN).
+- **0.1 — Linux** (ahora): todo lo anterior: apagar, suspender y encender a una hora o por
+  condiciones, entrar en la sesión al encender (solo ese arranque, con la pantalla bloqueada),
+  abrir aplicaciones con recetas, reproductores, volumen y ajustes del escritorio, avisos al
+  móvil, amanecer y anochecer, calendario, festivos, ficheros y dispositivos, la tarifa de la luz
+  como opción, Wake-on-LAN, el ahorro estimado y el diseño nuevo.
+- **0.2**: lo que salga de las pruebas en equipos reales y franjas propias en la tarifa de la luz
+  (otros países).
 - **0.3 — Windows** y **0.4 — macOS**.
 - **1.0**: control remoto (bot de Telegram, interfaz web), varios equipos, MQTT/Home Assistant,
   KDE Connect y describir reglas en lenguaje natural.
