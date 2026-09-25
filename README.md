@@ -74,7 +74,9 @@ and keeping it open if it closes · **control a media player** (play, pause, nex
 station) · **set the volume**, little by little if you like · **play a sound or say a text
 aloud** · **change the desktop** (light or dark theme, wallpaper, brightness, power profile) ·
 **connect a VPN** or turn Wi-Fi on or off · **keep the screen on and silence notifications** for a
-while · **take a screenshot** for the history · run a program or a shell command (with a time
+while · **take a screenshot** for the history · **send a message to your phone** (ntfy, Telegram) or to
+any webhook (Home Assistant…) · **ask with buttons** and wait for the answer (again every few
+minutes, like a medication reminder) · run a program or a shell command (with a time
 limit, its output kept in the history) · open a file or web page · close a program (asking it nicely, then forcing
 it) · show a desktop notification · wait a while · wait until a condition is met · program the
 next wake-up. File names and texts can carry the date: `radio-{date}.mp3`.
@@ -320,6 +322,7 @@ as `30s`, `5m`, `2h`, `1d` or combined (`1h30m`).
 | `powerclock wake --at TIME` | Turn the computer on at that time (from suspend, or from off if the BIOS allows it). |
 | `powerclock apps [TEXT]` | The installed applications (`launch` opens them by id), with their recipes. |
 | `powerclock recipes [APP]` | Ready-made arguments for common applications. |
+| `powerclock secrets set NAME` · `list` · `rm NAME` | Tokens that steps use by name (`telegram_token`), kept out of `rules.json` in `secrets.json` (0600). |
 | `powerclock status` | What is running, what comes next, what is being watched, and the next wake-up alarm. |
 | `powerclock cancel [RUN_ID]` | Cancel the countdown in progress; otherwise the quick action running, the next timed one, or the last one waiting for a condition. |
 | `powerclock postpone [10m] [--run RUN_ID]` | Postpone the countdown in progress or the next timed quick action. |
@@ -434,6 +437,8 @@ Combine them with `{"all": [ … ]}`, `{"any": [ … ]}` and `{"not": … }`, ne
 | `network` | `connect`, `disconnect` (a saved connection: a VPN…), `wifi` (`on`/`off`) | NetworkManager connections. |
 | `inhibit` | `screen_on`, `do_not_disturb`, `no_sleep`, `duration` | For `duration`, keeps the screen on, holds the notifications and/or keeps the computer awake; the next steps go on at once. |
 | `screenshot` | `file` (default `{data}/screenshots/{rule}-{datetime}.png`) | Saves a picture of the screen; the history shows where. |
+| `push` | `service` (`ntfy`, `telegram`, `webhook`), `url` (ntfy topic or webhook), `chat` (Telegram), `title`, `message`, `priority` | Sends a message out: to your phone with [ntfy](https://ntfy.sh) (no account: subscribe to your topic in its app) or a Telegram bot (its token goes in `powerclock secrets set telegram_token`, never in the rules), or as JSON to any webhook. |
+| `ask` | `title`, `body`, `buttons` (1–3), `go_on`, `repeat`, `timeout` (default `1h`), `if_no_answer` (`stop` or `continue`) | A notification with buttons that waits for an answer; the rule goes on with `go_on` and stops with any other answer. Without an answer it is shown again every `repeat`. |
 | `open` | `target` | Opens a file or URL with your default application. |
 | `close_app` | `name` and `signal` (`TERM`, `INT` or `HUP`), or `app`; `timeout` (default `30s`) | Asks your programs with that name to quit, or closes the instances of `app` that PowerClock opened; kills them after `timeout`. |
 | `notify` | `title`, `body` | A desktop notification (skipped on a computer without a desktop). |
@@ -446,6 +451,10 @@ Combine them with `{"all": [ … ]}`, `{"any": [ … ]}` and `{"not": … }`, ne
 `{rule}` (its id), `{home}` and `{data}` (PowerClock's data folder) are replaced when the step
 runs, e.g. `ffmpeg -i URL -t 2h radio-{date}.mp3`. Any other braces stay as they are. `run` also
 gets the variables of your desktop session, so a program with a window finds your screen.
+
+**If a step fails** (`"on_failure": [ … ]`): steps that run only then, with `{error}` saying
+what went wrong, e.g. `{"type": "push", "url": "https://ntfy.sh/my-topic", "message": "{rule}:
+{error}"}`. The editor has them under *What it does*.
 
 If a step fails, the rule stops (`"on_error": "stop"`) or goes on with the next one
 (`"continue"`); the history says which step failed and why. The same rule never runs twice at the

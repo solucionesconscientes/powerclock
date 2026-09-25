@@ -69,6 +69,7 @@ class RuleEditor(QDialog):
         self.guards = EditorList(PredicateEditor, _("Add a reason to wait"))
         self.guard_timing = ModelForm(Guards, only=("retry", "max_wait"))
         self.actions = EditorList(ActionEditor, _("Add a step"))
+        self.on_failure = EditorList(ActionEditor, _("Add a step for failures"))
         self.options = ModelForm(Rule, only=OPTIONS)
         self.json = QPlainTextEdit()
         self.json.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
@@ -95,7 +96,13 @@ class RuleEditor(QDialog):
 
         steps = QGroupBox(_("Do, in this order"))
         QVBoxLayout(steps).addWidget(self.actions)
-        steps_tab = _page(steps)
+        failed = QGroupBox(_("If a step fails"))
+        failed_layout = QVBoxLayout(failed)
+        failed_layout.addWidget(
+            _hint(_("E.g. send the error to your phone: {error} is what went wrong."))
+        )
+        failed_layout.addWidget(self.on_failure)
+        steps_tab = _page(steps, failed)
         options_tab = _page(self.options)
 
         self.tabs = QTabWidget()
@@ -149,6 +156,7 @@ class RuleEditor(QDialog):
         self.guards.set(list(guards.get("any", [])))
         self.guard_timing.set(guards)
         self.actions.set(list(data.get("actions", [])))
+        self.on_failure.set(list(data.get("on_failure", [])))
         self.options.set(data)
         self.json.setPlainText(_dump(data))
 
@@ -171,6 +179,7 @@ class RuleEditor(QDialog):
         guards = self.guards.get()
         data["guards"] = {"any": guards, **self.guard_timing.get()} if guards else None
         data["actions"] = self.actions.get()
+        data["on_failure"] = self.on_failure.get()
         data.update(self.options.get())
         return data
 

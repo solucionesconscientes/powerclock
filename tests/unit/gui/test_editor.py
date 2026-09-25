@@ -100,7 +100,7 @@ async def test_starting_values_are_valid(
         form = editor._form(type_of(model))
         if type_of(model) == "close_app":  # by name or by app: the user picks one
             form.fields["name"].set("x")
-        elif type_of(model) in ("media", "sound"):  # their starting values are enough
+        elif type_of(model) in ("media", "sound", "ask"):  # their starting values are enough
             pass
         else:
             for field in form.fields.values():  # what the user must type (a program, a URL…)
@@ -213,3 +213,19 @@ async def test_launch_step_with_a_recipe_and_a_window(qapp: object) -> None:
     again = ActionEditor()
     again.set(step.model_dump(mode="json"))
     assert again.get() == step.model_dump(mode="json")
+
+
+async def test_failure_steps_survive_the_editor(qapp: object) -> None:
+    data = {
+        "id": "copia",
+        "name": "Copia",
+        "trigger": {"type": "cron", "expr": "0 3 * * *"},
+        "actions": [{"type": "run", "cmd": ["backup.sh"]}],
+        "on_failure": [
+            {"type": "push", "url": "https://ntfy.sh/t", "message": "{rule}: {error}"},
+            {"type": "ask", "title": "¿Reintentar?", "buttons": ["Sí", "No"], "go_on": "Sí"},
+        ],
+    }
+    editor = RuleEditor(None, dump(data))  # type: ignore[arg-type]
+    assert len(editor.on_failure.editors) == 2
+    assert dump(editor.validate())["on_failure"] == dump(data)["on_failure"]

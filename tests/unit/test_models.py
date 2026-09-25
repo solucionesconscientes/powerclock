@@ -72,6 +72,8 @@ ACTIONS: dict[str, dict[str, Any]] = {
     "network": {"type": "network", "connect": "VPN Oficina", "wifi": "on"},
     "inhibit": {"type": "inhibit", "do_not_disturb": True, "duration": "1h"},
     "screenshot": {"type": "screenshot", "file": "/tmp/{date}.png"},
+    "push": {"type": "push", "url": "https://ntfy.sh/mi-tema", "message": "Copia hecha"},
+    "ask": {"type": "ask", "title": "¿Pastilla?", "buttons": ["Hecho"], "repeat": "5m"},
     "open": {"type": "open", "target": "https://example.org"},
     "close_app": {"type": "close_app", "name": "firefox"},
     "notify": {"type": "notify", "title": "PowerClock", "body": "hola"},

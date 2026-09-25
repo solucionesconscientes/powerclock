@@ -41,6 +41,10 @@ The first release, for Linux.
   started before the session; `run` now gets the session's variables too. `{date}`, `{time}`…
   in commands, file names and notifications; a `desktop_session` trigger and condition;
   `powerclock apps` and `powerclock recipes`.
+- **Messages and answers**: a `push` step sends to your phone (ntfy, Telegram) or any webhook;
+  an `ask` step waits for a button (and reminds you again every few minutes); "if a step fails"
+  steps get the `{error}`. Tokens live in `secrets.json`, never in the rules
+  (`powerclock secrets`).
 - **Sound, media players and the desktop** as steps: control a media player (MPRIS), set the
   volume (with a gradual fade), play a sound or say a text aloud, change the theme, wallpaper,
   brightness or power profile, connect a VPN or switch Wi-Fi, keep the screen on and silence

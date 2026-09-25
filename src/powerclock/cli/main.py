@@ -28,7 +28,7 @@ from rich.table import Table
 from powerclock import __version__, recipes
 from powerclock.cli import client as api
 from powerclock.cli.format import local, relative, span, trigger, watch_detail
-from powerclock.config import Paths
+from powerclock.config import Paths, read_secrets, write_secret
 from powerclock.doctor import WakeTest, collect, run_wake_test, verdict_message
 from powerclock.i18n import _
 from powerclock.install.helper import helper_module
@@ -410,6 +410,43 @@ def recipes_command(
     for recipe in found:
         table.add_row(recipe.id, escape(recipe.title()), escape(" ".join(recipe.args)))
     console.print(table)
+
+
+secrets_app = typer.Typer(
+    help="Tokens that steps use by name (telegram_token…), kept out of rules.json.",
+    no_args_is_help=True,
+)
+app.add_typer(secrets_app, name="secrets")
+
+
+@secrets_app.command("set")
+def secrets_set(
+    name: Annotated[str, typer.Argument(help="Its name, e.g. telegram_token.")],
+) -> None:
+    """Store a secret (asked for without showing it)."""
+    value = typer.prompt(_("Value"), hide_input=True)
+    try:
+        write_secret(Paths.default(), name, value)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print(f"[green]✔[/] {_('Saved')}: {escape(name)}")
+
+
+@secrets_app.command("list")
+def secrets_list() -> None:
+    """The names of the stored secrets (never their values)."""
+    names = sorted(read_secrets(Paths.default()))
+    console.print("\n".join(names) if names else _("No secrets stored."))
+
+
+@secrets_app.command("rm")
+def secrets_rm(name: str) -> None:
+    """Forget a secret."""
+    try:
+        write_secret(Paths.default(), name, None)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print(f"[green]✔[/] {_('Deleted')}: {escape(name)}")
 
 
 # ── Status, cancel, postpone, history ──────────────────────────────────────────

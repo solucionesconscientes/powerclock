@@ -14,6 +14,7 @@ from powerclock.engine import variables
 from powerclock.engine.clock import Clock
 from powerclock.engine.evaluator import Evaluator, describe
 from powerclock.engine.processes import ProcessManager, PsutilProcesses
+from powerclock.engine.push import ClientFactory, PushError, default_client, push
 from powerclock.engine.runs import (
     Event,
     EventSink,
@@ -27,6 +28,7 @@ from powerclock.engine.runs import (
 from powerclock.i18n import _, can_cancel_text, countdown_sentence
 from powerclock.models import (
     Action,
+    AskStep,
     CloseAppStep,
     DesktopStep,
     InhibitStep,
@@ -36,6 +38,7 @@ from powerclock.models import (
     NotifyStep,
     OpenStep,
     PowerStep,
+    PushStep,
     Rule,
     RunStep,
     ScreenshotStep,
@@ -70,6 +73,10 @@ class _Skip(Exception):
     """The run ends without running its actions."""
 
 
+class _Stop(Exception):
+    """The run ends here without failing (an answer said no); the message is the step's."""
+
+
 @dataclass
 class _Active:
     run: Run
@@ -88,6 +95,8 @@ class Executor:
         processes: ProcessManager | None = None,
         request_wake: RequestWake | None = None,
         variables: Mapping[str, str] | None = None,
+        secrets: Callable[[], Mapping[str, str]] | None = None,
+        http: ClientFactory | None = None,
         keep: int = 100,
     ) -> None:
         self._backend = backend
@@ -98,6 +107,8 @@ class Executor:
         self._processes = processes or PsutilProcesses()
         self._request_wake = request_wake  # provided by the WakePlanner (M5)
         self._variables = dict(variables or {})  # {home}, {data}… for every run
+        self._secrets = secrets or dict  # tokens by name (telegram_token…), read when used
+        self._http = http or default_client
         self._power_lock = asyncio.Lock()  # one power action (and countdown) at a time
         self._active: dict[str, _Active] = {}
         self._background: set[asyncio.Task[Any]] = set()
@@ -252,6 +263,9 @@ class Executor:
             run.steps.append(result)
             try:
                 result.status, result.detail = await self._do(step, rule, tz, run, values)
+            except _Stop as stop:
+                result.status, result.detail = "ok", str(stop)
+                break
             except asyncio.CancelledError:
                 result.status = "cancelled"
                 raise
@@ -265,7 +279,26 @@ class Executor:
             finally:
                 result.finished_at = self._clock.now()
                 self._set_state(run, "running", None)
+        if failure and rule.on_failure:
+            await self._recover(rule, tz, run, {**values, "error": failure})
         return failure
+
+    async def _recover(self, rule: Rule, tz: tzinfo, run: Run, values: Mapping[str, str]) -> None:
+        """The rule's "if a step fails" steps: all of them, whatever each one does."""
+        for step in rule.on_failure:
+            result = StepResult(
+                index=len(run.steps), type=step.type, started_at=self._clock.now(), on_failure=True
+            )
+            run.steps.append(result)
+            try:
+                result.status, result.detail = await self._do(step, rule, tz, run, values)
+            except asyncio.CancelledError:
+                result.status = "cancelled"
+                raise
+            except Exception as exc:
+                result.status, result.detail = "failed", str(exc) or type(exc).__name__
+            finally:
+                result.finished_at = self._clock.now()
 
     async def _do(
         self, step: Action, rule: Rule, tz: tzinfo, run: Run, values: Mapping[str, str]
@@ -304,6 +337,14 @@ class Executor:
                 return "ok", None
             case InhibitStep():
                 return await self._inhibit(step, rule)
+            case PushStep():
+                try:
+                    where = await push(step, values, self._secrets(), self._http)
+                except PushError as exc:
+                    raise StepFailed(str(exc)) from exc
+                return "ok", where
+            case AskStep():
+                return await self._ask(step, run, values)
             case ScreenshotStep():
                 path = variables.expand(step.file, values)
                 await self._backend.screenshot(path)
@@ -482,6 +523,36 @@ class Executor:
         self._background.add(task)
         task.add_done_callback(self._background.discard)
         return "ok", f"for {format_duration(step.duration)}"
+
+    async def _ask(self, step: AskStep, run: Run, values: Mapping[str, str]) -> Outcome:
+        """Show the question until it is answered (again every `repeat`) or `timeout`."""
+        title = variables.expand(step.title, values)
+        body = variables.expand(step.body, values)
+        buttons = {str(index): label for index, label in enumerate(step.buttons)}
+        deadline = self._clock.now() + step.timeout
+        self._set_state(run, "waiting", "waiting for an answer")
+        answer: str | None = None
+        while (left := deadline - self._clock.now()) > timedelta(0):
+            window = min(step.repeat, left) if step.repeat is not None else left
+            shown = self._clock.now()
+            question = asyncio.ensure_future(self._backend.notify(title, body, buttons))
+            if await self._within(question, window):
+                key = question.result()
+                if key is not None:
+                    answer = buttons.get(key)
+                    break
+                if step.repeat is None:
+                    break  # closed without an answer, and no reminders
+                rest = window - (self._clock.now() - shown)  # closed early: wait for the next
+                if rest > timedelta(0):
+                    await self._clock.sleep(rest.total_seconds())
+        if answer is None:
+            if step.if_no_answer == "continue":
+                return "ok", "no answer"
+            raise _Stop(f"no answer after {format_duration(step.timeout)}: the rule stops here")
+        if step.go_on is not None and answer != step.go_on:
+            raise _Stop(f"answered {answer!r}: the rule stops here")
+        return "ok", f"answered {answer!r}"
 
     async def _close(self, step: CloseAppStep) -> Outcome:
         if step.app is not None:

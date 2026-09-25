@@ -32,6 +32,7 @@ class StepResult(BaseModel):
     started_at: datetime
     finished_at: datetime | None = None
     detail: str | None = None
+    on_failure: bool = False  # one of the rule's "if a step fails" steps
 
 
 class Run(BaseModel):

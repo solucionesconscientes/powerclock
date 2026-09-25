@@ -643,6 +643,52 @@ class ScreenshotStep(_Tagged):
     file: str = "{data}/screenshots/{rule}-{datetime}.png"
 
 
+class PushStep(_Tagged):
+    """Send a message out of the computer: to your phone with ntfy (`url`: the topic's
+    address, https://ntfy.sh/…) or Telegram (a bot: its token is the secret
+    `telegram_token`, `chat` the chat's id), or to any `webhook` (a JSON POST to `url`).
+    `title` and `message` take the {date}… variables, and {error} in "if it fails" steps."""
+
+    type: Literal["push"] = "push"
+    service: Literal["ntfy", "telegram", "webhook"] = "ntfy"
+    url: str | None = None
+    chat: str | None = None
+    title: str = "PowerClock"
+    message: str = ""
+    priority: Literal["low", "default", "high", "urgent"] = "default"
+
+    @model_validator(mode="after")
+    def _where(self) -> Self:
+        if self.service in ("ntfy", "webhook") and not (self.url or "").startswith(
+            ("https://", "http://")
+        ):
+            raise ValueError(f"{self.service} needs the url to send to (https://…)")
+        if self.service == "telegram" and not self.chat:
+            raise ValueError("telegram needs the chat to send to")
+        return self
+
+
+class AskStep(_Tagged):
+    """A notification with buttons that waits for an answer: the rule goes on with the
+    answer `go_on` (any answer if it is not set) and stops with any other. Without an answer
+    it is shown again every `repeat` (a reminder), and after `timeout` it gives up."""
+
+    type: Literal["ask"] = "ask"
+    title: str = Field(min_length=1)
+    body: str = ""
+    buttons: list[str] = Field(min_length=1, max_length=3)
+    go_on: str | None = None
+    repeat: PositiveDuration | None = None
+    timeout: PositiveDuration = timedelta(hours=1)
+    if_no_answer: Literal["stop", "continue"] = "stop"
+
+    @model_validator(mode="after")
+    def _consistent(self) -> Self:
+        if self.go_on is not None and self.go_on not in self.buttons:
+            raise ValueError("go_on must be one of the buttons")
+        return self
+
+
 class SetWakeStep(_Tagged):
     """Program a wake-up at an instant (`when`) or after a delay (`after`)."""
 
@@ -667,6 +713,8 @@ Action = Annotated[
     | NetworkStep
     | InhibitStep
     | ScreenshotStep
+    | PushStep
+    | AskStep
     | OpenStep
     | CloseAppStep
     | NotifyStep
@@ -690,6 +738,7 @@ class Rule(_Model):
     conditions: Predicate | None = None
     guards: Guards | None = None
     actions: list[Action] = Field(min_length=1)
+    on_failure: list[Action] = Field(default_factory=list)  # run when a step fails ({error})
     warning: Duration = timedelta(seconds=60)
     on_missed: Literal["skip", "run_once"] = "skip"
     on_error: Literal["stop", "continue"] = "stop"
@@ -703,12 +752,13 @@ class Rule(_Model):
             raise ValueError("wake: true needs a time trigger (at, countdown or cron)")
         if self.log_in is not None and not self.wake:
             raise ValueError("log_in needs wake: true (it logs in after turning the computer on)")
-        for step in self.actions[:-1]:
-            if isinstance(step, PowerStep) and step.action in TERMINAL_POWER_ACTIONS:
-                raise ValueError(
-                    f"power action {step.action.value!r} ends the session, "
-                    "so it must be the last action"
-                )
+        for steps in (self.actions, self.on_failure):
+            for step in steps[:-1]:
+                if isinstance(step, PowerStep) and step.action in TERMINAL_POWER_ACTIONS:
+                    raise ValueError(
+                        f"power action {step.action.value!r} ends the session, "
+                        "so it must be the last action"
+                    )
         return self
 
 

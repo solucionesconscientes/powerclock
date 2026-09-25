@@ -4,7 +4,7 @@ backend."""
 import asyncio
 import contextlib
 import logging
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta, tzinfo
 from typing import Literal
 from zoneinfo import ZoneInfo
@@ -46,6 +46,7 @@ class Engine:
         emit: EventSink | None = None,
         request_wake: RequestWake | None = None,
         variables: Mapping[str, str] | None = None,
+        secrets: Callable[[], Mapping[str, str]] | None = None,
     ) -> None:
         self.clock = clock or SystemClock()
         self._backend = backend
@@ -62,6 +63,7 @@ class Engine:
             processes=processes,
             request_wake=request_wake,
             variables=variables,
+            secrets=secrets,
         )
         self.scheduler = Scheduler(self.clock, self._on_due)
         self.watcher = Watcher(self.sensors, self.clock, self._on_state, self._demand)

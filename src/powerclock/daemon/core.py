@@ -17,7 +17,7 @@ from typing import Any, Self
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from powerclock import __version__, recipes
-from powerclock.config import Paths, Settings, ensure_token
+from powerclock.config import Paths, Settings, ensure_token, read_secrets
 from powerclock.daemon.events import EventHub
 from powerclock.daemon.store import History, RulesFileError, RuleStore
 from powerclock.engine import Engine
@@ -158,6 +158,7 @@ class Daemon:
             emit=self._on_event,
             request_wake=self._request_wake,  # the set_wake action
             variables={"home": str(Path.home()), "data": str(paths.data)},
+            secrets=lambda: read_secrets(paths),
         )
         self.started_at = self.engine.clock.now()
         self._tasks: list[asyncio.Task[None]] = []

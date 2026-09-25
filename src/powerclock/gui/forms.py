@@ -43,6 +43,7 @@ from powerclock.i18n import _
 from powerclock.labels import field_label, kind_label, value_label
 from powerclock.models import (
     DURATION_PATTERN,
+    AskStep,
     AtTrigger,
     BatteryLevel,
     CloseAppStep,
@@ -65,6 +66,7 @@ from powerclock.models import (
     PowerStep,
     ProcessExitTrigger,
     ProcessRunning,
+    PushStep,
     RunStep,
     ScreenshotStep,
     SetWakeStep,
@@ -122,6 +124,8 @@ ACTIONS: list[type[BaseModel]] = [
     NetworkStep,
     InhibitStep,
     ScreenshotStep,
+    PushStep,
+    AskStep,
     WaitStep,
     WaitUntilStep,
     SetWakeStep,
@@ -154,6 +158,10 @@ STARTERS: dict[tuple[str, str], Any] = {
     ("sound", "file"): "alarm-clock-elapsed",
     ("desktop", "theme"): "dark",
     ("inhibit", "duration"): "1h",
+    ("push", "url"): "https://ntfy.sh/",
+    ("push", "message"): "{rule}: {error}",
+    ("ask", "title"): "PowerClock",
+    ("ask", "buttons"): ["OK"],
 }
 
 

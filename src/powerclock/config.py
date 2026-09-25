@@ -1,7 +1,9 @@
 """Where powerclock keeps its files, the daemon settings (daemon.json) and the API token."""
 
 import contextlib
+import json
 import os
+import re
 import secrets
 import tempfile
 from dataclasses import dataclass
@@ -55,6 +57,10 @@ class Paths:
     def history(self) -> Path:
         return self.data / "history.sqlite"
 
+    @property
+    def secrets(self) -> Path:
+        return self.config / "secrets.json"
+
 
 class Settings(BaseModel):
     """daemon.json. The API only ever listens on 127.0.0.1."""
@@ -99,6 +105,31 @@ def read_token(path: Path) -> str | None:
         return path.read_text().strip() or None
     except FileNotFoundError:
         return None
+
+
+SECRET_NAME = re.compile(r"[a-z][a-z0-9_]{0,63}")
+
+
+def read_secrets(paths: Paths) -> dict[str, str]:
+    """secrets.json (0600): tokens that steps use by name (telegram_token…), kept out of
+    rules.json so exporting rules never leaks them."""
+    try:
+        data = json.loads(paths.secrets.read_text())
+    except (OSError, ValueError):
+        return {}
+    return {str(k): str(v) for k, v in data.items()} if isinstance(data, dict) else {}
+
+
+def write_secret(paths: Paths, name: str, value: str | None) -> None:
+    """Store a secret (None: forget it)."""
+    if not SECRET_NAME.fullmatch(name):
+        raise ValueError(f"a secret's name is lowercase letters, digits and _: {name!r}")
+    stored = read_secrets(paths)
+    if value is None:
+        stored.pop(name, None)
+    else:
+        stored[name] = value
+    atomic_write(paths.secrets, json.dumps(stored, indent=2) + "\n")
 
 
 def atomic_write(path: Path, text: str) -> None:

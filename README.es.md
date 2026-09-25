@@ -75,7 +75,9 @@ reproductor** (reproducir, pausar, siguiente, poner una emisora) · **ajustar el
 poco si quieres · **reproducir un sonido o decir un texto en voz alta** · **cambiar el escritorio**
 (tema claro u oscuro, fondo, brillo, perfil de energía) · **conectar una VPN** o encender y apagar
 el Wi-Fi · **mantener la pantalla encendida y silenciar los avisos** un rato · **hacer una captura
-de pantalla** para el historial · ejecutar un programa o una orden del shell (con tiempo máximo y su salida guardada en el historial) · abrir un archivo o
+de pantalla** para el historial · **mandar un mensaje al móvil** (ntfy, Telegram) o a cualquier
+webhook (Home Assistant…) · **preguntar con botones** y esperar la respuesta (repitiéndolo cada
+pocos minutos, como un recordatorio de medicación) · ejecutar un programa o una orden del shell (con tiempo máximo y su salida guardada en el historial) · abrir un archivo o
 una web · cerrar un programa (primero pidiéndoselo y luego forzándolo) · mostrar una
 notificación · esperar un rato · esperar a que se cumpla una condición · programar el siguiente
 encendido. Los nombres de archivo y los textos pueden llevar la fecha: `radio-{date}.mp3`.
@@ -338,6 +340,7 @@ escriben `30s`, `5m`, `2h`, `1d` o combinadas (`1h30m`).
 | `powerclock wake --at HORA` | Encender el equipo a esa hora (desde suspensión, o desde apagado si la BIOS lo permite). |
 | `powerclock apps [TEXTO]` | Las aplicaciones instaladas (`launch` las abre por su id), con sus recetas. |
 | `powerclock recipes [APP]` | Argumentos ya preparados para aplicaciones habituales. |
+| `powerclock secrets set NOMBRE` · `list` · `rm NOMBRE` | Tokens que los pasos usan por su nombre (`telegram_token`), fuera de `rules.json`, en `secrets.json` (0600). |
 | `powerclock status` | Qué está en marcha, qué viene, qué se vigila y la próxima alarma de encendido. |
 | `powerclock cancel [RUN_ID]` | Cancela la cuenta atrás en curso; si no hay, la acción rápida en marcha, la próxima con hora o la última que espera una condición. |
 | `powerclock postpone [10m] [--run RUN_ID]` | Pospone la cuenta atrás en curso o la próxima acción rápida con hora. |
@@ -455,6 +458,8 @@ como quieras.
 | `network` | `connect`, `disconnect` (una conexión guardada: una VPN…), `wifi` (`on`/`off`) | Conexiones de NetworkManager. |
 | `inhibit` | `screen_on`, `do_not_disturb`, `no_sleep`, `duration` | Durante `duration` mantiene la pantalla encendida, retiene los avisos y/o impide que el equipo se suspenda; los pasos siguientes siguen al momento. |
 | `screenshot` | `file` (por defecto `{data}/screenshots/{rule}-{datetime}.png`) | Guarda una imagen de la pantalla; el historial dice dónde. |
+| `push` | `service` (`ntfy`, `telegram`, `webhook`), `url` (tema de ntfy o webhook), `chat` (Telegram), `title`, `message`, `priority` | Manda un mensaje fuera del equipo: al móvil con [ntfy](https://ntfy.sh) (sin cuenta: suscríbete a tu tema en su app) o con un bot de Telegram (su token va en `powerclock secrets set telegram_token`, nunca en las reglas), o como JSON a cualquier webhook. |
+| `ask` | `title`, `body`, `buttons` (1–3), `go_on`, `repeat`, `timeout` (por defecto `1h`), `if_no_answer` (`stop` o `continue`) | Un aviso con botones que espera respuesta; la regla sigue con `go_on` y se para con cualquier otra. Sin respuesta vuelve a mostrarse cada `repeat`. |
 | `open` | `target` | Abre un archivo o una URL con tu aplicación predeterminada. |
 | `close_app` | `name` y `signal` (`TERM`, `INT` o `HUP`), o `app`; `timeout` (por defecto `30s`) | Pide a tus programas con ese nombre que se cierren, o cierra las copias de `app` que abrió PowerClock; las fuerza pasado `timeout`. |
 | `notify` | `title`, `body` | Una notificación del escritorio (se omite en un equipo sin escritorio). |
@@ -468,6 +473,10 @@ sustituyen al ejecutarse `{date}` (2026-09-25), `{time}` (07-30), `{datetime}`
 PowerClock); p. ej. `ffmpeg -i URL -t 2h radio-{date}.mp3`. Cualquier otra llave queda como está.
 `run` recibe además las variables de tu sesión del escritorio, así un programa con ventana
 encuentra tu pantalla.
+
+**Si un paso falla** (`"on_failure": [ … ]`): pasos que solo se ejecutan entonces, con `{error}`
+diciendo qué salió mal, p. ej. `{"type": "push", "url": "https://ntfy.sh/mi-tema", "message":
+"{rule}: {error}"}`. En el editor están en *Qué hará*.
 
 Si un paso falla, la regla se detiene (`"on_error": "stop"`) o sigue con el siguiente
 (`"continue"`); el historial dice qué paso falló y por qué. Una misma regla nunca se ejecuta dos
