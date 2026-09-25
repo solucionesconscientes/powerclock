@@ -21,7 +21,7 @@ from powerclock.labels import (
         ),
         (
             "step 1 (run) failed: exit code 3: disk full",
-            "step 1 (Run a program) failed: exit code 3: disk full",
+            "step 1 (Run a command) failed: exit code 3: disk full",
         ),
         ('guard active: {"type":"media_playing"}', "waiting while: Something is playing"),
         (

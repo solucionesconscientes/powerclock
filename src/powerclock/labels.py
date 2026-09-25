@@ -48,7 +48,7 @@ def kind_label(kind: str) -> str:
         "json": _("Advanced (JSON)"),
         # actions
         "power": _("Shut down, restart, suspend…"),
-        "run": _("Run a program"),
+        "run": _("Run a command"),
         "launch": _("Open an application"),
         "media": _("Control a media player"),
         "volume": _("Set the volume"),

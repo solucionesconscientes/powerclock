@@ -84,7 +84,7 @@ async def test_the_button_says_what_it_will_do(
 async def test_run_a_program(link: DaemonLink) -> None:
     tab = QuickTab(link)
     tab.select("run", "in")
-    with pytest.raises(ValueError, match="program to run"):
+    with pytest.raises(ValueError, match="command to run"):
         tab.payload()
     tab.command.setText("backup.sh --full 'my dir'")
     tab.wake_to_run.setChecked(True)
@@ -245,6 +245,9 @@ async def test_quick_opens_an_application(link: DaemonLink) -> None:
     payload = tab.payload()
     assert payload["app"] == "vlc"
     assert payload["args"] == ["--fullscreen", "~/list.m3u"]
+    assert payload["recipe"] == "vlc.loop"  # its window placement and keep_open apply
+    tab.recipe.setCurrentIndex(0)  # (none)
+    assert "recipe" not in tab.payload()
     tab.select("app", "now")
     assert tab.ok.text() == "Open now"
     tab.app.set_value("")

@@ -261,7 +261,7 @@ out, turn off the screen; the first ones with their countdown, locking and scree
 **Schedule…**, **Open PowerClock** and **Hide the icon**. A left click opens the window.
 
 **Quick tab** (like KShutdown): **What to do** is a set of buttons with icons (shut down,
-restart, suspend, hibernate, hybrid, lock, log out, screen off, a program or an application);
+restart, suspend, hibernate, hybrid, lock, log out, screen off, a command (a program or a script with its options) or an application);
 **When** is one of *Now*, *At a time*, *In a while* and *When…*, which opens the conditions: after a
 period without use, when a program ends — pick it from the running ones or type its name or PID —,
 when the computer goes quiet (CPU below…) or when the download finishes (network below…), with how

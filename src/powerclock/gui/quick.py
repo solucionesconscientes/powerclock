@@ -67,7 +67,7 @@ def button_label(action: PowerAction | str) -> str:
         PowerAction.HYBRID_SLEEP: _("Hybrid"),
         PowerAction.LOCK: _("Lock"),
         PowerAction.SCREEN_OFF: _("Screen off"),
-        RUN: _("Program"),
+        RUN: _("Command"),
         APP: _("Application"),
     }
     if action in labels:
@@ -77,7 +77,7 @@ def button_label(action: PowerAction | str) -> str:
 
 def long_label(action: PowerAction | str) -> str:
     if action == RUN:
-        return _("Run a program")
+        return _("Run a command or a script")
     if action == APP:
         return _("Open an application")
     return power_action_label(PowerAction(action))
@@ -168,7 +168,7 @@ class QuickTab(QWidget):
         style.use_scale(what, 1, bold=True)
         form = QFormLayout()
         form.setVerticalSpacing(style.SPACE[2])
-        self.command_label = QLabel(_("Program:"))
+        self.command_label = QLabel(_("Command:"))
         form.addRow(self.command_label, self.command)
         self.app_rows = [QLabel(_("Application:")), QLabel(_("Recipe:")), QLabel(_("Arguments:"))]
         form.addRow(self.app_rows[0], self.app)
@@ -258,7 +258,7 @@ class QuickTab(QWidget):
         if action == RUN:
             command = shlex.split(self.command.text())
             if not command:
-                raise ValueError(_("Write the program to run."))
+                raise ValueError(_("Write the command to run."))
             payload["command"] = command
         elif action == APP:
             app = self.app.value()
@@ -266,6 +266,8 @@ class QuickTab(QWidget):
                 raise ValueError(_("Pick the application to open."))
             payload["app"] = app
             payload["args"] = shlex.split(self.args.text())
+            if self.recipe.currentData():
+                payload["recipe"] = self.recipe.currentData()
         else:
             payload["action"] = PowerAction(action).value
             payload["warning"] = format_duration(self.warning.value())

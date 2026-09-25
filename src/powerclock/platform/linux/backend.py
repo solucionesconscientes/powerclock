@@ -5,6 +5,7 @@ import asyncio
 import json
 import os
 import pwd
+import shlex
 import shutil
 from collections.abc import Mapping
 from contextlib import AbstractAsyncContextManager
@@ -228,7 +229,10 @@ class LinuxPlatform(PlatformBackend):
         state, pid = await self.session.settle(name)
         if state == "failed":
             raise OSError(f"{entry.name} failed to start (journalctl --user -u {name})")
-        return f"{entry.name} ({name})", pid
+        detail = f"{entry.name}{_shown_args(request.args)} ({name})"
+        if state is None:  # it ended at once, fine: it handed over to a copy already open
+            detail += " · passed to the copy already open"
+        return detail, pid
 
     async def _spawn(self, entry: DesktopEntry, argv: list[str], request: LaunchRequest) -> str:
         """Without systemd's user manager: start it directly, with the display we can find."""
@@ -395,3 +399,11 @@ class LinuxPlatform(PlatformBackend):
         await self.idle.close()
         await self.session_bus.close()
         await self.system_bus.close()
+
+
+def _shown_args(args: tuple[str, ...], limit: int = 160) -> str:
+    """The arguments for the history, shortened if long."""
+    if not args:
+        return ""
+    text = " " + shlex.join(args)
+    return text if len(text) <= limit else text[: limit - 1] + "…"

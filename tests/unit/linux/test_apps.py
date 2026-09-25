@@ -10,6 +10,7 @@ import pytest
 from fakebus import FakeBus, FakeCommands, kde_laptop
 from powerclock.platform.base import LaunchRequest, NotSupported, WindowPlacement
 from powerclock.platform.linux import LinuxPlatform, apps, kwin, session
+from powerclock.platform.linux.dbus import DBusError
 
 SYSTEMD = "org.freedesktop.systemd1"
 SYSTEMD_PATH = "/org/freedesktop/systemd1"
@@ -231,7 +232,25 @@ async def test_launch_starts_a_transient_unit(plasma: tuple[LinuxPlatform, FakeB
     assert values["Restart"] == "always"
     assert values["StartLimitBurst"] == 3
     assert values["WorkingDirectory"] == HOME
-    assert detail == f"Okular ({name})"
+    assert detail == f"Okular --presentation a.pdf ({name})"  # the history shows the args
+
+
+async def test_a_browser_already_open_takes_the_order(
+    plasma: tuple[LinuxPlatform, FakeBus],
+) -> None:
+    """Chromium browsers pass the order to the copy already open and quit at once; they
+    ignore --start-fullscreen there, so the recipe asks KWin for full screen instead."""
+    linux, bus = plasma
+    gone = DBusError("org.freedesktop.systemd1.NoSuchUnit", "gone")
+    bus.on(SYSTEMD, SYSTEMD_PATH, MANAGER, "GetUnit", gone)
+    window = WindowPlacement(state="fullscreen")
+    request = LaunchRequest(
+        app="org.kde.okular", args=("--new-window",), window=window, wait_window=timedelta(0)
+    )
+    detail = await linux.launch(request)
+    assert "--new-window" in detail
+    assert "passed to the copy already open" in detail
+    assert detail.endswith("window placement requested")  # matched by its window class
 
 
 async def test_launch_places_the_window(plasma: tuple[LinuxPlatform, FakeBus]) -> None:

@@ -23,7 +23,8 @@
       "apps": ["google-chrome", "com.google.Chrome", "chromium", "chromium-browser", "chromium_chromium", "org.chromium.Chromium", "brave-browser", "com.brave.Browser", "microsoft-edge", "com.microsoft.Edge", "vivaldi-stable"],
       "label": {"en": "A web page in a new full-screen window", "es": "Una web en una ventana nueva a pantalla completa"},
       "args": ["--new-window", "--start-fullscreen", "<url>"],
-      "inputs": {"url": {"en": "Web address", "es": "Dirección web"}}
+      "inputs": {"url": {"en": "Web address", "es": "Dirección web"}},
+      "window": {"state": "fullscreen"}
     },
     {
       "id": "firefox.kiosk",

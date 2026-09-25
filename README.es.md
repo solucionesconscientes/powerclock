@@ -273,7 +273,7 @@ momento), **Programar…**, **Abrir PowerClock** y **Ocultar el icono**. Un clic
 ventana.
 
 **Pestaña Rápido** (como KShutdown): **Qué hacer** son botones con icono (apagar, reiniciar,
-suspender, hibernar, híbrida, bloquear, cerrar sesión, pantalla, un programa o una aplicación);
+suspender, hibernar, híbrida, bloquear, cerrar sesión, pantalla, un comando (un programa o un script con sus opciones) o una aplicación);
 **Cuándo** se elige entre *Ahora*, *A las*, *Dentro de* y *Cuando…*, que abre las condiciones: tras
 un tiempo sin usar el equipo, cuando termine un programa — elígelo entre los que están en marcha o
 escribe su nombre o su PID —, cuando el equipo quede en reposo (CPU por debajo de…) o cuando termine

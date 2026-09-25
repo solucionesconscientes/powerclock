@@ -410,6 +410,20 @@ async def test_apps_and_recipes(http: httpx.AsyncClient) -> None:
     assert {"id", "apps", "label", "args", "inputs"} <= set(listed[0])
 
 
+async def test_quick_uses_the_recipe_window(http: httpx.AsyncClient) -> None:
+    """A browser already open ignores --start-fullscreen: the recipe asks KWin instead."""
+    args = ["--new-window", "--start-fullscreen", "https://example.org"]
+    payload = {"app": "brave-browser", "args": args, "recipe": "chromium.fullscreen"}
+    [step] = (await http.post("/quick", json=payload)).json()["actions"]
+    assert step["recipe"] == "chromium.fullscreen"
+    assert step["window"]["state"] == "fullscreen"
+    assert step["args"] == args
+    wrong = {"app": "vlc", "recipe": "nope"}
+    assert (await http.post("/quick", json=wrong)).status_code == 422
+    no_app = {"action": "shutdown", "recipe": "chromium.fullscreen"}
+    assert (await http.post("/quick", json=no_app)).status_code == 422
+
+
 async def test_quick_opens_an_app(http: httpx.AsyncClient, fake: FakePlatform) -> None:
     await http.get("/apps")  # the daemon learns the names
     reply = await http.post("/quick", json={"app": "vlc", "args": ["radio.m3u"], "in": "5m"})

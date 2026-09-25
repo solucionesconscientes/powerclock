@@ -92,6 +92,7 @@ class QuickRequest(BaseModel):
     command: list[str] | None = Field(default=None, min_length=1)
     app: str | None = Field(default=None, min_length=1)  # open this application…
     args: list[str] = Field(default_factory=list)  # …with these arguments
+    recipe: str | None = None  # …and the window placement of this recipe (recipes.json)
     in_: PositiveDuration | None = Field(default=None, alias="in")
     at: str | None = None  # "23:30", "2026-09-24 07:30" or ISO with offset
     mode: PowerMode = PowerMode.GRACEFUL
@@ -110,8 +111,8 @@ class QuickRequest(BaseModel):
     def _consistent(self) -> Self:
         if sum(item is not None for item in (self.action, self.command, self.app)) != 1:
             raise ValueError("set exactly one of: action, command, app")
-        if self.args and self.app is None:
-            raise ValueError("args only apply to app")
+        if (self.args or self.recipe) and self.app is None:
+            raise ValueError("args and recipe only apply to app")
         if self.log_in is not None and not (self.wake or self.wake_at):
             raise ValueError("log_in needs wake or wake_at")
         when = ("in_", "at", "when_idle", "when_exits", "when_cpu_below", "when_net_below")
@@ -318,7 +319,16 @@ class Daemon:
             step = PowerStep(action=request.action, mode=request.mode)
             label = power_action_label(request.action)
         elif request.app is not None:
-            step = LaunchStep(app=request.app, args=request.args)
+            recipe = recipes.get(request.recipe) if request.recipe else None
+            if request.recipe and recipe is None:
+                raise DaemonError(422, f"no recipe {request.recipe!r}")
+            step = LaunchStep(
+                app=request.app,
+                args=request.args,
+                recipe=request.recipe,
+                window=recipe.window if recipe else None,
+                keep_open=recipe.keep_open if recipe else False,
+            )
             label = _("Open {app}").format(app=self._app_names.get(request.app, request.app))
         else:
             assert request.command is not None

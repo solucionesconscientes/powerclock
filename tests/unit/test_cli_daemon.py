@@ -210,7 +210,7 @@ def test_reasons_are_readable_and_keep_brackets(daemon: Daemon) -> None:
             break
         time.sleep(0.01)
     history = powerclock("history")
-    assert "step 1 (Run a program) failed: [Errno 2]" in history
+    assert "step 1 (Run a command) failed: [Errno 2]" in history
 
 
 def test_apps_recipes_and_launch(daemon: Daemon) -> None:
