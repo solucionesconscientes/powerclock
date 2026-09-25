@@ -61,7 +61,7 @@ async def test_rules_tab(link: DaemonLink, errors: list[Exception]) -> None:
     await pump()
     assert tab.table.rowCount() == 1
     assert tab.table.item(0, 1).text() == "Backup"
-    assert tab.table.item(0, 2).text() == "Repeats (cron expression): 0 3 * * *"
+    assert tab.table.item(0, 2).text() == "Repeats: every day at 03:00"
     assert "03:00" in tab.table.item(0, 3).text()  # 03:00 in Madrid, the next day
     assert not tab.edit_button.isEnabled()
     tab.table.selectRow(0)

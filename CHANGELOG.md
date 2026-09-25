@@ -41,6 +41,9 @@ The first release, for Linux.
   started before the session; `run` now gets the session's variables too. `{date}`, `{time}`…
   in commands, file names and notifications; a `desktop_session` trigger and condition;
   `powerclock apps` and `powerclock recipes`.
+- **Rules you can read**: the editor shows the rule as a sentence (When · Only if… · Wait
+  while… · What it does), schedules are picked without cron ("on weekdays at 07:30"; the
+  expression stays under Advanced) and a gallery offers ready-made rules by use case.
 - **A new look**: the «Next» band at the top says what PowerClock will do next and when; actions
   are buttons, "When" is a choice of four, what is scheduled shows as cards, and the countdown
   has a ring. States have their own colours ("night and dawn"), always with a symbol and a word;

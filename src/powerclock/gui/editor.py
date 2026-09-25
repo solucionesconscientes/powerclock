@@ -1,15 +1,23 @@
-"""The rule editor: forms for the trigger, conditions, guards, steps and options, and the
-same rule as JSON. The two views stay in step when switching tabs."""
+"""The rule editor. On top, the rule read as a sentence (When · Only if… · Wait while… ·
+What it does), each piece a link to its tab; below, forms for the trigger, conditions,
+guards, steps and options, and the same rule as JSON under «Advanced». The views stay in
+step when switching tabs."""
 
+import contextlib
 import json
+from collections.abc import Callable
+from html import escape
 from typing import Any
 
 from pydantic import ValidationError
-from PySide6.QtGui import QFont, QFontDatabase
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QFont, QFontDatabase, QTextDocumentFragment
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QFormLayout,
+    QFrame,
+    QGridLayout,
     QGroupBox,
     QLabel,
     QLineEdit,
@@ -28,6 +36,7 @@ from powerclock.gui.icons import app_icon
 from powerclock.gui.tasks import spawn
 from powerclock.gui.widgets import AppCombo
 from powerclock.i18n import _
+from powerclock.labels import describe_predicate, describe_step, describe_trigger
 from powerclock.models import Guards, Rule
 
 GENERAL = ("name", "enabled")
@@ -42,11 +51,73 @@ OPTIONS = (
     "timezone",
 )
 PLACEHOLDER_ID = "new-rule"  # only to validate a new rule locally; the daemon picks its id
+SENTENCE_REFRESH = 400  # ms: the sentence follows what is typed
+
+
+def sentence_parts(rule: dict[str, Any]) -> list[tuple[str, str]]:
+    """The rule in four short lines: (heading, words)."""
+    when = describe_trigger(rule.get("trigger") or {})
+    if rule.get("wake"):
+        when += " · " + _("turning the computer on")
+    conditions = rule.get("conditions")
+    only_if = describe_predicate(conditions) if conditions else _("always")
+    guards = (rule.get("guards") or {}).get("any") or []
+    wait = _(" or ").join(describe_predicate(g) for g in guards) if guards else _("never waits")
+    steps = " → ".join(describe_step(step) for step in rule.get("actions") or []) or "-"
+    return [
+        (_("When"), when),
+        (_("Only if…"), only_if),
+        (_("Wait while…"), wait),
+        (_("What it does"), steps),
+    ]
+
+
+class RuleSentence(QFrame):
+    """The rule as a sentence; each piece opens the tab where it is edited."""
+
+    def __init__(self, open_tab: Callable[[int], None], parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("card")
+        self.setStyleSheet(style.card_style("scheduled"))
+        self.headings: list[QLabel] = []
+        self.values: list[QLabel] = []
+        grid = QGridLayout(self)
+        grid.setContentsMargins(style.SPACE[3], style.SPACE[2], style.SPACE[3], style.SPACE[2])
+        grid.setHorizontalSpacing(style.SPACE[3])
+        grid.setVerticalSpacing(style.SPACE[1])
+        for row in range(4):
+            heading, value = QLabel(), QLabel()
+            style.use_scale(heading, 0, bold=True)
+            value.setWordWrap(True)
+            value.setTextFormat(Qt.TextFormat.RichText)
+            value.linkActivated.connect(lambda link: open_tab(int(link)))
+            grid.addWidget(heading, row, 0, Qt.AlignmentFlag.AlignTop)
+            grid.addWidget(value, row, 1)
+            self.headings.append(heading)
+            self.values.append(value)
+        grid.setColumnStretch(1, 1)
+
+    def show_rule(self, rule: dict[str, Any]) -> None:
+        for row, (heading, words) in enumerate(sentence_parts(rule)):
+            self.headings[row].setText(heading)
+            self.values[row].setText(f'<a href="{row}">{escape(words)}</a>')
+            self.values[row].setToolTip(_("Click to edit"))
+
+    def text(self) -> str:
+        return " · ".join(
+            f"{h.text()} {QTextDocumentFragment.fromHtml(v.text()).toPlainText()}"
+            for h, v in zip(self.headings, self.values, strict=True)
+        )
 
 
 class RuleEditor(QDialog):
     def __init__(
-        self, link: DaemonLink, rule: dict[str, Any] | None, parent: QWidget | None = None
+        self,
+        link: DaemonLink,
+        rule: dict[str, Any] | None,
+        parent: QWidget | None = None,
+        *,
+        start: dict[str, Any] | None = None,  # a new rule's first version (the gallery)
     ) -> None:
         super().__init__(parent)
         self._link = link
@@ -113,7 +184,7 @@ class RuleEditor(QDialog):
         self.tabs.addTab(wait_tab, _("Wait while…"))
         self.tabs.addTab(steps_tab, _("What it does"))
         self.tabs.addTab(options_tab, _("Options"))
-        self.tabs.addTab(self.json, "JSON")
+        self.tabs.addTab(self.json, _("Advanced (JSON)"))
         self._tab = 0
         self._all = False  # conditions written as {"all": [...]} even with a single one
         self.tabs.currentChanged.connect(self._switched)
@@ -129,13 +200,20 @@ class RuleEditor(QDialog):
         buttons.rejected.connect(self.reject)
         self.save_button = buttons.button(QDialogButtonBox.StandardButton.Save)
 
+        self.sentence = RuleSentence(self.tabs.setCurrentIndex)
+        self._sentence_timer = QTimer(self)
+        self._sentence_timer.setInterval(SENTENCE_REFRESH)
+        self._sentence_timer.timeout.connect(self.refresh_sentence)
+        self._sentence_timer.start()
+
         layout = QVBoxLayout(self)
+        layout.addWidget(self.sentence)
         layout.addWidget(self.tabs, 1)
         layout.addWidget(self.error)
         layout.addWidget(buttons)
-        self.resize(720, 640)
+        self.resize(style.WINDOW[0] * 3 // 4, style.WINDOW[1] + style.SPACE[6])
 
-        self.set_rule(rule or _new_rule())
+        self.set_rule(rule or start or _new_rule())
         if link is not None and not widgets.APP_CATALOG:
             spawn(self._load_apps(), self, on_error=lambda _error: None)
 
@@ -161,6 +239,12 @@ class RuleEditor(QDialog):
         self.on_failure.set(list(data.get("on_failure", [])))
         self.options.set(data)
         self.json.setPlainText(_dump(data))
+        self.sentence.show_rule(data)
+
+    def refresh_sentence(self) -> None:
+        """The sentence follows the forms (or the JSON), as long as they can be read."""
+        with contextlib.suppress(ValueError, KeyError, TypeError):  # half-typed: keep the last
+            self.sentence.show_rule(self.rule_data())
 
     def rule_data(self) -> dict[str, Any]:
         """The rule as the form (or the JSON tab, if open) says; ValueError if unreadable."""

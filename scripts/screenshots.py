@@ -232,12 +232,21 @@ async def shoot(language: str) -> None:
     await pump(app, 0.5)
     editor = rules.editor
     assert editor is not None
-    editor.resize(720, 640)
-    for index, name in ((1, "editor-conditions"), (3, "editor-steps"), (5, "editor-json")):
+    for index, name in (
+        (0, "editor-when"),
+        (1, "editor-conditions"),
+        (3, "editor-steps"),
+        (5, "editor-json"),
+    ):
         editor.tabs.setCurrentIndex(index)
         await pump(app, 0.3)
         editor.grab().save(str(out / f"{name}.png"))
     editor.reject()
+    rules.from_gallery()
+    await pump(app, 0.3)
+    assert rules.gallery is not None
+    rules.gallery.grab().save(str(out / "gallery.png"))
+    rules.gallery.reject()
 
     assert controller.tray is not None
     controller.tray.menu.adjustSize()

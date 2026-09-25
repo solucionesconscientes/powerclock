@@ -109,10 +109,10 @@ interface in **English and Spanish**.
 
 | | |
 |---|---|
-| ![Quick tab](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/quick.png) **Quick**: an action, when, and a button that says what it will do. Below, what is scheduled. | ![Rules tab](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/rules.png) **Rules**: every rule and what comes next. |
-| ![Rule editor: conditions](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/editor-conditions.png) **Rule editor**: *Only if…*, the conditions. | ![Rule editor: steps](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/editor-steps.png) **Rule editor**: the steps, in order. |
+| ![Quick tab](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/quick.png) **Quick**: the «Next» band on top; an action, when, and a button that says what it will do. On the right, what is scheduled. | ![Rules tab](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/rules.png) **Rules**: every rule and what comes next. |
+| ![Rule editor: the rule as a sentence](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/editor-when.png) **Rule editor**: the rule read as a sentence and the schedule without cron. | ![Rule editor: steps](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/editor-steps.png) **Rule editor**: the steps, in order. |
 | ![History](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/history.png) **History**: result and reason of every run. | ![Diagnostics](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/diagnostics.png) **Diagnostics**: what works here and how to fix the rest. |
-| ![Countdown](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/countdown.png) The **countdown** before a power action. | ![Tray menu](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/tray-menu.png) The **tray menu**. |
+| ![Countdown](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/countdown.png) The **countdown** before a power action. | ![Gallery of rules](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/gallery.png) The **gallery**: ready-made rules by use case. |
 
 ## Requirements
 
@@ -271,14 +271,21 @@ down now*, *Schedule shutdown*…). On the right, **Scheduled** shows the quick 
 as cards, with their state, **Cancel** and, if they have a time, **Postpone 10 min**. For the ones waiting for a condition it shows what the sensor
 sees now ("ffmpeg is running", "idle for 5m 12s", "CPU 35 % · measuring: 2m of 5m").
 
-**Rules tab.** Every rule with a checkbox to enable or disable it, when it fires and what comes
-next with its state (hover the name to see its id). **New…**, **Edit…** (or double click), **Run now**, **Delete**, **Import…** and
+**Rules tab.** Every rule with a checkbox to enable or disable it, when it fires (in words: "on
+weekdays at 07:30") and what comes next with its state (hover the name to see its id).
+**Gallery…** opens ready-made rules by use case (save energy, mornings, kiosks and presentations,
+breaks, meetings and the day's light, backups and other computers): pick one and the editor opens
+with it to adjust. **New…**, **Edit…** (or double click), **Run now**, **Delete**, **Import…** and
 **Export…** (JSON files).
 
-**Rule editor.** Tabs *When* (name, enabled, and when it acts), *Only if…* (the conditions that
-must all hold), *Wait while…* (the reasons to wait, with how often to check again and when to give
-up), *What it does* (the steps in order, with ↑ ↓ to reorder), *Options* and *JSON*. The JSON tab shows the same rule as
-text and stays in step with the forms when you switch tabs, so you can edit in either. Conditions
+**Rule editor.** On top, the rule **read as a sentence** ("When: every day at 03:00 · turning
+the computer on · Only if…: plugged in · Wait while…: ffmpeg is running · What it does: run
+backup.sh → shut down"); click a piece to go where it is edited. Below, the tabs *When* (name,
+enabled, and when it acts; schedules are chosen without cron: every day, on weekdays, on weekends,
+on these days, once a month, every few hours or minutes, and the cron expression only under
+*Advanced*), *Only if…* (the conditions that must all hold), *Wait while…* (the reasons to wait,
+with how often to check again and when to give up), *What it does* (the steps in order, with ↑ ↓
+to reorder), *Options* and *Advanced (JSON)*. The JSON tab shows the same rule as text and stays in step with the forms when you switch tabs, so you can edit in either. Conditions
 more complex than a list (an *any*, nested groups) are kept and can be edited as JSON inside the
 form. Mistakes are explained before saving (for example, that shutting down must be the last
 step).

@@ -212,7 +212,14 @@ async def test_invalid_rules_are_explained(link: DaemonLink) -> None:
 async def test_tabs_use_the_users_words(qapp: object) -> None:
     editor = RuleEditor(None, None)  # type: ignore[arg-type]
     names = [editor.tabs.tabText(index) for index in range(editor.tabs.count())]
-    assert names == ["When", "Only if…", "Wait while…", "What it does", "Options", "JSON"]
+    assert names == [
+        "When",
+        "Only if…",
+        "Wait while…",
+        "What it does",
+        "Options",
+        "Advanced (JSON)",
+    ]
     editor.close()
 
 
@@ -259,3 +266,88 @@ async def test_failure_steps_survive_the_editor(qapp: object) -> None:
     editor = RuleEditor(None, dump(data))  # type: ignore[arg-type]
     assert len(editor.on_failure.editors) == 2
     assert dump(editor.validate())["on_failure"] == dump(data)["on_failure"]
+
+
+# ── M15: schedules without cron, the sentence, the gallery ───────────────────
+
+
+@pytest.mark.parametrize(
+    ("expr", "kind"),
+    [
+        ("0 3 * * *", "daily"),
+        ("30 7 * * 1-5", "weekdays"),
+        ("0 10 * * 0,6", "weekends"),
+        ("0 20 * * 1,4", "days"),
+        ("15 9 12 * *", "monthly"),
+        ("0 */3 * * *", "hours"),
+        ("*/20 * * * *", "minutes"),
+        ("@daily", "cron"),
+        ("0 3 * * 4,1", "cron"),  # the choices would reorder it: kept as written
+        ("0 3 * * MON", "cron"),
+    ],
+)
+async def test_schedules_without_cron(qapp: object, expr: str, kind: str) -> None:
+    field = forms.ScheduleField("expr")
+    field.set(expr)
+    assert field.kind.currentData() == kind
+    assert field.get() == expr
+    assert field.expr.isHidden() == (kind != "cron")
+
+
+async def test_building_a_schedule(qapp: object) -> None:
+    from PySide6.QtCore import QTime
+
+    field = forms.ScheduleField("expr")
+    field.kind.setCurrentIndex(field.kind.findData("days"))
+    field.time.setTime(QTime(20, 5))
+    field.days["sat"].setChecked(True)
+    field.days["mon"].setChecked(True)
+    assert field.get() == "5 20 * * 1,6"
+    assert not field.week.isHidden()
+    field.kind.setCurrentIndex(field.kind.findData("cron"))
+    field.expr.setText("0 3 * * *")
+    assert field.words.text() == "It means: every day at 03:00"
+
+
+async def test_the_rule_reads_as_a_sentence(qapp: object) -> None:
+    backup = next(path for path in EXAMPLES if path.stem == "backup-nocturno")
+    editor = RuleEditor(None, dump(json.loads(backup.read_text())))  # type: ignore[arg-type]
+    text = editor.sentence.text()
+    assert text.startswith("When Repeats: every day at 03:00 · turning the computer on")
+    assert "Only if… Plugged in or on battery: Plugged in" in text
+    assert "What it does run backup.sh → " in text
+    editor.trigger._form("cron").fields["expr"].set("30 7 * * 1-5")
+    editor.refresh_sentence()
+    assert "on weekdays at 07:30" in editor.sentence.text()
+    editor.sentence.values[3].linkActivated.emit("3")
+    assert editor.tabs.currentIndex() == 3
+    editor.close()
+
+
+async def test_a_rule_from_the_gallery(
+    qapp: object, link: DaemonLink, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from powerclock.gui.gallery import GalleryDialog
+    from powerclock.gui.rules import RulesTab
+
+    dialog = GalleryDialog()
+    assert "cheap-hours" not in [t.id for t in dialog.templates]  # no tariff chosen
+    assert [card.template.group for card in dialog.cards] == ["energy"] * len(dialog.cards)
+    dialog.groups.setCurrentRow(2)
+    assert {card.template.group for card in dialog.cards} == {"screens"}
+    dialog.close()
+    monkeypatch.setitem(forms.SETTINGS, "tariff", "es-2.0td")
+    assert "cheap-hours" in [t.id for t in GalleryDialog().templates]
+
+    tab = RulesTab(link)
+    tab.from_gallery()
+    assert tab.gallery is not None
+    download = next(c for c in tab.gallery.cards if c.template.id == "download-done")
+    download.button.click()
+    await pump()
+    assert tab.editor is not None
+    assert tab.editor.general.fields["name"].get() == "Shut down when the download finishes"
+    tab.editor.save()
+    await pump()
+    rules = await link.api.get("/rules")
+    assert [r["name"] for r in rules] == ["Shut down when the download finishes"]

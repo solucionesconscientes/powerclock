@@ -113,10 +113,10 @@ un **icono en la bandeja** · la interfaz en **español e inglés**.
 
 | | |
 |---|---|
-| ![Pestaña Rápido](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/quick.png) **Rápido**: una acción, cuándo y un botón que dice lo que hará. Debajo, lo programado. | ![Pestaña Reglas](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/rules.png) **Reglas**: todas las reglas y lo próximo. |
-| ![Editor: condiciones](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/editor-conditions.png) **Editor de reglas**: *Solo si…*, las condiciones. | ![Editor: pasos](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/editor-steps.png) **Editor de reglas**: los pasos, en orden. |
+| ![Pestaña Rápido](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/quick.png) **Rápido**: arriba, la franja «Próximo»; una acción, cuándo y un botón que dice lo que hará. A la derecha, lo programado. | ![Pestaña Reglas](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/rules.png) **Reglas**: todas las reglas y lo próximo. |
+| ![Editor: la regla como frase](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/editor-when.png) **Editor de reglas**: la regla leída como una frase y el horario sin cron. | ![Editor: pasos](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/editor-steps.png) **Editor de reglas**: los pasos, en orden. |
 | ![Historial](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/history.png) **Historial**: resultado y motivo de cada ejecución. | ![Diagnóstico](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/diagnostics.png) **Diagnóstico**: qué funciona aquí y cómo arreglar el resto. |
-| ![Aviso antes de actuar](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/countdown.png) El **aviso** antes de una acción de energía. | ![Menú de la bandeja](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/tray-menu.png) El **menú de la bandeja**. |
+| ![Aviso antes de actuar](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/countdown.png) El **aviso** antes de una acción de energía. | ![Galería de reglas](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/gallery.png) La **galería**: reglas ya preparadas por caso de uso. |
 
 ## Requisitos
 
@@ -286,13 +286,20 @@ sensor en ese momento ("ffmpeg está en marcha", "inactivo desde hace 5m 12s", "
 2m de 5m").
 
 **Pestaña Reglas.** Todas las reglas, con una casilla para activarlas o desactivarlas, cuándo
-actúan y lo próximo con su estado (el id sale al pasar el ratón por el nombre). **Nueva…**, **Editar…** (o doble clic), **Ejecutar ahora**,
+actúan (en palabras: «los laborables a las 07:30») y lo próximo con su estado (el id sale al pasar
+el ratón por el nombre). **Galería…** abre reglas ya preparadas por caso de uso (ahorrar energía,
+por la mañana, quioscos y presentaciones, descansos, citas y luz del día, copias y otros equipos):
+elige una y se abre el editor con ella para ajustarla. **Nueva…**, **Editar…** (o doble clic), **Ejecutar ahora**,
 **Borrar**, **Importar…** y **Exportar…** (archivos JSON).
 
-**Editor de reglas.** Pestañas *Cuándo* (nombre, activada y cuándo actúa), *Solo si…* (las
-condiciones que deben cumplirse todas), *Esperar mientras…* (los motivos para esperar, con cada
-cuánto volver a mirar y cuándo desistir), *Qué hará* (los pasos en orden, con ↑ ↓ para
-reordenarlos), *Opciones* y *JSON*. La
+**Editor de reglas.** Arriba, la regla **leída como una frase** («Cuándo: todos los días a las
+03:00 · encendiendo el equipo · Solo si…: enchufado · Esperar mientras…: ffmpeg está en marcha ·
+Qué hará: ejecutar backup.sh → apagar»); cada pieza se toca para ir a donde se edita. Debajo, las
+pestañas *Cuándo* (nombre, activada y cuándo actúa; los horarios se eligen sin cron: todos los días,
+los laborables, los fines de semana, estos días, una vez al mes, cada pocas horas o minutos, y la
+expresión cron solo en *Avanzado*), *Solo si…* (las condiciones que deben cumplirse todas),
+*Esperar mientras…* (los motivos para esperar, con cada cuánto volver a mirar y cuándo desistir),
+*Qué hará* (los pasos en orden, con ↑ ↓ para reordenarlos), *Opciones* y *Avanzado (JSON)*. La
 pestaña JSON muestra la misma regla como texto y se sincroniza con los formularios al cambiar de
 pestaña, así que puedes editar en cualquiera de las dos. Las condiciones más complejas que una
 lista (un *any*, grupos anidados) se conservan y se editan como JSON dentro del formulario. Los

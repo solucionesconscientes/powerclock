@@ -41,7 +41,7 @@ from powerclock.gui.widgets import (
     next_quarter,
 )
 from powerclock.i18n import _
-from powerclock.labels import field_label, kind_label, value_label
+from powerclock.labels import cron_words, field_label, kind_label, value_label
 from powerclock.models import (
     DURATION_PATTERN,
     Active,
@@ -385,6 +385,150 @@ class TimeField(FieldEditor):
             self.edit.setTime(QTime(parsed.hour, parsed.minute, parsed.second))
 
 
+SCHEDULE_KINDS = ("daily", "weekdays", "weekends", "days", "monthly", "hours", "minutes", "cron")
+WEEK = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
+CRON_NUMBER = {"sun": 0, "mon": 1, "tue": 2, "wed": 3, "thu": 4, "fri": 5, "sat": 6}
+
+
+def schedule_label(kind: str) -> str:
+    labels = {
+        "daily": _("Every day"),
+        "weekdays": _("On weekdays (Mon-Fri)"),
+        "weekends": _("On weekends"),
+        "days": _("On these days"),
+        "monthly": _("Once a month"),
+        "hours": _("Every few hours"),
+        "minutes": _("Every few minutes"),
+        "cron": _("Advanced: cron expression"),
+    }
+    return labels[kind]
+
+
+class ScheduleField(FieldEditor):
+    """A schedule without cron: every day, on weekdays or weekends, on some days, once a month,
+    every few hours or minutes. The cron expression itself stays under «Advanced»; one the
+    choices cannot say exactly is kept and shown there."""
+
+    def __init__(self, name: str) -> None:
+        box = QWidget()
+        self.kind = QComboBox()
+        for kind in SCHEDULE_KINDS:
+            self.kind.addItem(schedule_label(kind), kind)
+        self.time = QTimeEdit(QTime(3, 0))
+        self.time.setDisplayFormat("HH:mm")
+        self.day = QSpinBox()
+        self.day.setRange(1, 31)
+        self.day.setPrefix(_("day") + " ")
+        self.every = QSpinBox()
+        self.every.setRange(1, 59)
+        self.days = {day: QCheckBox(value_label("days", day)) for day in WEEK}
+        self.expr = QLineEdit()
+        self.expr.setPlaceholderText("0 3 * * *")
+        self.expr.setToolTip(
+            _("minute hour day month weekday, e.g. 0 3 * * * (every day at 03:00)")
+        )
+        self.words = QLabel()
+        self.words.setWordWrap(True)
+        top = QHBoxLayout()
+        top.setContentsMargins(0, 0, 0, 0)
+        for widget in (self.kind, self.time, self.day, self.every):
+            top.addWidget(widget)
+        top.addStretch(1)
+        self.week = QWidget()
+        week = QHBoxLayout(self.week)
+        week.setContentsMargins(0, 0, 0, 0)
+        for box_ in self.days.values():
+            week.addWidget(box_)
+        week.addStretch(1)
+        layout = QVBoxLayout(box)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addLayout(top)
+        layout.addWidget(self.week)
+        layout.addWidget(self.expr)
+        layout.addWidget(self.words)
+        super().__init__(name, box)
+        self.kind.currentIndexChanged.connect(self._update)
+        self.expr.textChanged.connect(self._update)
+        self._update()
+
+    def get(self) -> Any:
+        kind = self.kind.currentData()
+        at = self.time.time()
+        minute, hour = at.minute(), at.hour()
+        match kind:
+            case "daily":
+                return f"{minute} {hour} * * *"
+            case "weekdays":
+                return f"{minute} {hour} * * 1-5"
+            case "weekends":
+                return f"{minute} {hour} * * 0,6"
+            case "days":
+                chosen = sorted(CRON_NUMBER[d] for d, box in self.days.items() if box.isChecked())
+                return f"{minute} {hour} * * {','.join(map(str, chosen)) or '*'}"
+            case "monthly":
+                return f"{minute} {hour} {self.day.value()} * *"
+            case "hours":
+                return f"0 */{self.every.value()} * * *"
+            case "minutes":
+                return f"*/{self.every.value()} * * * *"
+        return self.expr.text().strip()
+
+    def set(self, value: Any) -> None:
+        expr = str(value or "").strip()
+        self.expr.setText(expr)
+        kind = self._understand(expr)
+        self.kind.setCurrentIndex(self.kind.findData(kind))
+        if kind != "cron" and self.get() != expr:  # the choices would change it: keep it
+            self.kind.setCurrentIndex(self.kind.findData("cron"))
+        self._update()
+
+    def _understand(self, expr: str) -> str:
+        fields = expr.split()
+        if len(fields) != 5 or fields[3] != "*":
+            return "cron"
+        minute, hour, day, _month, weekday = fields
+        if minute.startswith("*/") and minute[2:].isdigit() and hour == "*":
+            self.every.setRange(1, 59)
+            self.every.setValue(int(minute[2:]))
+            return "minutes"
+        if minute == "0" and hour.startswith("*/") and hour[2:].isdigit():
+            self.every.setRange(1, 23)
+            self.every.setValue(int(hour[2:]))
+            return "hours"
+        if not (minute.isdigit() and hour.isdigit() and int(hour) < 24 and int(minute) < 60):
+            return "cron"
+        self.time.setTime(QTime(int(hour), int(minute)))
+        if day.isdigit() and weekday == "*":
+            self.day.setValue(int(day))
+            return "monthly"
+        if day != "*":
+            return "cron"
+        if weekday == "*":
+            return "daily"
+        if weekday in ("1-5", "0,6"):
+            return "weekdays" if weekday == "1-5" else "weekends"
+        numbers = weekday.split(",")
+        if not all(n.isdigit() and int(n) < 7 for n in numbers):
+            return "cron"
+        for name, box_ in self.days.items():
+            box_.setChecked(str(CRON_NUMBER[name]) in numbers)
+        return "days"
+
+    def _update(self) -> None:
+        kind = self.kind.currentData()
+        self.time.setVisible(kind not in ("hours", "minutes", "cron"))
+        self.day.setVisible(kind == "monthly")
+        self.every.setVisible(kind in ("hours", "minutes"))
+        if kind in ("hours", "minutes"):
+            self.every.setRange(1, 23 if kind == "hours" else 59)
+            self.every.setSuffix(" h" if kind == "hours" else " min")
+        self.week.setVisible(kind == "days")
+        self.expr.setVisible(kind == "cron")
+        words = cron_words(self.expr.text()) if kind == "cron" else None
+        self.words.setText(_("It means: {when}").format(when=words) if words else "")
+        self.words.setVisible(bool(words))
+
+
 class DateTimeField(FieldEditor):
     def __init__(self, name: str) -> None:
         self.edit = LocalDateTimeEdit()
@@ -657,6 +801,8 @@ def editor_for(
         return RecipeField(name)
     if name == "window":
         return WindowField(name)
+    if name == "expr":
+        return ScheduleField(name)
     optional = False
     if "anyOf" in schema:
         options = [option for option in schema["anyOf"] if option.get("type") != "null"]

@@ -18,7 +18,7 @@ def kind_label(kind: str) -> str:
         # triggers
         "at": _("At a date and time"),
         "countdown": _("After a delay"),
-        "cron": _("Repeats (cron expression)"),
+        "cron": _("Repeats on a schedule"),
         "process_exit": _("When a program ends"),
         "startup": _("When PowerClock starts or the computer wakes up"),
         "manual": _("Only by hand"),
@@ -92,7 +92,7 @@ def field_label(name: str, kind: str | None = None) -> str:
         "is": _("Power"),
         "when": _("When"),
         "duration": _("Duration"),
-        "expr": _("Cron expression"),
+        "expr": _("Schedule"),
         "pid": _("PID"),
         "on": _("On"),
         "delay": _("Delay"),
@@ -192,6 +192,9 @@ def describe_trigger(trigger: dict[str, Any]) -> str:
         case "countdown":
             detail = trigger["duration"]
         case "cron":
+            words = cron_words(trigger["expr"])
+            if words is not None:
+                return _("Repeats: {when}").format(when=words)
             detail = trigger["expr"]
         case "idle":
             detail = _("for {time}").format(time=held)
@@ -248,6 +251,99 @@ def describe_trigger(trigger: dict[str, Any]) -> str:
         case _:
             detail = ""
     return kind_label(kind) + (f": {detail}" if detail else "")
+
+
+# ── Schedules in words (cron stays under «Advanced») ─────────────────────────
+
+CRON_DAYS = ("sun", "mon", "tue", "wed", "thu", "fri", "sat")  # cron numbers 0-6 (7: Sunday)
+WEEKDAYS = "1-5"
+WEEKENDS = "0,6"
+
+
+def cron_days(field: str) -> list[str] | None:
+    """A cron day-of-week field ("1,4", "1-5", "0") as mon…sun, or None if it is not a
+    plain list or range."""
+    days: list[str] = []
+    for part in field.split(","):
+        if re.fullmatch(r"[0-7]", part):
+            numbers = [int(part)]
+        elif match := re.fullmatch(r"([0-7])-([0-7])", part):
+            start, end = int(match[1]), int(match[2])
+            if start > end:
+                return None
+            numbers = list(range(start, end + 1))
+        else:
+            return None
+        days += [CRON_DAYS[number % 7] for number in numbers]
+    return list(dict.fromkeys(days))
+
+
+def cron_words(expr: str) -> str | None:
+    """Common cron schedules in words ("every day at 03:00", "Mon, Thu at 20:00"); None when
+    it is not one of them (the expression is then shown as it is)."""
+    fields = expr.split()
+    if len(fields) != 5:
+        return None
+    minute, hour, day, month, weekday = fields
+    if month != "*":
+        return None
+    if re.fullmatch(r"\*/([1-9]\d?)", minute) and hour == day == weekday == "*":
+        return _("every {count} minutes").format(count=minute[2:])
+    if minute == "0" and re.fullmatch(r"\*/([1-9]\d?)", hour) and day == weekday == "*":
+        return _("every {count} hours").format(count=hour[2:])
+    if re.fullmatch(r"\d{1,2}", minute) and hour == day == weekday == "*":
+        return _("every hour at minute {minute}").format(minute=int(minute))
+    if not (re.fullmatch(r"\d{1,2}", minute) and re.fullmatch(r"\d{1,2}", hour)):
+        return None
+    time = f"{int(hour):02d}:{int(minute):02d}"
+    if day == "*" and weekday == "*":
+        return _("every day at {time}").format(time=time)
+    if weekday == "*" and re.fullmatch(r"\d{1,2}", day):
+        return _("on day {day} of every month at {time}").format(day=int(day), time=time)
+    if day != "*":
+        return None
+    if weekday == WEEKDAYS:
+        return _("on weekdays at {time}").format(time=time)
+    if weekday in (WEEKENDS, "6,0", "6-7"):
+        return _("on weekends at {time}").format(time=time)
+    days = cron_days(weekday)
+    if days is None:
+        return None
+    names = ", ".join(value_label("days", name) for name in days)
+    return _("{days} at {time}").format(days=names, time=time)
+
+
+# ── Steps in words (the rule read as a sentence) ─────────────────────────────
+
+
+def describe_step(step: dict[str, Any]) -> str:
+    """A step in a few words: "Shut down", "run backup.sh", "open vlc"."""
+    kind = step.get("type", "")
+    match kind:
+        case "power":
+            return power_action_label(PowerAction(step.get("action", "shutdown")))
+        case "run":
+            command = step.get("cmd") or [""]
+            program = command[0].split()[0] if step.get("shell") else command[0]
+            return _("run {program}").format(program=program.rsplit("/", 1)[-1])
+        case "launch":
+            return _("open {app}").format(app=step.get("app", ""))
+        case "open":
+            return _("open {target}").format(target=step.get("target", ""))
+        case "close_app":
+            return _("close {app}").format(app=step.get("name") or step.get("app") or "")
+        case "notify":
+            return _("notify: {title}").format(title=step.get("title", ""))
+        case "push":
+            return _("send to {service}").format(service=step.get("service", "ntfy"))
+        case "wait":
+            return _("wait {time}").format(time=step.get("duration", ""))
+        case "wait_until":
+            condition = describe_predicate(step.get("condition", {}))
+            return _("wait until: {condition}").format(condition=condition)
+        case "wake_lan":
+            return _("turn on {mac}").format(mac=step.get("mac", ""))
+    return kind_label(kind)
 
 
 def describe_predicate(predicate: Any) -> str:

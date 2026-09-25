@@ -22,6 +22,7 @@ from powerclock.cli.format import relative, watch_detail
 from powerclock.gui import style
 from powerclock.gui.client import DaemonLink
 from powerclock.gui.editor import RuleEditor
+from powerclock.gui.gallery import GalleryDialog
 from powerclock.gui.icons import themed
 from powerclock.gui.summary import when_text
 from powerclock.gui.tasks import ask, show_error, spawn
@@ -37,6 +38,7 @@ class RulesTab(QWidget):
         self._link = link
         self.rules: list[dict[str, Any]] = []
         self.editor: RuleEditor | None = None
+        self.gallery: GalleryDialog | None = None
 
         self.table = QTableWidget(0, len(COLUMNS))
         self.table.setHorizontalHeaderLabels(["", _("Name"), _("When"), _("Next"), _("Id")])
@@ -56,13 +58,21 @@ class RulesTab(QWidget):
         self.table.itemSelectionChanged.connect(self._update_buttons)
 
         self.new_button = style.primary(_button("list-add", _("New…"), self.new))
+        self.gallery_button = _button("view-list-icons", _("Gallery…"), self.from_gallery)
+        self.gallery_button.setToolTip(_("Ready-made rules by use case"))
         self.edit_button = _button("document-edit", _("Edit…"), self.edit)
         self.run_button = _button("media-playback-start", _("Run now"), self.run)
         self.delete_button = _button("edit-delete", _("Delete"), self.delete)
         import_button = _button("document-import", _("Import…"), self.import_file)
         export_button = _button("document-export", _("Export…"), self.export_file)
         buttons = QHBoxLayout()
-        for button in (self.new_button, self.edit_button, self.run_button, self.delete_button):
+        for button in (
+            self.new_button,
+            self.gallery_button,
+            self.edit_button,
+            self.run_button,
+            self.delete_button,
+        ):
             buttons.addWidget(button)
         buttons.addStretch(1)
         buttons.addWidget(import_button)
@@ -142,6 +152,15 @@ class RulesTab(QWidget):
     def new(self) -> None:
         self._open_editor(None)
 
+    def from_gallery(self) -> None:
+        self.gallery = GalleryDialog(self)
+        self.gallery.accepted.connect(self._gallery_chosen)
+        self.gallery.open()
+
+    def _gallery_chosen(self) -> None:
+        if self.gallery is not None and self.gallery.chosen is not None:
+            self._open_editor(None, start=self.gallery.chosen.rule)
+
     def edit(self) -> None:
         rule = self.selected()
         if rule is not None:
@@ -195,8 +214,10 @@ class RulesTab(QWidget):
             text = json.dumps({"version": 1, "rules": self.rules}, indent=2, ensure_ascii=False)
             Path(name).write_text(text + "\n", encoding="utf-8")
 
-    def _open_editor(self, rule: dict[str, Any] | None) -> None:
-        self.editor = RuleEditor(self._link, rule, self)
+    def _open_editor(
+        self, rule: dict[str, Any] | None, start: dict[str, Any] | None = None
+    ) -> None:
+        self.editor = RuleEditor(self._link, rule, self, start=start)
         self.editor.accepted.connect(self.reload)
         self.editor.open()
 
