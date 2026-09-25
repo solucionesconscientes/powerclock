@@ -85,6 +85,9 @@ class DryRunPlatform(PlatformBackend):
     async def desktop_session(self) -> bool | None:
         return await self.inner.desktop_session()
 
+    async def devices(self) -> list[str]:
+        return await self.inner.devices()
+
     async def session_env(self) -> dict[str, str]:
         return await self.inner.session_env()
 

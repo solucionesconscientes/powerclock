@@ -70,6 +70,7 @@ class Settings(BaseModel):
     port: int = Field(default=DEFAULT_PORT, ge=1024, le=65535)
     dry_run: bool = False
     log_level: Literal["debug", "info", "warning", "error"] = "info"
+    tariff: Literal["es-2.0td"] | None = None  # time-of-use electricity prices, if any
 
 
 class SettingsError(Exception):

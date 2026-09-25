@@ -50,6 +50,17 @@ def power_state() -> PowerState:
     return PowerState(percent=state.percent, on_ac=state.plugged)
 
 
+def temperatures() -> dict[str, float] | None:
+    """The hottest current reading of each sensor (coretemp, acpitz, nvme…), None if the
+    system has none."""
+    read = getattr(psutil, "sensors_temperatures", None)
+    found = read() if read is not None else {}
+    readings = {
+        name: max(entry.current for entry in entries) for name, entries in found.items() if entries
+    }
+    return readings or None
+
+
 def ssh_sessions() -> int:
     """Logged-in users that come from another host (tmux panes and X displays excluded)."""
     return sum(
@@ -141,3 +152,12 @@ class SystemReadings:
             return await self._backend.desktop_session()
         except NotSupported:
             return None
+
+    async def devices(self) -> list[str] | None:
+        try:
+            return await self._backend.devices()
+        except NotSupported:
+            return None
+
+    async def temperatures(self) -> dict[str, float] | None:
+        return await asyncio.to_thread(temperatures)

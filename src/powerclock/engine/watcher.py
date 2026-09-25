@@ -19,11 +19,14 @@ from pydantic import BaseModel
 
 from powerclock.engine.clock import Clock
 from powerclock.models import (
+    Active,
     AllOf,
     AnyOf,
     BatteryLevel,
     CpuBelow,
     DesktopSession,
+    Device,
+    FileExists,
     Idle,
     NetBelow,
     NotOf,
@@ -31,14 +34,30 @@ from powerclock.models import (
     Predicate,
     ProcessExitTrigger,
     Rule,
+    Temperature,
+    UsedToday,
     WaitUntilStep,
+    WifiSsid,
 )
 from powerclock.sensors.base import ProcessInfo, SensorPredicate
 from powerclock.sensors.registry import SensorHub, Watched
 
 log = logging.getLogger(__name__)
 
-SENSOR_TRIGGERS = (Idle, CpuBelow, NetBelow, BatteryLevel, PowerSource, DesktopSession)
+SENSOR_TRIGGERS = (
+    Idle,
+    CpuBelow,
+    NetBelow,
+    BatteryLevel,
+    PowerSource,
+    DesktopSession,
+    WifiSsid,
+    Active,
+    UsedToday,
+    FileExists,
+    Device,
+    Temperature,
+)
 STATE_TRIGGERS = (*SENSOR_TRIGGERS, ProcessExitTrigger)
 
 OnFire = Callable[[Rule], None]

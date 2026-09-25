@@ -9,6 +9,7 @@ import pytest
 from pydantic import BaseModel
 
 from guisupport import pump
+from powerclock.gui import forms
 from powerclock.gui.client import DaemonLink
 from powerclock.gui.editor import RuleEditor
 from powerclock.gui.forms import (
@@ -92,8 +93,12 @@ async def test_every_kind_of_field_survives(qapp: object) -> None:
     [(PredicateEditor, PREDICATES), (ActionEditor, ACTIONS)],
 )
 async def test_starting_values_are_valid(
-    qapp: object, editor_class: type[Any], models: list[type[BaseModel]]
+    qapp: object,
+    editor_class: type[Any],
+    models: list[type[BaseModel]],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setitem(forms.SETTINGS, "tariff", "es-2.0td")  # offers tariff_period
     for model in models:
         editor = editor_class()
         editor.kind.setCurrentIndex(editor.kind.findData(type_of(model)))
@@ -115,7 +120,30 @@ async def test_starting_triggers_are_valid(qapp: object) -> None:
         if type_of(model) == "process_exit":
             continue  # name or PID: the user has to write one
         editor.trigger.kind.setCurrentIndex(editor.trigger.kind.findData(type_of(model)))
+        for field in editor.trigger._form(type_of(model)).fields.values():
+            if isinstance(field, TextField) and not field.get():  # a Wi-Fi, a device…
+                field.set("x")
         editor.validate()
+
+
+async def test_tariff_period_is_offered_only_with_a_tariff(
+    qapp: object, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert PredicateEditor().kind.findData("tariff_period") < 0
+    kept = PredicateEditor()  # a saved one is not lost: it is shown as JSON
+    kept.set({"type": "tariff_period", "period": "valley"})
+    assert kept.get() == {"type": "tariff_period", "period": "valley"}
+    monkeypatch.setitem(forms.SETTINGS, "tariff", "es-2.0td")
+    assert PredicateEditor().kind.findData("tariff_period") >= 0
+
+
+async def test_holiday_days_are_typed_on_one_line(qapp: object) -> None:
+    editor = PredicateEditor()
+    editor.set({"type": "holiday", "extra": ["2026-06-24", "2026-12-26"]})
+    field = editor._form("holiday").fields["extra"]
+    assert field.widget.text() == "2026-06-24, 2026-12-26"
+    field.widget.setText("2026-06-24 2026-09-11;2026-12-26")
+    assert editor.get()["extra"] == ["2026-06-24", "2026-09-11", "2026-12-26"]
 
 
 async def test_json_view_follows_the_form_and_back(qapp: object) -> None:

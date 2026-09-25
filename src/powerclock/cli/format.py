@@ -91,6 +91,29 @@ def watch_detail(item: dict[str, Any]) -> str:
             )
         case "power_source":
             text = {"ac": _("on AC"), "battery": _("on battery")}.get(str(value), _("unknown"))
+        case "used_today":
+            text = (
+                _("used {time} today").format(time=span(round(value)))
+                if isinstance(value, int | float)
+                else _("use unknown")
+            )
+        case "active":
+            text = (
+                _("in use (idle for {time})").format(time=span(round(value)))
+                if isinstance(value, int | float)
+                else _("idle time unknown")
+            )
+        case "device":
+            text = {"connected": _("connected"), "missing": _("not connected")}.get(
+                str(value), _("unknown")
+            )
+        case "temperature":
+            text = f"{value:.0f} °C" if isinstance(value, int | float) else _("unknown")
+        case "wifi_ssid":
+            text = _("on {ssid}").format(ssid=value) if value else _("not on that Wi-Fi")
+        case "file":
+            state = item.get("state")
+            text = _("found") if state else _("not found") if state is False else _("unknown")
         case "desktop_session":
             text = {
                 "up": _("the desktop session is up"),

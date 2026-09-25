@@ -6,7 +6,7 @@ hand-edited rules.json is reported instead of being silently ignored.
 """
 
 import re
-from datetime import time, timedelta
+from datetime import date, time, timedelta
 from typing import Annotated, Any, Literal, Self
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -198,6 +198,54 @@ class PowerSource(_Tagged):
     for_: Duration = Field(default=timedelta(0), alias="for")
 
 
+class WifiSsid(_Tagged):
+    """Connected to the Wi-Fi network `ssid` (as a trigger: when it connects)."""
+
+    type: Literal["wifi_ssid"] = "wifi_ssid"
+    ssid: str = Field(min_length=1)
+
+
+class Active(_Tagged):
+    """The computer has been in use for `for` without a break of `pause` (no input): time
+    for a rest."""
+
+    type: Literal["active"] = "active"
+    for_: PositiveDuration = Field(alias="for")
+    pause: PositiveDuration = timedelta(minutes=5)
+
+
+class UsedToday(_Tagged):
+    """The computer has been used for `for` in total today (in the rule's time zone)."""
+
+    type: Literal["used_today"] = "used_today"
+    for_: PositiveDuration = Field(alias="for")
+
+
+class FileExists(_Tagged):
+    """A file exists, or a folder holds a file matching `pattern` ("*.pdf")."""
+
+    type: Literal["file"] = "file"
+    path: str = Field(min_length=1)
+    pattern: str | None = None
+
+
+class Device(_Tagged):
+    """A device whose name contains `name` is connected: a USB stick or disk (its product
+    or its label), Bluetooth headphones…"""
+
+    type: Literal["device"] = "device"
+    name: str = Field(min_length=1)
+
+
+class Temperature(_Tagged):
+    """The hottest temperature sensor (or the one whose name contains `sensor`) is above
+    `above` °C."""
+
+    type: Literal["temperature"] = "temperature"
+    above: float = Field(gt=0, le=150)
+    sensor: str | None = None
+
+
 class DesktopSession(_Tagged):
     """A desktop session is up, so applications can be opened in it (as a trigger: when
     it starts, e.g. after logging in)."""
@@ -224,6 +272,33 @@ class CountdownTrigger(_Tagged):
     type: Literal["countdown"] = "countdown"
     duration: PositiveDuration
     armed_at: AwareDatetime | None = None
+
+
+class SunTrigger(_Tagged):
+    """At sunrise or sunset (plus `offset_minutes`, which may be negative), computed for
+    `latitude`/`longitude` or, without them, for the time zone's city."""
+
+    type: Literal["sun"] = "sun"
+    event: Literal["sunrise", "sunset"] = "sunset"
+    offset_minutes: int = Field(default=0, ge=-720, le=720)
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+
+    @model_validator(mode="after")
+    def _both_or_none(self) -> Self:
+        if (self.latitude is None) != (self.longitude is None):
+            raise ValueError("give both latitude and longitude, or neither")
+        return self
+
+
+class CalendarTrigger(_Tagged):
+    """`before` each event of a calendar (an .ics address or file) whose title contains
+    `match` (every event without it)."""
+
+    type: Literal["calendar"] = "calendar"
+    source: str = Field(min_length=1)
+    match: str | None = None
+    before: Duration = timedelta(0)
 
 
 class CronTrigger(_Tagged):
@@ -282,6 +357,8 @@ Trigger = Annotated[
     AtTrigger
     | CountdownTrigger
     | CronTrigger
+    | SunTrigger
+    | CalendarTrigger
     | Idle
     | ProcessExitTrigger
     | CpuBelow
@@ -289,11 +366,17 @@ Trigger = Annotated[
     | BatteryLevel
     | PowerSource
     | DesktopSession
+    | WifiSsid
+    | Active
+    | UsedToday
+    | FileExists
+    | Device
+    | Temperature
     | StartupTrigger
     | ManualTrigger,
     Field(discriminator="type"),
 ]
-TIME_TRIGGERS = (AtTrigger, CountdownTrigger, CronTrigger)
+TIME_TRIGGERS = (AtTrigger, CountdownTrigger, CronTrigger, SunTrigger, CalendarTrigger)
 
 
 # ── Predicates (conditions, guards, wait_until) ──────────────────────────────
@@ -347,9 +430,21 @@ class Weekday(_Tagged):
     days: list[DayName] = Field(min_length=1)
 
 
-class WifiSsid(_Tagged):
-    type: Literal["wifi_ssid"] = "wifi_ssid"
-    ssid: str = Field(min_length=1)
+class Holiday(_Tagged):
+    """Today is a public holiday (Spain's national ones) or one of `extra` (regional and
+    local holidays, days off)."""
+
+    type: Literal["holiday"] = "holiday"
+    country: Literal["ES"] = "ES"
+    extra: list[date] = Field(default_factory=list)
+
+
+class TariffPeriod(_Tagged):
+    """The electricity tariff chosen in the settings is in this period now (unknown when
+    no tariff is set: only for contracts with time-of-use prices)."""
+
+    type: Literal["tariff_period"] = "tariff_period"
+    period: Literal["valley", "flat", "peak"] = "valley"
 
 
 class AllOf(_Model):
@@ -401,6 +496,13 @@ Predicate = Annotated[
     | Annotated[Weekday, Tag("weekday")]
     | Annotated[WifiSsid, Tag("wifi_ssid")]
     | Annotated[DesktopSession, Tag("desktop_session")]
+    | Annotated[Holiday, Tag("holiday")]
+    | Annotated[TariffPeriod, Tag("tariff_period")]
+    | Annotated[Active, Tag("active")]
+    | Annotated[UsedToday, Tag("used_today")]
+    | Annotated[FileExists, Tag("file")]
+    | Annotated[Device, Tag("device")]
+    | Annotated[Temperature, Tag("temperature")]
     | Annotated[AllOf, Tag("all")]
     | Annotated[AnyOf, Tag("any")]
     | Annotated[NotOf, Tag("not")],

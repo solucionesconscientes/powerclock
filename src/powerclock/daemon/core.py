@@ -17,7 +17,7 @@ from typing import Any, Self
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from powerclock import __version__, recipes
-from powerclock.config import Paths, Settings, ensure_token, read_secrets
+from powerclock.config import Paths, Settings, atomic_write, ensure_token, read_secrets
 from powerclock.daemon.events import EventHub
 from powerclock.daemon.store import History, RulesFileError, RuleStore
 from powerclock.engine import Engine
@@ -159,6 +159,7 @@ class Daemon:
             request_wake=self._request_wake,  # the set_wake action
             variables={"home": str(Path.home()), "data": str(paths.data)},
             secrets=lambda: read_secrets(paths),
+            tariff=lambda: self.settings.tariff,
         )
         self.started_at = self.engine.clock.now()
         self._tasks: list[asyncio.Task[None]] = []
@@ -547,7 +548,18 @@ class Daemon:
             "rules": len(self.engine.rules),
             "rules_errors": self.store.errors,
             "clients": self.hub.subscribers,
+            "tariff": self.settings.tariff,
         }
+
+    def set_tariff(self, tariff: str | None) -> dict[str, Any]:
+        """Choose the electricity tariff (None: none); saved in daemon.json."""
+        try:
+            updated = Settings.model_validate({**self.settings.model_dump(), "tariff": tariff})
+        except ValidationError as exc:
+            raise DaemonError(422, json.loads(exc.json(include_url=False))) from None
+        atomic_write(self.paths.settings, updated.model_dump_json(indent=2) + "\n")
+        self.settings = updated
+        return {"tariff": updated.tariff}
 
     # ── Internals ─────────────────────────────────────────────────────────────
 

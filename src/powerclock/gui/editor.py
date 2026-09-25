@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from powerclock.connection import format_detail
-from powerclock.gui import widgets
+from powerclock.gui import forms, widgets
 from powerclock.gui.client import DaemonLink
 from powerclock.gui.forms import ActionEditor, EditorList, ModelForm, PredicateEditor, TriggerEditor
 from powerclock.gui.icons import app_icon
@@ -51,6 +51,8 @@ class RuleEditor(QDialog):
         super().__init__(parent)
         self._link = link
         self._original = rule
+        if link is not None and link.health is not None:  # before the forms are built
+            forms.SETTINGS["tariff"] = link.health.get("tariff")
         self.setWindowIcon(app_icon())
         self.setWindowTitle(
             _("New rule") if rule is None else _("Edit rule: {name}").format(name=rule["name"])

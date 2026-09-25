@@ -76,3 +76,27 @@ def test_conditions_in_words() -> None:
 )
 def test_capabilities_have_names_for_people(capability: str, name: str) -> None:
     assert capability_label(capability) == name
+
+
+@pytest.mark.parametrize(
+    ("trigger", "text"),
+    [
+        (
+            {"type": "sun", "event": "sunset", "offset_minutes": -30},
+            "At sunrise or sunset: Sunset -30 min",
+        ),
+        (
+            {"type": "calendar", "source": "https://x/cal.ics", "match": "Dentist", "before": "1h"},
+            "Before calendar events: Dentist - 1h",
+        ),
+        ({"type": "used_today", "for": "2h"}, "Used today for: 2h"),
+        (
+            {"type": "file", "path": "~/Downloads", "pattern": "*.pdf"},
+            "A file or folder has something: ~/Downloads/*.pdf",
+        ),
+        ({"type": "device", "name": "SanDisk"}, "A device is connected: SanDisk"),
+        ({"type": "temperature", "above": 85}, "Temperature above: 85 °C"),
+    ],
+)
+def test_new_triggers_in_words(trigger: dict[str, object], text: str) -> None:
+    assert describe_trigger(trigger) == text

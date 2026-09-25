@@ -41,6 +41,11 @@ The first release, for Linux.
   started before the session; `run` now gets the session's variables too. `{date}`, `{time}`…
   in commands, file names and notifications; a `desktop_session` trigger and condition;
   `powerclock apps` and `powerclock recipes`.
+- **More triggers and conditions**: at sunrise or sunset (computed offline), before calendar
+  events (any `.ics` address or file, with repeating events), after some time in use without a
+  break or in total today, when a file appears, a device is plugged in, the Wi-Fi changes or a
+  sensor gets too hot; conditions for public holidays and, only for time-of-use contracts, the
+  electricity tariff period (Spain 2.0TD, `powerclock tariff`).
 - **Messages and answers**: a `push` step sends to your phone (ntfy, Telegram) or any webhook;
   an `ask` step waits for a button (and reminds you again every few minutes); "if a step fails"
   steps get the `{error}`. Tokens live in `secrets.json`, never in the rules

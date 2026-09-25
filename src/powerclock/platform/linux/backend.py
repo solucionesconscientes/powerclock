@@ -27,7 +27,7 @@ from powerclock.platform.base import (
     PowerProfile,
     Release,
 )
-from powerclock.platform.linux import apps, session
+from powerclock.platform.linux import apps, devices, session
 from powerclock.platform.linux.commands import Commands, SystemCommands
 from powerclock.platform.linux.dbus import Bus, DBusError, DBusFastBus
 from powerclock.platform.linux.desktop import Desktop
@@ -279,6 +279,10 @@ class LinuxPlatform(PlatformBackend):
                 if s not in (None, "inactive", "failed")
             ]
         return len(units)
+
+    async def devices(self) -> list[str]:
+        found = await asyncio.to_thread(devices.usb_and_labels, self.root)
+        return found + await devices.bluetooth(self.system_bus)
 
     async def desktop_session(self) -> bool | None:
         try:

@@ -4,15 +4,20 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from powerclock.models import (
+    Active,
     BatteryLevel,
     CpuBelow,
     DesktopSession,
+    Device,
+    FileExists,
     Idle,
     MediaPlaying,
     NetBelow,
     PowerSource,
     ProcessRunning,
     SshSession,
+    Temperature,
+    UsedToday,
     WifiSsid,
 )
 
@@ -27,6 +32,11 @@ SensorPredicate = (
     | SshSession
     | WifiSsid
     | DesktopSession
+    | Active
+    | UsedToday
+    | FileExists
+    | Device
+    | Temperature
 )
 
 
@@ -92,6 +102,14 @@ class Readings(Protocol):
         """Whether a desktop session is up (applications can be opened in it)."""
         ...
 
+    async def devices(self) -> list[str] | None:
+        """Names of the connected devices (USB products, disk labels, Bluetooth…)."""
+        ...
+
+    async def temperatures(self) -> dict[str, float] | None:
+        """The hottest reading of each temperature sensor, in °C."""
+        ...
+
 
 class NoReadings:
     """Sensors of a machine that tells nothing: every value is unknown."""
@@ -121,4 +139,10 @@ class NoReadings:
         return None
 
     async def desktop(self) -> bool | None:
+        return None
+
+    async def devices(self) -> list[str] | None:
+        return None
+
+    async def temperatures(self) -> dict[str, float] | None:
         return None

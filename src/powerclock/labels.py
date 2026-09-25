@@ -29,6 +29,15 @@ def kind_label(kind: str) -> str:
         "battery": _("Battery level"),
         "power_source": _("Plugged in or on battery"),
         "desktop_session": _("The desktop session is up"),
+        "sun": _("At sunrise or sunset"),
+        "calendar": _("Before calendar events"),
+        "active": _("In use for a while without a break"),
+        "used_today": _("Used today for"),
+        "file": _("A file or folder has something"),
+        "device": _("A device is connected"),
+        "temperature": _("Temperature above"),
+        "holiday": _("Today is a holiday"),
+        "tariff_period": _("Electricity tariff period"),
         # predicates
         "process_running": _("A program is running"),
         "media_playing": _("Something is playing"),
@@ -60,7 +69,15 @@ def kind_label(kind: str) -> str:
     return labels.get(kind, kind)
 
 
-def field_label(name: str) -> str:
+def field_label(name: str, kind: str | None = None) -> str:
+    """A field's name for people; `kind` (the type it belongs to) tells apart fields with
+    the same name, such as a battery's and a temperature's `above`."""
+    specific = {
+        ("temperature", "above"): _("Above (°C)"),
+        ("device", "name"): _("Name (part of it)"),
+    }
+    if (kind, name) in specific:
+        return specific[(kind, name)]
     labels = {
         "name": _("Name"),
         "enabled": _("Enabled"),
@@ -127,6 +144,20 @@ def field_label(name: str) -> str:
         "connect": _("Connect (saved connection, VPN…)"),
         "disconnect": _("Disconnect"),
         "wifi": _("Wi-Fi"),
+        "event": _("When"),
+        "offset_minutes": _("Minutes after (negative: before)"),
+        "latitude": _("Latitude (empty: your time zone's city)"),
+        "longitude": _("Longitude"),
+        "source": _("Calendar (.ics address or file)"),
+        "match": _("Only events whose title contains"),
+        "before": _("How long before"),
+        "pause": _("A break is at least"),
+        "path": _("File or folder"),
+        "pattern": _("Files like (e.g. *.pdf)"),
+        "sensor": _("Sensor (part of its name)"),
+        "country": _("Country"),
+        "extra": _("Other days off"),
+        "period": _("Period"),
         "service": _("Send with"),
         "url": _("Address (ntfy topic or webhook)"),
         "chat": _("Telegram chat"),
@@ -185,6 +216,27 @@ def describe_trigger(trigger: dict[str, Any]) -> str:
             detail = trigger.get("name", "")
         case "wifi_ssid":
             detail = trigger.get("ssid", "")
+        case "sun":
+            detail = value_label("event", trigger.get("event", "sunset"))
+            offset = int(trigger.get("offset_minutes") or 0)
+            if offset:
+                detail += f" {offset:+d} min"
+        case "calendar":
+            detail = trigger.get("match") or trigger.get("source", "")
+            if trigger.get("before", "0s") != "0s":
+                detail += " - " + trigger["before"]
+        case "active" | "used_today":
+            detail = str(held or "")
+        case "file":
+            detail = trigger.get("path", "") + (
+                "/" + trigger["pattern"] if trigger.get("pattern") else ""
+            )
+        case "device":
+            detail = trigger.get("name", "")
+        case "temperature":
+            detail = f"{trigger.get('above')} °C"
+        case "tariff_period":
+            detail = value_label("period", trigger.get("period", "valley"))
         case "weekday":
             detail = ", ".join(value_label("days", day) for day in trigger.get("days", []))
         case "time_window":
@@ -352,6 +404,12 @@ def value_label(field: str, value: str) -> str:
         ("power_profile", "power-saver"): _("Power saver"),
         ("power_profile", "balanced"): _("Balanced"),
         ("power_profile", "performance"): _("Performance"),
+        ("event", "sunrise"): _("Sunrise"),
+        ("event", "sunset"): _("Sunset"),
+        ("period", "valley"): _("Valley (cheapest)"),
+        ("period", "flat"): _("Flat"),
+        ("period", "peak"): _("Peak (most expensive)"),
+        ("country", "ES"): _("Spain"),
         ("service", "ntfy"): "ntfy",
         ("service", "telegram"): "Telegram",
         ("service", "webhook"): _("Webhook (JSON)"),
@@ -435,6 +493,7 @@ def capability_label(capability_id: str) -> str:
         "power_profile": _("Power profile"),
         "network": _("Network connections"),
         "screenshot": _("Screenshots"),
+        "devices": _("Connected devices"),
         "apps": _("Installed applications"),
         "launch": _("Open applications"),
         "windows": _("Place windows"),

@@ -3,6 +3,7 @@ rule editor follows models.py without a hand-written form for every trigger, pre
 step. Values go in and out as JSON (what `model_dump(mode="json")` gives)."""
 
 import json
+import re
 import shlex
 import zoneinfo
 from collections.abc import Callable
@@ -43,15 +44,20 @@ from powerclock.i18n import _
 from powerclock.labels import field_label, kind_label, value_label
 from powerclock.models import (
     DURATION_PATTERN,
+    Active,
     AskStep,
     AtTrigger,
     BatteryLevel,
+    CalendarTrigger,
     CloseAppStep,
     CountdownTrigger,
     CpuBelow,
     CronTrigger,
     DesktopSession,
     DesktopStep,
+    Device,
+    FileExists,
+    Holiday,
     Idle,
     InhibitStep,
     LaunchStep,
@@ -73,7 +79,11 @@ from powerclock.models import (
     SoundStep,
     SshSession,
     StartupTrigger,
+    SunTrigger,
+    TariffPeriod,
+    Temperature,
     TimeWindow,
+    UsedToday,
     VolumeStep,
     WaitStep,
     WaitUntilStep,
@@ -86,6 +96,8 @@ TRIGGERS: list[type[BaseModel]] = [
     AtTrigger,
     CountdownTrigger,
     CronTrigger,
+    SunTrigger,
+    CalendarTrigger,
     Idle,
     ProcessExitTrigger,
     CpuBelow,
@@ -93,6 +105,12 @@ TRIGGERS: list[type[BaseModel]] = [
     BatteryLevel,
     PowerSource,
     DesktopSession,
+    WifiSsid,
+    Active,
+    UsedToday,
+    FileExists,
+    Device,
+    Temperature,
     StartupTrigger,
     ManualTrigger,
 ]
@@ -109,7 +127,17 @@ PREDICATES: list[type[BaseModel]] = [
     Weekday,
     WifiSsid,
     DesktopSession,
+    Holiday,
+    TariffPeriod,
+    Active,
+    UsedToday,
+    FileExists,
+    Device,
+    Temperature,
 ]
+# The tariff_period condition only makes sense with a time-of-use tariff chosen in the
+# settings (set by the rule editor from /health).
+SETTINGS: dict[str, Any] = {"tariff": None}
 ACTIONS: list[type[BaseModel]] = [
     PowerStep,
     RunStep,
@@ -158,6 +186,12 @@ STARTERS: dict[tuple[str, str], Any] = {
     ("sound", "file"): "alarm-clock-elapsed",
     ("desktop", "theme"): "dark",
     ("inhibit", "duration"): "1h",
+    ("calendar", "source"): "https://",
+    ("active", "for"): "50m",
+    ("used_today", "for"): "2h",
+    ("file", "path"): "~",
+    ("file", "pattern"): "*.pdf",
+    ("temperature", "above"): 85,
     ("push", "url"): "https://ntfy.sh/",
     ("push", "message"): "{rule}: {error}",
     ("ask", "title"): "PowerClock",
@@ -383,6 +417,21 @@ class ArgsField(FieldEditor):
     def set(self, value: Any) -> None:
         items = list(value or [])
         self.edit.setText(items[0] if self.raw and len(items) == 1 else shlex.join(items))
+
+
+class DatesField(FieldEditor):
+    """Days as one line: 2026-12-26, 2026-06-24."""
+
+    def __init__(self, name: str) -> None:
+        self.edit = QLineEdit()
+        self.edit.setPlaceholderText(_("e.g. 2026-06-24, 2026-12-26"))
+        super().__init__(name, self.edit)
+
+    def get(self) -> Any:
+        return [day for day in re.split(r"[\s,;]+", self.edit.text()) if day]
+
+    def set(self, value: Any) -> None:
+        self.edit.setText(", ".join(str(day) for day in value or []))
 
 
 class EnvField(FieldEditor):
@@ -632,6 +681,8 @@ def editor_for(
         items = _resolve(schema.get("items", {}), defs)
         if "enum" in items:
             return MultiChoiceField(name, list(items["enum"]))
+        if items.get("format") == "date":
+            return DatesField(name)
         if items.get("type") == "string":
             return ArgsField(name)
     if kind == "object" and schema.get("additionalProperties", {}).get("type") == "string":
@@ -687,7 +738,7 @@ class ModelForm(QWidget):
             field = editor_for(name, prop, defs, program=program)
             self.fields[name] = field
             self.defaults[name] = STARTERS.get((str(kind), name), self._default(name, prop))
-            label = "" if isinstance(field, BoolField) else field_label(name) + ":"
+            label = "" if isinstance(field, BoolField) else field_label(name, kind) + ":"
             layout.addRow(label, field.widget)
         if isinstance(self.fields.get("cmd"), ArgsField) and "shell" in self.fields:
             shell = self.fields["shell"]
@@ -772,7 +823,7 @@ class KindEditor(QWidget):
     ) -> None:
         super().__init__(parent)
         self.kind = QComboBox()
-        for model in self.models:
+        for model in self.available():
             self.kind.addItem(kind_label(type_of(model)), type_of(model))
         if allow_json:
             self.kind.addItem(kind_label(JSON_KIND), JSON_KIND)
@@ -813,6 +864,10 @@ class KindEditor(QWidget):
         layout.addWidget(frame)
         self.kind.currentIndexChanged.connect(self._show_kind)
         self._show_kind()
+
+    def available(self) -> list[type[BaseModel]]:
+        """The types offered in the chooser (subclasses may hide some)."""
+        return self.models
 
     def get(self) -> dict[str, Any]:
         kind = self.kind.currentData()
@@ -878,6 +933,11 @@ class PredicateEditor(KindEditor):
     """A condition: one of the simple ones (optionally negated) or any tree as JSON."""
 
     models: ClassVar[list[type[BaseModel]]] = PREDICATES
+
+    def available(self) -> list[type[BaseModel]]:
+        if SETTINGS.get("tariff"):
+            return self.models
+        return [model for model in self.models if model is not TariffPeriod]
 
     def __init__(self, *, removable: bool = True, parent: QWidget | None = None) -> None:
         super().__init__(removable=removable, allow_json=True, parent=parent)

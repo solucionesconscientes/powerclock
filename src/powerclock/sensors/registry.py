@@ -12,17 +12,22 @@ applying their `for` with a short history (docs/ARCHITECTURE.md §5).
 """
 
 import asyncio
+import fnmatch
 import logging
 from collections import deque
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, date, datetime, timedelta, tzinfo
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 from powerclock.models import (
+    Active,
     BatteryLevel,
     CpuBelow,
     DesktopSession,
+    Device,
+    FileExists,
     Idle,
     MediaPlaying,
     NetBelow,
@@ -30,6 +35,8 @@ from powerclock.models import (
     ProcessExitTrigger,
     ProcessRunning,
     SshSession,
+    Temperature,
+    UsedToday,
     WifiSsid,
 )
 from powerclock.sensors.base import NetRate, PowerState, ProcessInfo, Readings, SensorPredicate
@@ -39,7 +46,20 @@ if TYPE_CHECKING:  # powerclock.engine imports this module
 
 log = logging.getLogger(__name__)
 
-Channel = Literal["idle", "cpu", "net", "processes", "power", "ssh", "media", "wifi", "desktop"]
+Channel = Literal[
+    "idle",
+    "cpu",
+    "net",
+    "processes",
+    "power",
+    "ssh",
+    "media",
+    "wifi",
+    "desktop",
+    "files",
+    "devices",
+    "temperature",
+]
 Watched = SensorPredicate | ProcessExitTrigger
 
 INTERVALS: dict[Channel, float] = {  # seconds between samples
@@ -52,15 +72,25 @@ INTERVALS: dict[Channel, float] = {  # seconds between samples
     "media": 5.0,
     "wifi": 30.0,
     "desktop": 5.0,
+    "files": 5.0,
+    "devices": 5.0,
+    "temperature": 10.0,
 }
+IN_USE = 60.0  # seconds: input this recent counts as using the computer (used_today)
 FRESH = 0.9  # a reading younger than this fraction of its interval is reused
 GAP = 3.0  # samples further apart than this many intervals break the history
 
 
 def channel_of(item: Watched) -> Channel:
     match item:
-        case Idle():
+        case Idle() | Active() | UsedToday():
             return "idle"
+        case FileExists():
+            return "files"
+        case Device():
+            return "devices"
+        case Temperature():
+            return "temperature"
         case CpuBelow():
             return "cpu"
         case NetBelow():
@@ -82,14 +112,15 @@ def channel_of(item: Watched) -> Channel:
 def window_of(item: Watched) -> timedelta:
     """History an item needs: its `for`, except idle (the OS already measures it)."""
     match item:
-        case CpuBelow() | NetBelow() | BatteryLevel() | PowerSource():
+        case CpuBelow() | NetBelow() | BatteryLevel() | PowerSource() | Active():
             return item.for_
     return timedelta(0)
 
 
 def needs_polling(item: Watched) -> bool:
-    """Predicates with a history must be sampled all along, not only when asked."""
-    return window_of(item) > timedelta(0)
+    """Predicates with a history (or a daily count) must be sampled all along, not only
+    when asked."""
+    return window_of(item) > timedelta(0) or isinstance(item, UsedToday)
 
 
 @dataclass
@@ -105,9 +136,12 @@ class _Series:
 
 
 class SensorHub:
-    def __init__(self, readings: Readings, clock: "Clock") -> None:
+    def __init__(self, readings: Readings, clock: "Clock", tz: tzinfo = UTC) -> None:
         self._readings = readings
         self._clock = clock
+        self._tz = tz  # whose "today" used_today counts
+        self._usage_day: date | None = None
+        self._usage = timedelta(0)
         self._series: dict[Channel, _Series] = {}
         self._polled: dict[Channel, timedelta] = {}  # channel → history to keep
         self._locks: dict[Channel, asyncio.Lock] = {}
@@ -179,9 +213,31 @@ class SensorHub:
             case DesktopSession():
                 up = await self._fresh("desktop")
                 return None if up is None else bool(up)
+            case Active(for_=for_, pause=pause):
+                limit = pause.total_seconds()
+                return await self._sustained(
+                    "idle", for_, lambda idle: None if idle is None else idle < limit
+                )
+            case UsedToday(for_=for_):
+                await self._fresh("idle")
+                return None if self._usage_day is None else self.used_today() >= for_
+            case FileExists(path=path, pattern=pattern):
+                await self._fresh("files")
+                return await asyncio.to_thread(_file_exists, path, pattern)
+            case Device(name=name):
+                names = await self._fresh("devices")
+                return None if names is None else any(name.lower() in n.lower() for n in names)
+            case Temperature(above=above, sensor=sensor):
+                hottest = _hottest(await self._fresh("temperature"), sensor)
+                return None if hottest is None else hottest > above
 
     async def processes(self) -> list[ProcessInfo] | None:
         return await self._fresh("processes")
+
+    def used_today(self) -> timedelta:
+        """Time the computer has been in use today (while something asked to count it)."""
+        today = self._clock.now().astimezone(self._tz).date()
+        return self._usage if self._usage_day == today else timedelta(0)
 
     def measure(self, item: Watched) -> tuple[float | str | None, timedelta | None]:
         """What the sensor behind an item reads now, for status displays: the value (idle
@@ -210,6 +266,20 @@ class SensorHub:
             case DesktopSession():
                 up = series.value
                 return (None if up is None else ("up" if up else "down")), None
+            case UsedToday():
+                return self.used_today().total_seconds(), None
+            case Active():
+                return series.value, None
+            case Device(name=name):
+                names = series.value
+                if names is None:
+                    return None, None
+                found = any(name.lower() in n.lower() for n in names)
+                return ("connected" if found else "missing"), None
+            case Temperature(sensor=sensor):
+                return _hottest(series.value, sensor), None
+            case WifiSsid():
+                return series.value, None
         return None, None
 
     # ── Internals ─────────────────────────────────────────────────────────────
@@ -241,6 +311,9 @@ class SensorHub:
             "media": self._readings.media_playing,
             "wifi": self._readings.wifi,
             "desktop": self._readings.desktop,
+            "files": self._tick,
+            "devices": self._readings.devices,
+            "temperature": self._readings.temperatures,
         }[channel]
         try:
             value = await reader()
@@ -249,9 +322,15 @@ class SensorHub:
             value = None
         self._record(channel, now, value)
 
+    async def _tick(self) -> datetime:
+        """The "files" channel only paces the checks: each check looks at the disk."""
+        return self._clock.now()
+
     def _record(self, channel: Channel, now: datetime, value: Any) -> None:
         series = self._series.setdefault(channel, _Series())
         previous, series.value, series.last = series.last, value, now
+        if channel == "idle":
+            self._count_use(previous, now, value)
         window = self._polled.get(channel, timedelta(0))
         if window <= timedelta(0):
             series.reset()
@@ -264,6 +343,17 @@ class SensorHub:
         series.samples.append((now, value))
         while series.samples and series.samples[0][0] < now - window - interval:
             series.samples.popleft()
+
+    def _count_use(self, previous: datetime | None, now: datetime, idle: Any) -> None:
+        """Add the time since the previous idle sample to today's use, if there was input."""
+        day = now.astimezone(self._tz).date()
+        if day != self._usage_day:
+            self._usage_day, self._usage = day, timedelta(0)
+        if previous is None or not isinstance(idle, int | float) or now <= previous:
+            return
+        step = now - previous
+        if step <= timedelta(seconds=INTERVALS["idle"] * GAP) and idle < IN_USE:
+            self._usage += step
 
     def _history(self, channel: Channel, window: timedelta) -> _Series | None:
         """The channel's history if it is recent and covers `window`, else None."""
@@ -347,3 +437,20 @@ def _source_ok(predicate: PowerSource, state: PowerState | None) -> bool | None:
     if state is None or state.on_ac is None:
         return None
     return state.on_ac == (predicate.is_ == "ac")
+
+
+def _file_exists(path: str, pattern: str | None) -> bool:
+    place = Path(path).expanduser()
+    if pattern is None:
+        return place.exists()
+    if not place.is_dir():
+        return False
+    return any(fnmatch.fnmatch(entry.name, pattern) for entry in place.iterdir())
+
+
+def _hottest(readings: dict[str, float] | None, sensor: str | None) -> float | None:
+    if not readings:
+        return None
+    wanted = (sensor or "").lower()
+    chosen = [value for name, value in readings.items() if wanted in name.lower()]
+    return max(chosen) if chosen else None

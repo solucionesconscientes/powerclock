@@ -29,6 +29,8 @@ class FakeReadings:
         self.media: bool | None = False
         self.ssid: str | None = ""
         self.desktop_up: bool | None = True
+        self.connected: list[str] | None = []
+        self.temps: dict[str, float] | None = {"coretemp": 45.0}
         self.reads: Counter[str] = Counter()
 
     def start(self, name: str, pid: int, started: float = 1.0) -> None:
@@ -77,3 +79,11 @@ class FakeReadings:
     async def desktop(self) -> bool | None:
         self.reads["desktop"] += 1
         return self.desktop_up
+
+    async def devices(self) -> list[str] | None:
+        self.reads["devices"] += 1
+        return None if self.connected is None else list(self.connected)
+
+    async def temperatures(self) -> dict[str, float] | None:
+        self.reads["temperature"] += 1
+        return None if self.temps is None else dict(self.temps)

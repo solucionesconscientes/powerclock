@@ -322,6 +322,7 @@ as `30s`, `5m`, `2h`, `1d` or combined (`1h30m`).
 | `powerclock wake --at TIME` | Turn the computer on at that time (from suspend, or from off if the BIOS allows it). |
 | `powerclock apps [TEXT]` | The installed applications (`launch` opens them by id), with their recipes. |
 | `powerclock recipes [APP]` | Ready-made arguments for common applications. |
+| `powerclock tariff [es-2.0td\|none]` | The electricity tariff for the tariff period condition (only with time-of-use prices). |
 | `powerclock secrets set NAME` · `list` · `rm NAME` | Tokens that steps use by name (`telegram_token`), kept out of `rules.json` in `secrets.json` (0600). |
 | `powerclock status` | What is running, what comes next, what is being watched, and the next wake-up alarm. |
 | `powerclock cancel [RUN_ID]` | Cancel the countdown in progress; otherwise the quick action running, the next timed one, or the last one waiting for a condition. |
@@ -386,11 +387,20 @@ rules.
 | `battery` | `below` or `above` (%), `for` (optional) | When the battery level crosses that threshold (held for `for`). |
 | `power_source` | `is` (`ac` or `battery`), `for` (optional) | When the computer is on that power source (held for `for`). |
 | `desktop_session` | — | When a desktop session starts (someone logs in), so applications can be opened. |
+| `sun` | `event` (`sunrise`, `sunset`), `offset_minutes`, `latitude`/`longitude` (optional) | At sunrise or sunset (plus or minus those minutes). Without coordinates it uses your time zone's city (Europe/Madrid → Madrid); computed on the computer, no internet. |
+| `calendar` | `source` (`.ics`/`webcal://` address or file), `match` (optional), `before` | Before each calendar event whose title contains `match`: Google, Nextcloud, Outlook… export that address. Read every 15 minutes; offline, the last copy is used. |
+| `wifi_ssid` | `ssid` | When connecting to that Wi-Fi network. |
+| `active` | `for`, `pause` (`5m`) | After `for` of use without a `pause` break: time to stop for a while. |
+| `used_today` | `for` | When today's use reaches that total. |
+| `file` | `path`, `pattern` (optional, `*.pdf`) | When that file appears, or a file like that in that folder. |
+| `device` | `name` (or part of it) | When a device is plugged in: a USB stick or disk (its name or label), Bluetooth headphones… |
+| `temperature` | `above` (°C), `sensor` (optional) | When the hottest sensor (or that one) goes above that temperature. |
 | `startup` | `on` (`daemon_start`, `resume`), `delay` | When PowerClock starts (e.g. at boot) and/or after resuming from sleep, after `delay`. |
 | `manual` | — | Only when run by hand. |
 
 **Triggers that watch a state** (`idle`, `process_exit`, `cpu_below`, `net_below`, `battery`,
-`power_source`, `desktop_session`) fire **once** when the state becomes true, and fire again only after it has been
+`power_source`, `desktop_session`, `wifi_ssid`, `active`, `used_today`, `file`, `device`,
+`temperature`) fire **once** when the state becomes true, and fire again only after it has been
 false. Staying idle does not suspend the computer again and again; using it re-arms the rule. If
 the state already holds when you enable the rule (the battery is already low), it fires.
 
@@ -412,6 +422,9 @@ Both use the same **predicates**:
 | `weekday` | `days` (`mon` … `sun`) | Today is one of those days. |
 | `wifi_ssid` | `ssid` | Connected to that Wi-Fi network. |
 | `desktop_session` | — | A desktop session is up. |
+| `holiday` | `country` (`ES`), `extra` (dates) | Today is a national holiday (Spain, Good Friday computed) or one of `extra`: regional and local holidays, your days off. |
+| `tariff_period` | `period` (`valley`, `flat`, `peak`) | The electricity tariff is in that period. **Only if you chose a tariff** (see below); unknown without one. |
+| `active`, `used_today`, `file`, `device`, `temperature` | as above | The same as the triggers of that name, right now. |
 
 Combine them with `{"all": [ … ]}`, `{"any": [ … ]}` and `{"not": … }`, nested as you like.
 
@@ -544,7 +557,18 @@ PowerClock only reads the sensors your rules use: with no rule watching the CPU,
 - **Programs** are listed every 3 seconds; **battery and AC** every 5; **SSH sessions** every 10.
 - **Media** comes from MPRIS (any player that shows up in your desktop's media controls) and
   **Wi-Fi** from NetworkManager.
+- **Use of the computer** comes from idleness: any minute with keyboard or mouse input counts
+  (today's total starts from zero at midnight in the rule's time zone). **Files** and **devices**
+  are checked every 5 seconds (USB, disk labels and Bluetooth through BlueZ); **temperature** every
+  10.
 - `powerclock status` and the window show what each watching rule sees right now.
+
+**The electricity tariff (optional).** It only matters if your contract has different prices by
+hour (Spain's PVPC or three periods); with a flat price it makes no difference. It is off: choose
+it in Diagnostics or with `powerclock tariff es-2.0td` (Spain 2.0TD: valley 0–8 h and weekends and
+national holidays; peak 10–14 and 18–22; flat the rest) and the "Electricity tariff period"
+condition appears, e.g. to leave backups and downloads for the valley. `powerclock tariff none`
+turns it off.
 
 ## Safety
 
@@ -584,7 +608,7 @@ virtual machines.
 | File | What it is |
 |---|---|
 | `~/.config/powerclock/rules.json` | Your rules (`{"version": 1, "rules": [ … ]}`). You can edit it by hand: the daemon reloads it within 2 seconds. If it has an error, the daemon keeps the last good rules, shows the error in `powerclock status` and does not write the file until you fix it, so your edit is never lost. |
-| `~/.config/powerclock/daemon.json` | Daemon settings: `port` (default `47831`), `dry_run` (`false`), `log_level` (`info`). |
+| `~/.config/powerclock/daemon.json` | Daemon settings: `port` (default `47831`), `dry_run` (`false`), `log_level` (`info`), `tariff` (`null` or `"es-2.0td"`). |
 | `~/.config/powerclock/api.token` | The API's secret token (readable only by you). |
 | `~/.local/share/powerclock/history.sqlite` | The history of runs. |
 | `~/.config/systemd/user/powerclock.service` | The user service (`powerclock service install`). |

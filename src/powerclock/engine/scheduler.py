@@ -1,4 +1,5 @@
-"""Time triggers (at, countdown, cron): when each rule fires next, and a loop that fires them.
+"""Time triggers (at, countdown, cron, sun, calendar): when each rule fires next, and a loop
+that fires them.
 
 Instants are UTC-aware. Cron expressions follow the wall clock of the rule's time zone:
 in a DST gap the run moves forward by the gap (02:30 → 03:30), and in the repeated hour
@@ -13,8 +14,17 @@ from datetime import UTC, datetime, timedelta, tzinfo
 
 from croniter import CroniterBadDateError, croniter
 
+from powerclock.engine import sun
 from powerclock.engine.clock import Clock
-from powerclock.models import AtTrigger, CountdownTrigger, CronTrigger, Rule, Trigger
+from powerclock.models import (
+    AtTrigger,
+    CalendarTrigger,
+    CountdownTrigger,
+    CronTrigger,
+    Rule,
+    SunTrigger,
+    Trigger,
+)
 
 log = logging.getLogger(__name__)
 
@@ -23,11 +33,23 @@ MISSED_GRACE = timedelta(minutes=2)  # later than this counts as missed (on_miss
 _MAX_CRON_STEPS = 1000
 
 OnDue = Callable[[Rule, datetime, bool], None]  # (rule, scheduled_for, missed)
+# (calendar source, after, text in the title) → the next event's start
+CalendarLookup = Callable[[str, datetime, str | None], datetime | None]
 
 
-def next_fire(trigger: Trigger, after: datetime, tz: tzinfo) -> datetime | None:
+def next_fire(
+    trigger: Trigger, after: datetime, tz: tzinfo, calendars: CalendarLookup | None = None
+) -> datetime | None:
     """First instant strictly after `after` at which a time trigger fires (None: never)."""
     match trigger:
+        case SunTrigger():
+            offset = timedelta(minutes=trigger.offset_minutes)
+            return sun.next_sun(
+                after, trigger.event, offset, tz, trigger.latitude, trigger.longitude
+            )
+        case CalendarTrigger(source=source, match=match, before=before):
+            start = calendars(source, after + before, match) if calendars else None
+            return None if start is None else start - before
         case AtTrigger(when=when):
             return when.astimezone(UTC) if when > after else None
         case CountdownTrigger(armed_at=datetime() as armed_at, duration=duration):
@@ -67,8 +89,10 @@ class Scheduler:
         *,
         grace: timedelta = MISSED_GRACE,
         max_sleep: float = MAX_SLEEP,
+        calendars: CalendarLookup | None = None,
     ) -> None:
         self._clock = clock
+        self._calendars = calendars
         self._on_due = on_due
         self._grace = grace
         self._max_sleep = max_sleep
@@ -82,7 +106,8 @@ class Scheduler:
         between `since` and now, it fires right away, flagged as missed when late.
         """
         self._entries.pop(rule.id, None)
-        due = next_fire(rule.trigger, since or self._clock.now(), tz) if rule.enabled else None
+        after = since or self._clock.now()
+        due = next_fire(rule.trigger, after, tz, self._calendars) if rule.enabled else None
         if due is not None:
             self._entries[rule.id] = _Entry(rule, tz, due)
         self.poke()
@@ -112,7 +137,7 @@ class Scheduler:
             if self._entries.get(entry.rule.id) is not entry:  # changed by an earlier callback
                 continue
             scheduled = entry.due
-            upcoming = next_fire(entry.rule.trigger, now, entry.tz)
+            upcoming = next_fire(entry.rule.trigger, now, entry.tz, self._calendars)
             if upcoming is None:
                 del self._entries[entry.rule.id]
             else:

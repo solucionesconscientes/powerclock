@@ -340,6 +340,7 @@ escriben `30s`, `5m`, `2h`, `1d` o combinadas (`1h30m`).
 | `powerclock wake --at HORA` | Encender el equipo a esa hora (desde suspensión, o desde apagado si la BIOS lo permite). |
 | `powerclock apps [TEXTO]` | Las aplicaciones instaladas (`launch` las abre por su id), con sus recetas. |
 | `powerclock recipes [APP]` | Argumentos ya preparados para aplicaciones habituales. |
+| `powerclock tariff [es-2.0td\|none]` | La tarifa de la luz para la condición de tramo (solo con discriminación horaria). |
 | `powerclock secrets set NOMBRE` · `list` · `rm NOMBRE` | Tokens que los pasos usan por su nombre (`telegram_token`), fuera de `rules.json`, en `secrets.json` (0600). |
 | `powerclock status` | Qué está en marcha, qué viene, qué se vigila y la próxima alarma de encendido. |
 | `powerclock cancel [RUN_ID]` | Cancela la cuenta atrás en curso; si no hay, la acción rápida en marcha, la próxima con hora o la última que espera una condición. |
@@ -404,11 +405,20 @@ ignora en silencio. El JSON Schema completo lo sirve el API local en `/schema/ru
 | `battery` | `below` o `above` (%), `for` (opcional) | Cuando el nivel de batería cruza ese umbral (mantenido durante `for`). |
 | `power_source` | `is` (`ac` o `battery`), `for` (opcional) | Cuando el equipo está con esa alimentación (mantenida durante `for`). |
 | `desktop_session` | — | Cuando se abre una sesión del escritorio (alguien entra), así se pueden abrir aplicaciones. |
+| `sun` | `event` (`sunrise`, `sunset`), `offset_minutes`, `latitude`/`longitude` (opcionales) | Al amanecer o al anochecer (más o menos esos minutos). Sin coordenadas usa la ciudad de tu zona horaria (Europe/Madrid → Madrid); se calcula en el equipo, sin internet. |
+| `calendar` | `source` (dirección `.ics`/`webcal://` o archivo), `match` (opcional), `before` | Antes de cada cita del calendario cuyo título contenga `match`: Google, Nextcloud, Outlook… exportan esa dirección. Se lee cada 15 minutos; sin internet usa la última copia. |
+| `wifi_ssid` | `ssid` | Al conectarse a esa red Wi-Fi. |
+| `active` | `for`, `pause` (`5m`) | Tras `for` de uso sin un descanso de `pause`: hora de parar un rato. |
+| `used_today` | `for` | Cuando el uso de hoy llega a ese total. |
+| `file` | `path`, `pattern` (opcional, `*.pdf`) | Cuando aparece ese archivo, o un archivo así en esa carpeta. |
+| `device` | `name` (o parte) | Al conectar un dispositivo: un USB o disco (su nombre o su etiqueta), unos auriculares Bluetooth… |
+| `temperature` | `above` (°C), `sensor` (opcional) | Cuando el sensor más caliente (o ese) pasa de esa temperatura. |
 | `startup` | `on` (`daemon_start`, `resume`), `delay` | Al arrancar PowerClock (p. ej. al encender) y/o al volver de la suspensión, pasado `delay`. |
 | `manual` | — | Solo cuando se ejecuta a mano. |
 
 **Los que vigilan un estado** (`idle`, `process_exit`, `cpu_below`, `net_below`,
-`battery`, `power_source`, `desktop_session`) se disparan **una vez** cuando el estado pasa a cumplirse, y solo
+`battery`, `power_source`, `desktop_session`, `wifi_ssid`, `active`, `used_today`, `file`, `device`,
+`temperature`) se disparan **una vez** cuando el estado pasa a cumplirse, y solo
 vuelven a dispararse después de que haya dejado de cumplirse. Seguir inactivo no suspende el equipo
 una y otra vez; volver a usarlo rearma la regla. Si el estado ya se cumple al activar la regla (la
 batería ya está baja), se dispara.
@@ -431,6 +441,9 @@ Las dos usan los mismos **predicados**:
 | `weekday` | `days` (`mon` … `sun`) | Hoy es uno de esos días. |
 | `wifi_ssid` | `ssid` | Conectado a esa red Wi-Fi. |
 | `desktop_session` | — | Hay una sesión del escritorio abierta. |
+| `holiday` | `country` (`ES`), `extra` (fechas) | Hoy es festivo nacional (España, con Viernes Santo calculado) o uno de `extra`: los autonómicos, locales o tus días libres. |
+| `tariff_period` | `period` (`valley`, `flat`, `peak`) | La tarifa de la luz está en ese tramo. **Solo si has elegido una tarifa** (ver abajo); sin ella es desconocido. |
+| `active`, `used_today`, `file`, `device`, `temperature` | como arriba | Lo mismo que los disparadores del mismo nombre, en este momento. |
 
 Combínalos con `{"all": [ … ]}` (todas), `{"any": [ … ]}` (alguna) y `{"not": … }` (no), anidados
 como quieras.
@@ -570,7 +583,18 @@ PowerClock solo lee los sensores que usan tus reglas: si ninguna regla vigila la
   sesiones SSH** cada 10.
 - **La reproducción** llega por MPRIS (cualquier reproductor que aparezca en los controles
   multimedia de tu escritorio) y **la Wi-Fi** por NetworkManager.
+- **El uso del equipo** sale de la inactividad: cuenta como uso cualquier minuto con teclado o ratón
+  (el total de hoy empieza de cero a medianoche en la zona horaria de la regla). **Los archivos** y
+  **los dispositivos** se miran cada 5 segundos (USB, etiquetas de discos y Bluetooth por BlueZ);
+  **la temperatura** cada 10.
 - `powerclock status` y la ventana muestran lo que ve en ese momento cada regla que vigila.
+
+**La tarifa de la luz (opcional).** Solo tiene sentido si tu contrato tiene precios distintos
+según la hora (PVPC o tres periodos); con precio fijo da igual. Está desactivada: elígela en
+Diagnóstico o con `powerclock tariff es-2.0td` (España 2.0TD: valle de 0 a 8 y fines de semana y
+festivos nacionales; punta de 10 a 14 y de 18 a 22; llano el resto) y aparecerá la condición
+«Tramo de la tarifa de la luz» para, por ejemplo, dejar las copias y descargas para el valle.
+`powerclock tariff none` la quita.
 
 ## Seguridad
 
@@ -611,7 +635,7 @@ Encender desde apagado no suele estar disponible en máquinas virtuales.
 | Archivo | Qué es |
 |---|---|
 | `~/.config/powerclock/rules.json` | Tus reglas (`{"version": 1, "rules": [ … ]}`). Puedes editarlo a mano: PowerClock lo vuelve a cargar en menos de 2 segundos. Si tiene un error, PowerClock mantiene las últimas reglas buenas, muestra el error en `powerclock status` y no escribe el archivo hasta que lo arregles, así nunca se pierde tu edición. |
-| `~/.config/powerclock/daemon.json` | Ajustes del servicio: `port` (por defecto `47831`), `dry_run` (`false`), `log_level` (`info`). |
+| `~/.config/powerclock/daemon.json` | Ajustes del servicio: `port` (por defecto `47831`), `dry_run` (`false`), `log_level` (`info`), `tariff` (`null` o `"es-2.0td"`). |
 | `~/.config/powerclock/api.token` | El token secreto del API (solo lo puedes leer tú). |
 | `~/.local/share/powerclock/history.sqlite` | El historial de ejecuciones. |
 | `~/.config/systemd/user/powerclock.service` | El servicio de usuario (`powerclock service install`). |

@@ -169,6 +169,10 @@ class PlatformBackend(ABC):
         returns how many."""
         self._unsupported("close_app")
 
+    async def devices(self) -> list[str]:
+        """Names of the devices connected now: USB products, disk labels, Bluetooth…"""
+        self._unsupported("devices")
+
     async def desktop_session(self) -> bool | None:
         """Whether a desktop session is up and apps can be opened in it (None: unknown)."""
         self._unsupported("desktop_session")

@@ -140,6 +140,9 @@ class FakePlatform(PlatformBackend):
         self._record("close_app", app, grace)
         return self.opened.pop(app, 0)
 
+    async def devices(self) -> list[str]:
+        return ["Kingston DataTraveler 3.0", "COPIAS"]
+
     async def desktop_session(self) -> bool | None:
         self._record("desktop_session")
         return self.desktop

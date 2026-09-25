@@ -243,3 +243,10 @@ def test_log_in_after_turning_on(daemon: Daemon) -> None:
     assert "log_in needs wake" in powerclock_fails("run", "--at", "03:00", "--log-in", "--", "x")
     modes = sorted(str(rule.log_in) for rule in daemon.engine.rules.values())
     assert modes == ["locked", "locked"]
+
+
+def test_tariff(daemon: Daemon) -> None:
+    assert "No tariff" in powerclock("tariff")
+    assert "es-2.0td" in powerclock("tariff", "es-2.0td")
+    assert daemon.settings.tariff == "es-2.0td"
+    assert "No tariff" in powerclock("tariff", "none")

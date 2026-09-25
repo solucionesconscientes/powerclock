@@ -9,15 +9,17 @@ from datetime import datetime, timedelta, tzinfo
 from typing import Literal
 from zoneinfo import ZoneInfo
 
+from powerclock.engine import calendar
 from powerclock.engine.clock import Clock, SystemClock
 from powerclock.engine.evaluator import Evaluator
 from powerclock.engine.executor import Executor, RequestWake
 from powerclock.engine.processes import ProcessManager
 from powerclock.engine.runs import Event, EventSink, Run, RunCause
 from powerclock.engine.scheduler import Scheduler
+from powerclock.engine.tariff import Tariff
 from powerclock.engine.wake import WakeNeed, WakePlanner
 from powerclock.engine.watcher import STATE_TRIGGERS, Watcher, WatchStatus, sensor_predicates
-from powerclock.models import CountdownTrigger, Rule, StartupTrigger
+from powerclock.models import CalendarTrigger, CountdownTrigger, Rule, StartupTrigger
 from powerclock.platform.base import NotSupported, PlatformBackend, PowerEvent
 from powerclock.sensors.base import NoReadings, Readings
 from powerclock.sensors.registry import SensorHub, Watched, needs_polling
@@ -47,13 +49,16 @@ class Engine:
         request_wake: RequestWake | None = None,
         variables: Mapping[str, str] | None = None,
         secrets: Callable[[], Mapping[str, str]] | None = None,
+        tariff: Callable[[], Tariff | None] | None = None,
     ) -> None:
         self.clock = clock or SystemClock()
         self._backend = backend
         self._tz = tz  # for rules without their own `timezone`
         self._sink = emit
-        self.sensors = SensorHub(readings or NoReadings(), self.clock)
-        self.evaluator = Evaluator(self.sensors, self.clock)
+        self.sensors = SensorHub(readings or NoReadings(), self.clock, tz=tz)
+        self.evaluator = Evaluator(self.sensors, self.clock, tariff)
+        self.calendars = calendar.Calendars(tz, on_change=self._calendars_changed)
+        self._calendar_poke = asyncio.Event()
         self.executor = Executor(
             backend,
             self.evaluator,
@@ -65,7 +70,7 @@ class Engine:
             variables=variables,
             secrets=secrets,
         )
-        self.scheduler = Scheduler(self.clock, self._on_due)
+        self.scheduler = Scheduler(self.clock, self._on_due, calendars=self.calendars.next_start)
         self.watcher = Watcher(self.sensors, self.clock, self._on_state, self._demand)
         self.wake = WakePlanner(backend, self.clock, self._wake_times, emit=emit)
         self._rules: dict[str, Rule] = {}
@@ -85,6 +90,7 @@ class Engine:
             asyncio.create_task(self.scheduler.run(), name="powerclock-scheduler"),
             asyncio.create_task(self.watcher.run(), name="powerclock-watcher"),
             asyncio.create_task(self.wake.run(), name="powerclock-wake"),
+            asyncio.create_task(self._read_calendars(), name="powerclock-calendars"),
         ]
         self.wake.request_sync()
         self._startup("daemon_start")
@@ -110,6 +116,7 @@ class Engine:
         rule = self._arm(rule, self._rules.get(rule.id))
         self._rules[rule.id] = rule
         self._install(rule, since)
+        self._use_calendars()
         self.wake.request_sync()
         return rule
 
@@ -117,7 +124,39 @@ class Engine:
         self._rules.pop(rule_id, None)
         self.scheduler.unschedule(rule_id)
         self.watcher.unwatch(rule_id)
+        self._use_calendars()
         self.wake.request_sync()
+
+    # ── Calendars ─────────────────────────────────────────────────────────────
+
+    def _use_calendars(self) -> None:
+        sources = {
+            rule.trigger.source
+            for rule in self._rules.values()
+            if rule.enabled and isinstance(rule.trigger, CalendarTrigger)
+        }
+        if sources - set(self.calendars.events):
+            self._calendar_poke.set()  # a new calendar: read it now
+        self.calendars.use(sources)
+
+    def _calendars_changed(self) -> None:
+        """New events: when do the calendar rules fire now?"""
+        for rule in self._rules.values():
+            if isinstance(rule.trigger, CalendarTrigger):
+                self.scheduler.schedule(rule, self._tz_for(rule))
+        self.wake.request_sync()
+
+    async def _read_calendars(self) -> None:
+        while True:
+            self._calendar_poke.clear()
+            await self.calendars.refresh()
+            sleeper = asyncio.ensure_future(self.clock.sleep(calendar.REFRESH))
+            poke = asyncio.ensure_future(self._calendar_poke.wait())
+            try:
+                await asyncio.wait({sleeper, poke}, return_when=asyncio.FIRST_COMPLETED)
+            finally:
+                sleeper.cancel()
+                poke.cancel()
 
     def run_now(self, rule_id: str) -> Run:
         rule = self._rules[rule_id]
