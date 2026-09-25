@@ -149,3 +149,40 @@ async def test_doctor_unattended_rule(tmp_path: Path) -> None:
     write(tmp_path, "etc/polkit-1/rules.d/50-powerclock-unattended.rules", "// powerclock")
     report = await rows(linux(tmp_path, FakeCommands(results={"pkcheck": (0, "")})))
     assert report["wake.unattended"][:2] == (True, "rule installed: works with the session closed")
+
+
+async def test_autologin_goes_through_the_helper(tmp_path: Path) -> None:
+    install_helper(tmp_path)
+    write(
+        tmp_path, "usr/share/wayland-sessions/plasma.desktop", "[Desktop Entry]\nDesktopNames=KDE\n"
+    )
+    commands = FakeCommands(available=["pkexec"])
+    backend = linux(tmp_path, commands)
+    backend.env.update({"XDG_SESSION_DESKTOP": "KDE", "XDG_SESSION_TYPE": "wayland"})
+    await backend.autologin_arm(WHEN, "locked")
+    await backend.autologin_disarm()
+    await backend.autologin_done()
+    helper = "/usr/local/libexec/powerclock-helper"
+    epoch = str(int(WHEN.timestamp()))
+    assert [argv for argv, _ in commands.ran] == [
+        ["pkexec", helper, "autologin-arm", epoch, "plasma", "locked"],
+        ["pkexec", helper, "autologin-disarm"],
+        ["pkexec", helper, "autologin-done"],
+    ]
+
+
+async def test_an_old_helper_cannot_log_in(tmp_path: Path) -> None:
+    install_helper(tmp_path)
+    commands = FakeCommands(available=["pkexec"], results={"pkexec": (2, "usage: …")})
+    with pytest.raises(NotSupported, match="older than this PowerClock") as info:
+        await linux(tmp_path, commands).autologin_arm(WHEN, "locked")
+    assert info.value.fix_hint == "powerclock helper install"
+
+
+async def test_autologin_used_is_this_users(tmp_path: Path) -> None:
+    backend = linux(tmp_path, FakeCommands())
+    assert await backend.autologin_used() is None
+    write(tmp_path, "run/powerclock/used", '{"uid": 1000, "mode": "unlocked"}')
+    assert await backend.autologin_used() == "unlocked"
+    write(tmp_path, "run/powerclock/used", '{"uid": 1001, "mode": "locked"}')
+    assert await backend.autologin_used() is None  # someone else's log-in

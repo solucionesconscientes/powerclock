@@ -323,6 +323,7 @@ escriben `30s`, `5m`, `2h`, `1d` o combinadas (`1h30m`).
 | `--force` | No dejar que las aplicaciones pidan guardar. |
 | `--wake 07:30` | (acciones de energía) Encender también el equipo a esa hora; p. ej. suspender ahora y despertar por la mañana. |
 | `--wake` | (`run`, `launch`) Encender el equipo para ejecutarlo o abrirla (con `--in`/`--at`). |
+| `--log-in` | Con `--wake` (o `powerclock wake`): entrar solo en la sesión cuando eso encienda el equipo, con la pantalla bloqueada. |
 | `--recipe ID` | (`launch`) Tomar los argumentos de una receta; lo que pide (`<url>`, `<file>`…) va después de `--`, en orden. |
 | `--dry-run` | Opción global (`powerclock --dry-run shutdown …`): solo anotar la acción de energía. |
 
@@ -467,6 +468,7 @@ veces a la vez, y solo ocurre una acción de energía (y una cuenta atrás) al m
 |---|---|---|
 | `warning` | `60s` | Cuenta atrás antes de cada acción de energía (`0s` para ninguna). |
 | `wake` | `false` | Encender el equipo para esta regla (solo con `at`, `countdown` o `cron`). |
+| `log_in` | `null` | Con `wake`: entrar solo en la sesión cuando eso enciende el equipo desde apagado, dejando la pantalla `locked` (bloqueada) o `unlocked` (visible); mira más abajo. |
 | `on_missed` | `skip` | Si su momento pasó con el equipo apagado o suspendido (más de 2 minutos de retraso): `skip` (omitirla) o `run_once` (ejecutarla una vez). |
 | `on_error` | `stop` | `stop` o `continue` cuando falla un paso. |
 | `one_shot` | `false` | Desactivar la regla tras dispararse una vez. |
@@ -500,6 +502,20 @@ por ti:
   tu contraseña **una vez**; a partir de ahí los encendidos no piden contraseña mientras tengas la
   sesión iniciada (aunque la pantalla esté bloqueada). Solo acepta "poner / quitar / leer la
   alarma", valida la hora estrictamente y ejecuta `rtcwake` con ruta absoluta y un entorno limpio.
+- **Entrar solo en la sesión** (`"log_in": "locked"`, `--log-in`, *y entrar en la sesión* en
+  Rápido): los programas con ventana necesitan una sesión del escritorio, y tras encender desde
+  apagado el equipo se queda en la pantalla de acceso. PowerClock nunca activa la entrada
+  automática para siempre. En su lugar, el helper guarda un **vale de un solo uso** con la hora
+  de la alarma para **tu** usuario (quien lo pidió; nunca otra cuenta ni root). Al arrancar,
+  antes de la pantalla de acceso, `powerclock-boot.service` lo mira: solo si este arranque es el
+  de esa alarma (de la alarma a 10 minutos después, y sin haber pulsado el botón de encendido
+  cuando la BIOS lo dice) escribe la entrada automática en `/run` (memoria), adonde apuntan los
+  ajustes del gestor de acceso. Después PowerClock **bloquea la pantalla** al momento (salvo que
+  la regla diga `unlocked`, para un quiosco con su propio usuario) y borra ese ajuste. Cualquier
+  otro arranque pide tu contraseña como siempre, y un corte de luz no deja nada. Funciona con
+  SDDM (KDE) y LightDM; con GDM aún no. La alarma se adelanta 3 minutos en vez de 2. Con la
+  entrada automática la cartera de KDE no se abre: las recetas de navegador usan un perfil propio
+  que no la necesita.
 - **Con la sesión cerrada** (encender → ejecutar → apagar sin nadie con la sesión iniciada):
   `powerclock helper install --unattended` añade una regla de polkit para tu usuario, y
   `powerclock service install --linger` mantiene PowerClock funcionando sin iniciar sesión.

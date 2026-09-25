@@ -269,6 +269,21 @@ async def _helper_rows(p: "LinuxPlatform") -> list[Capability]:
     return rows
 
 
+async def _autologin(p: "LinuxPlatform") -> list[Capability]:
+    manager = p.host.display_manager()
+    if manager not in ("sddm", "lightdm"):
+        detail = _("display manager {name}: it cannot log in by itself yet").format(
+            name=manager or "?"
+        )
+        return [row("autologin", False, detail)]
+    if not p.host.boot_unit_enabled():
+        detail = _("{name}: the permission to turn the computer on is from an older version")
+        return [
+            row("autologin", False, detail.format(name=manager), _("powerclock helper install"))
+        ]
+    return [row("autologin", True, _("{name} · ready").format(name=manager))]
+
+
 def _local(moment: datetime) -> str:
     return moment.astimezone().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -306,6 +321,7 @@ CHECKS: list[Check] = [
     _applications,
     _power_events,
     _wake,
+    _autologin,
     _hardware,
     _linger,
     _timezone,

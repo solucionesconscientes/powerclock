@@ -10,6 +10,7 @@ from powerclock.platform.base import (
     AppInfo,
     Capability,
     LaunchRequest,
+    LogInMode,
     NotSupported,
     PlatformBackend,
     PowerAction,
@@ -59,6 +60,8 @@ class FakePlatform(PlatformBackend):
             ),
         ]
         self.opened: dict[str, int] = {}  # app → instances PowerClock opened
+        self.login: tuple[datetime, LogInMode] | None = None  # the armed log-in ticket
+        self.logged_in: LogInMode | None = None  # this boot logged in by itself
         self.calls: list[FakeCall] = []
         self._callbacks: list[PowerEventCallback] = []
 
@@ -136,6 +139,21 @@ class FakePlatform(PlatformBackend):
 
     async def session_env(self) -> dict[str, str]:
         return dict(self.session_vars)
+
+    async def autologin_arm(self, alarm: datetime, mode: LogInMode) -> None:
+        self._record("autologin_arm", alarm, mode)
+        self.login = (alarm, mode)
+
+    async def autologin_disarm(self) -> None:
+        self._record("autologin_disarm")
+        self.login = None
+
+    async def autologin_used(self) -> LogInMode | None:
+        return self.logged_in
+
+    async def autologin_done(self) -> None:
+        self._record("autologin_done")
+        self.logged_in = None
 
     async def subscribe_power_events(self, callback: PowerEventCallback) -> None:
         self._record("subscribe_power_events")

@@ -129,5 +129,7 @@ def test_the_script_is_standalone() -> None:
     imports = {
         line.split()[1] for line in source.splitlines() if line.startswith(("import ", "from "))
     }
-    assert imports <= {"os", "re", "subprocess", "sys", "time", "pathlib"}
+    assert imports <= {
+        "contextlib", "json", "os", "pwd", "re", "subprocess", "sys", "time", "pathlib"
+    }  # fmt: skip
     assert os.access(helper.__file__, os.R_OK)

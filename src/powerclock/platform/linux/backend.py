@@ -2,6 +2,7 @@
 systemd's user manager and KWin to open applications in the desktop session."""
 
 import asyncio
+import json
 import os
 import pwd
 import shutil
@@ -16,6 +17,7 @@ from powerclock.platform.base import (
     AppInfo,
     Capability,
     LaunchRequest,
+    LogInMode,
     NotSupported,
     PlatformBackend,
     PowerAction,
@@ -126,6 +128,12 @@ class LinuxPlatform(PlatformBackend):
                 "wake",
                 f"not authorized to program the wake-up alarm: {output}",
                 fix_hint="without a graphical session: powerclock helper install --unattended",
+            )
+        if code == 2 and "usage" in output and args[0].startswith("autologin"):
+            raise NotSupported(
+                "autologin",
+                "the installed powerclock-helper is older than this PowerClock",
+                fix_hint="powerclock helper install",
             )
         if code != 0:
             raise OSError(f"powerclock-helper {args[0]} failed ({code}): {output}")
@@ -267,6 +275,36 @@ class LinuxPlatform(PlatformBackend):
         except DBusError:
             env = {**self.env, **self.desktop.graphical_env()}
         return session.display_ready(env, self.runtime_dir)
+
+    # ── Logging in once after a scheduled power-on (ARCHITECTURE §6) ──────────
+
+    async def autologin_arm(self, alarm: datetime, mode: LogInMode) -> None:
+        session_name = await self._login_session()
+        epoch = str(int(alarm.timestamp()))
+        await self._helper("autologin-arm", epoch, session_name or "-", mode)
+
+    async def autologin_disarm(self) -> None:
+        await self._helper("autologin-disarm")
+
+    async def autologin_used(self) -> LogInMode | None:
+        path = self.root / "run/powerclock/used"
+        try:
+            data = json.loads(await asyncio.to_thread(path.read_text))
+        except (OSError, ValueError):
+            return None
+        if not isinstance(data, dict) or data.get("uid") != self.uid:
+            return None
+        mode = data.get("mode")
+        return mode if mode in ("locked", "unlocked") else None
+
+    async def autologin_done(self) -> None:
+        await self._helper("autologin-done")
+
+    async def _login_session(self) -> str | None:
+        """The desktop session to log into: the one this user runs now, if known."""
+        env = {**self.env, **await self.session_env()}
+        desktop = env.get("XDG_SESSION_DESKTOP") or env.get("XDG_CURRENT_DESKTOP", "")
+        return session.pick_session(self.root, desktop.split(":")[0], env.get("XDG_SESSION_TYPE"))
 
     async def session_env(self) -> dict[str, str]:
         try:

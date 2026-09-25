@@ -251,3 +251,18 @@ async def test_quick_opens_an_application(link: DaemonLink) -> None:
     tab.app.set_value("")
     with pytest.raises(ValueError, match="Pick the application"):
         tab.payload()
+
+
+async def test_quick_can_log_in_after_turning_on(link: DaemonLink) -> None:
+    tab = QuickTab(link)
+    tab.select("run", "at")
+    tab.command.setText("backup.sh")
+    assert tab.log_in.isHidden()
+    tab.wake_to_run.setChecked(True)
+    assert not tab.log_in.isHidden()
+    tab.log_in.setChecked(True)
+    payload = tab.payload()
+    assert (payload["wake"], payload["log_in"]) == (True, "locked")
+    tab.select(PowerAction.SHUTDOWN, "now")  # shut down now, turn it back on and log in
+    tab.wake.setChecked(True)
+    assert tab.payload()["log_in"] == "locked"

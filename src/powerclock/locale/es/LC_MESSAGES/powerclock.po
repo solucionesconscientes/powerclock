@@ -1,35 +1,35 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=UTF-8\nLanguage: es\n"
 
-#: powerclock/cli/main.py:189
+#: powerclock/cli/main.py:196
 msgid "  cancel: powerclock cancel"
 msgstr "  cancelar: powerclock cancel"
 
-#: powerclock/cli/main.py:191
+#: powerclock/cli/main.py:198
 msgid "  cancel: powerclock cancel · postpone: powerclock postpone 10m"
 msgstr "  cancelar: powerclock cancel · posponer: powerclock postpone 10m"
 
-#: powerclock/cli/main.py:769
+#: powerclock/cli/main.py:792
 msgid "  check: powerclock doctor · try it: powerclock doctor --test-wake 120"
 msgstr "  comprobar: powerclock doctor · probarlo: powerclock doctor --test-wake 120"
 
-#: powerclock/cli/main.py:773
+#: powerclock/cli/main.py:796
 msgid "  to work with the session closed: powerclock service install --linger"
 msgstr "  para funcionar con la sesión cerrada: powerclock service install --linger"
 
-#: powerclock/labels.py:114
+#: powerclock/labels.py:115
 msgid " for {time}"
 msgstr " durante {time}"
 
-#: powerclock/labels.py:169
+#: powerclock/labels.py:170
 msgid " or "
 msgstr " o "
 
-#: powerclock/gui/forms.py:414 powerclock/gui/forms.py:888 powerclock/gui/quick.py:302
+#: powerclock/gui/forms.py:419 powerclock/gui/forms.py:893 powerclock/gui/quick.py:321
 msgid "(none)"
 msgstr "(ninguna)"
 
-#: powerclock/gui/quick.py:343
+#: powerclock/gui/quick.py:362
 msgid "+10 min"
 msgstr "+10 min"
 
@@ -37,11 +37,11 @@ msgstr "+10 min"
 msgid "? Resumed at {resumed}, before the alarm ({alarm}): woken by hand?"
 msgstr "? Reanudó a las {resumed}, antes de la alarma ({alarm}): ¿despertado a mano?"
 
-#: powerclock/cli/main.py:407 powerclock/cli/main.py:1006
+#: powerclock/cli/main.py:430 powerclock/cli/main.py:1029
 msgid "[yellow]Test mode:[/] nothing really turns off or on; actions are only noted down."
 msgstr "[yellow]Modo prueba:[/] no se apaga ni se enciende nada de verdad; las acciones solo se anotan."
 
-#: powerclock/cli/main.py:936
+#: powerclock/cli/main.py:959
 msgid "[yellow]Test mode:[/] the test would suspend the computer, so nothing was done."
 msgstr "[yellow]Modo prueba:[/] la prueba suspendería el equipo, así que no se ha hecho nada."
 
@@ -57,39 +57,39 @@ msgstr "Un programa está en marcha"
 msgid "Above (%)"
 msgstr "Por encima de (%)"
 
-#: powerclock/labels.py:136
+#: powerclock/labels.py:137
 msgid "above {percent} %"
 msgstr "por encima del {percent} %"
 
-#: powerclock/gui/quick.py:155 powerclock/labels.py:76
+#: powerclock/gui/quick.py:163 powerclock/labels.py:76
 msgid "Action"
 msgstr "Acción"
 
-#: powerclock/gui/quick.py:125
+#: powerclock/gui/quick.py:132
 msgid "Action:"
 msgstr "Acción:"
 
-#: powerclock/cli/main.py:707
+#: powerclock/cli/main.py:730
 msgid "active"
 msgstr "activo"
 
-#: powerclock/cli/main.py:423
+#: powerclock/cli/main.py:446
 msgid "acts {when}"
 msgstr "actúa {when}"
 
-#: powerclock/gui/editor.py:59
+#: powerclock/gui/editor.py:68
 msgid "Add a condition"
 msgstr "Añadir una condición"
 
-#: powerclock/gui/editor.py:60
+#: powerclock/gui/editor.py:69
 msgid "Add a reason to wait"
 msgstr "Añadir un motivo para esperar"
 
-#: powerclock/gui/editor.py:62
+#: powerclock/gui/editor.py:71
 msgid "Add a step"
 msgstr "Añadir un paso"
 
-#: powerclock/cli/main.py:567
+#: powerclock/cli/main.py:590
 msgid "Added"
 msgstr "Añadida"
 
@@ -109,7 +109,7 @@ msgstr "Dentro de un tiempo"
 msgid "After a period without use"
 msgstr "Tras un tiempo sin usar el equipo"
 
-#: powerclock/labels.py:286
+#: powerclock/labels.py:287
 msgid "After resume"
 msgstr "Al reanudar"
 
@@ -129,19 +129,23 @@ msgstr "Borrar también mis reglas y el historial"
 msgid "Also work when you are logged out"
 msgstr "Funcionar también con la sesión cerrada"
 
-#: powerclock/labels.py:190
+#: powerclock/gui/quick.py:123
+msgid "and log in (screen locked)"
+msgstr "y entrar en la sesión (pantalla bloqueada)"
+
+#: powerclock/labels.py:191
 msgid "another power action is in progress"
 msgstr "hay otra acción de energía en curso"
 
-#: powerclock/gui/forms.py:464
+#: powerclock/gui/forms.py:469
 msgid "any screen"
 msgstr "cualquier pantalla"
 
-#: powerclock/labels.py:96
+#: powerclock/labels.py:97
 msgid "Application"
 msgstr "Aplicación"
 
-#: powerclock/gui/quick.py:128
+#: powerclock/gui/quick.py:135
 msgid "Application:"
 msgstr "Aplicación:"
 
@@ -149,15 +153,15 @@ msgstr "Aplicación:"
 msgid "applications menu"
 msgstr "menú de aplicaciones"
 
-#: powerclock/cli/main.py:385 powerclock/labels.py:97
+#: powerclock/cli/main.py:408 powerclock/labels.py:98
 msgid "Arguments"
 msgstr "Argumentos"
 
-#: powerclock/gui/quick.py:128
+#: powerclock/gui/quick.py:135
 msgid "Arguments:"
 msgstr "Argumentos:"
 
-#: powerclock/labels.py:293 powerclock/labels.py:296
+#: powerclock/labels.py:294 powerclock/labels.py:297
 msgid "Ask it to quit (TERM)"
 msgstr "Pedirle que se cierre (TERM)"
 
@@ -165,7 +169,7 @@ msgstr "Pedirle que se cierre (TERM)"
 msgid "At a date and time"
 msgstr "En una fecha y hora"
 
-#: powerclock/gui/editor.py:52
+#: powerclock/gui/editor.py:61
 msgid "automatic"
 msgstr "automático"
 
@@ -209,27 +213,27 @@ msgstr "Antes de apagar, reiniciar o suspender, PowerClock te avisa y puedes can
 msgid "Below (%)"
 msgstr "Por debajo de (%)"
 
-#: powerclock/labels.py:136
+#: powerclock/labels.py:137
 msgid "below {percent} %"
 msgstr "por debajo del {percent} %"
 
-#: powerclock/labels.py:282
+#: powerclock/labels.py:283
 msgid "Both"
 msgstr "Ambas"
 
-#: powerclock/engine/executor.py:323 powerclock/gui/countdown.py:62 powerclock/gui/quick.py:339
+#: powerclock/engine/executor.py:323 powerclock/gui/countdown.py:62 powerclock/gui/quick.py:358
 msgid "Cancel"
 msgstr "Cancelar"
 
-#: powerclock/cli/main.py:459
+#: powerclock/cli/main.py:482
 msgid "Cancelled"
 msgstr "Cancelada"
 
-#: powerclock/labels.py:185 powerclock/labels.py:322
+#: powerclock/labels.py:186 powerclock/labels.py:326
 msgid "cancelled"
 msgstr "cancelada"
 
-#: powerclock/labels.py:186
+#: powerclock/labels.py:187
 msgid "cancelled before it fired"
 msgstr "cancelada antes de actuar"
 
@@ -237,11 +241,11 @@ msgstr "cancelada antes de actuar"
 msgid "cannot be checked by a normal user"
 msgstr "un usuario normal no puede comprobarlo"
 
-#: powerclock/cli/main.py:884
+#: powerclock/cli/main.py:907
 msgid "cannot reach PyPI: {error}"
 msgstr "no se puede contactar con PyPI: {error}"
 
-#: powerclock/cli/main.py:1010
+#: powerclock/cli/main.py:1033
 msgid "Capability"
 msgstr "Capacidad"
 
@@ -249,7 +253,7 @@ msgstr "Capacidad"
 msgid "Check again"
 msgstr "Comprobar de nuevo"
 
-#: powerclock/labels.py:104
+#: powerclock/labels.py:105
 msgid "Check again every"
 msgstr "Volver a mirar cada"
 
@@ -269,7 +273,7 @@ msgstr "Cerrar"
 msgid "Close a program"
 msgstr "Cerrar un programa"
 
-#: powerclock/labels.py:231
+#: powerclock/labels.py:232
 msgid "closed {count} process(es)"
 msgstr "cerrado(s) {count} proceso(s)"
 
@@ -277,7 +281,7 @@ msgstr "cerrado(s) {count} proceso(s)"
 msgid "Command"
 msgstr "Orden"
 
-#: powerclock/labels.py:364
+#: powerclock/labels.py:369
 msgid "Computer"
 msgstr "Equipo"
 
@@ -285,15 +289,15 @@ msgstr "Equipo"
 msgid "Computer quiet (CPU below)"
 msgstr "Equipo en reposo (CPU por debajo de)"
 
-#: powerclock/labels.py:87 powerclock/labels.py:333
+#: powerclock/labels.py:87 powerclock/labels.py:337
 msgid "Condition"
 msgstr "Condición"
 
-#: powerclock/labels.py:181
+#: powerclock/labels.py:182
 msgid "conditions not met"
 msgstr "no se cumplían las condiciones"
 
-#: powerclock/labels.py:182
+#: powerclock/labels.py:183
 msgid "conditions unknown: a sensor could not be read"
 msgstr "condiciones desconocidas: no se pudo leer un sensor"
 
@@ -301,7 +305,7 @@ msgstr "condiciones desconocidas: no se pudo leer un sensor"
 msgid "Connected to the Wi-Fi network"
 msgstr "Conectado a la red Wi-Fi"
 
-#: powerclock/labels.py:290
+#: powerclock/labels.py:291
 msgid "Continue with the next step"
 msgstr "Seguir con el siguiente paso"
 
@@ -309,7 +313,7 @@ msgstr "Seguir con el siguiente paso"
 msgid "Could not check for updates: {error}"
 msgstr "No se pudo buscar actualizaciones: {error}"
 
-#: powerclock/labels.py:319
+#: powerclock/labels.py:323
 msgid "counting down"
 msgstr "en cuenta atrás"
 
@@ -321,7 +325,7 @@ msgstr "CPU por debajo de"
 msgid "Cron expression"
 msgstr "Expresión cron"
 
-#: powerclock/gui/forms.py:468
+#: powerclock/gui/forms.py:473
 msgid "current desktop"
 msgstr "escritorio actual"
 
@@ -337,7 +341,7 @@ msgstr "Días"
 msgid "Delay"
 msgstr "Retraso"
 
-#: powerclock/labels.py:355
+#: powerclock/labels.py:359
 msgid "Delay a shutdown to keep the wake-up alarm"
 msgstr "Retrasar un apagado para guardar la alarma de encendido"
 
@@ -353,7 +357,7 @@ msgstr "Borrar"
 msgid "Delete the rule {name!r}?"
 msgstr "¿Borrar la regla {name!r}?"
 
-#: powerclock/cli/main.py:608
+#: powerclock/cli/main.py:631
 msgid "Deleted"
 msgstr "Borrada"
 
@@ -361,11 +365,11 @@ msgstr "Borrada"
 msgid "Desktop"
 msgstr "Escritorio"
 
-#: powerclock/gui/forms.py:469
+#: powerclock/gui/forms.py:474
 msgid "desktop"
 msgstr "escritorio"
 
-#: powerclock/labels.py:348
+#: powerclock/labels.py:352
 msgid "Desktop session"
 msgstr "Sesión del escritorio"
 
@@ -373,7 +377,7 @@ msgstr "Sesión del escritorio"
 msgid "desktop session up"
 msgstr "sesión del escritorio abierta"
 
-#: powerclock/cli/main.py:1011 powerclock/cli/main.py:419 powerclock/gui/diagnostics.py:110
+#: powerclock/cli/main.py:1034 powerclock/cli/main.py:442 powerclock/gui/diagnostics.py:110
 msgid "Detail"
 msgstr "Detalle"
 
@@ -389,23 +393,27 @@ msgstr "Diagnóstico: qué funciona en este equipo, actualizaciones y desinstala
 msgid "Direction"
 msgstr "Sentido"
 
-#: powerclock/cli/main.py:600
+#: powerclock/cli/main.py:623
 msgid "Disabled"
 msgstr "Desactivada"
 
-#: powerclock/platform/linux/capabilities.py:289
+#: powerclock/platform/linux/capabilities.py:304
 msgid "disabled"
 msgstr "desactivado"
 
-#: powerclock/gui/editor.py:87
+#: powerclock/platform/linux/capabilities.py:275
+msgid "display manager {name}: it cannot log in by itself yet"
+msgstr "gestor de acceso {name}: aún no puede entrar solo en la sesión"
+
+#: powerclock/gui/editor.py:96
 msgid "Do, in this order"
 msgstr "Hacer, en este orden"
 
-#: powerclock/labels.py:320
+#: powerclock/labels.py:324
 msgid "done"
 msgstr "hecha"
 
-#: powerclock/cli/main.py:767
+#: powerclock/cli/main.py:790
 msgid "Done: PowerClock can turn the computer on."
 msgstr "Hecho: PowerClock ya puede encender el equipo."
 
@@ -417,7 +425,7 @@ msgstr "Hecho: PowerClock ya puede encender el equipo. Pruébalo con «{test}».
 msgid "done: waits until the condition is over"
 msgstr "hecha: espera a que la condición deje de cumplirse"
 
-#: powerclock/labels.py:280
+#: powerclock/labels.py:281
 msgid "Download"
 msgstr "Bajada"
 
@@ -429,7 +437,7 @@ msgstr "Duración"
 msgid "Durations: 30s, 5m, 2h, 1d or combined, such as 1h30m"
 msgstr "Duraciones: 30s, 5m, 2h, 1d o combinadas, como 1h30m"
 
-#: powerclock/gui/forms.py:339 powerclock/gui/quick.py:78
+#: powerclock/gui/forms.py:344 powerclock/gui/quick.py:78
 msgid "e.g. /home/pc/bin/backup.sh --full"
 msgstr "p. ej. /home/pc/bin/backup.sh --full"
 
@@ -437,7 +445,7 @@ msgstr "p. ej. /home/pc/bin/backup.sh --full"
 msgid "e.g. 30s, 5m, 1h30m"
 msgstr "p. ej. 30s, 5m, 1h30m"
 
-#: powerclock/gui/editor.py:80
+#: powerclock/gui/editor.py:89
 msgid "E.g. a render or a video playing: it waits and checks again."
 msgstr "P. ej. un render o un vídeo en marcha: espera y vuelve a mirar."
 
@@ -445,7 +453,7 @@ msgstr "P. ej. un render o un vídeo en marcha: espera y vuelve a mirar."
 msgid "e.g. ffmpeg, or a PID"
 msgstr "p. ej. ffmpeg, o un PID"
 
-#: powerclock/gui/editor.py:47
+#: powerclock/gui/editor.py:56
 msgid "Edit rule: {name}"
 msgstr "Editar la regla: {name}"
 
@@ -453,15 +461,15 @@ msgstr "Editar la regla: {name}"
 msgid "Edit…"
 msgstr "Editar…"
 
-#: powerclock/cli/main.py:592 powerclock/gui/rules.py:96 powerclock/labels.py:57
+#: powerclock/cli/main.py:615 powerclock/gui/rules.py:96 powerclock/labels.py:57
 msgid "Enabled"
 msgstr "Activada"
 
-#: powerclock/cli/main.py:707
+#: powerclock/cli/main.py:730
 msgid "enabled"
 msgstr "activado"
 
-#: powerclock/platform/linux/capabilities.py:288
+#: powerclock/platform/linux/capabilities.py:303
 msgid "enabled: PowerClock works with the session closed"
 msgstr "activado: PowerClock funciona con la sesión cerrada"
 
@@ -469,7 +477,7 @@ msgstr "activado: PowerClock funciona con la sesión cerrada"
 msgid "Environment"
 msgstr "Entorno"
 
-#: powerclock/labels.py:227
+#: powerclock/labels.py:228
 msgid "exit code {code}"
 msgstr "código de salida {code}"
 
@@ -477,7 +485,7 @@ msgstr "código de salida {code}"
 msgid "Export rules"
 msgstr "Exportar reglas"
 
-#: powerclock/cli/main.py:631
+#: powerclock/cli/main.py:654
 msgid "Exported {count} rule(s) to {file}"
 msgstr "Exportada(s) {count} regla(s) a {file}"
 
@@ -485,11 +493,11 @@ msgstr "Exportada(s) {count} regla(s) a {file}"
 msgid "Export…"
 msgstr "Exportar…"
 
-#: powerclock/labels.py:321
+#: powerclock/labels.py:325
 msgid "failed"
 msgstr "falló"
 
-#: powerclock/cli/main.py:741
+#: powerclock/cli/main.py:764
 msgid "failed: {command}"
 msgstr "falló: {command}"
 
@@ -497,7 +505,7 @@ msgstr "falló: {command}"
 msgid "File or address"
 msgstr "Archivo o dirección"
 
-#: powerclock/cli/main.py:492 powerclock/gui/history.py:45
+#: powerclock/cli/main.py:515 powerclock/gui/history.py:45
 msgid "Finished"
 msgstr "Terminó"
 
@@ -509,11 +517,11 @@ msgstr "durante"
 msgid "For"
 msgstr "Durante"
 
-#: powerclock/labels.py:123
+#: powerclock/labels.py:124
 msgid "for {time}"
 msgstr "durante {time}"
 
-#: powerclock/labels.py:292
+#: powerclock/labels.py:293
 msgid "Force"
 msgstr "Forzar"
 
@@ -521,7 +529,7 @@ msgstr "Forzar"
 msgid "Force (don't wait for apps to save)"
 msgstr "Forzar (sin esperar a que las aplicaciones guarden)"
 
-#: powerclock/labels.py:307
+#: powerclock/labels.py:311
 msgid "Fri"
 msgstr "Vie"
 
@@ -529,7 +537,7 @@ msgstr "Vie"
 msgid "From"
 msgstr "Desde"
 
-#: powerclock/labels.py:301
+#: powerclock/labels.py:305
 msgid "Full screen"
 msgstr "Pantalla completa"
 
@@ -537,11 +545,11 @@ msgstr "Pantalla completa"
 msgid "Function"
 msgstr "Función"
 
-#: powerclock/labels.py:105
+#: powerclock/labels.py:106
 msgid "Give up after"
 msgstr "Desistir tras"
 
-#: powerclock/labels.py:295 powerclock/labels.py:298
+#: powerclock/labels.py:296 powerclock/labels.py:299
 msgid "Hang up (HUP)"
 msgstr "Colgar (HUP)"
 
@@ -561,11 +569,11 @@ msgstr "Ocultar el icono (PowerClock sigue funcionando)"
 msgid "History"
 msgstr "Historial"
 
-#: powerclock/labels.py:101 powerclock/labels.py:102
+#: powerclock/labels.py:102 powerclock/labels.py:103
 msgid "How to close it"
 msgstr "Cómo cerrarla"
 
-#: powerclock/cli/main.py:1012 powerclock/gui/diagnostics.py:110
+#: powerclock/cli/main.py:1035 powerclock/gui/diagnostics.py:110
 msgid "How to fix"
 msgstr "Cómo arreglarlo"
 
@@ -577,11 +585,11 @@ msgstr "Suspensión híbrida"
 msgid "Hybrid sleep now"
 msgstr "Suspensión híbrida ahora"
 
-#: powerclock/cli/main.py:370 powerclock/cli/main.py:535 powerclock/cli/main.py:431
+#: powerclock/cli/main.py:393 powerclock/cli/main.py:558 powerclock/cli/main.py:454
 msgid "Id"
 msgstr "Id"
 
-#: powerclock/gui/editor.py:57
+#: powerclock/gui/editor.py:66
 msgid "Id:"
 msgstr "Id:"
 
@@ -593,15 +601,15 @@ msgstr "inactivo desde hace {time}"
 msgid "idle time unknown"
 msgstr "inactividad desconocida"
 
-#: powerclock/labels.py:93
+#: powerclock/labels.py:94
 msgid "If a step fails"
 msgstr "Si un paso falla"
 
-#: powerclock/gui/editor.py:74
+#: powerclock/gui/editor.py:83
 msgid "If one is not met at that moment, nothing is done this time."
 msgstr "Si en ese momento alguna no se cumple, esta vez no se hace nada."
 
-#: powerclock/labels.py:92
+#: powerclock/labels.py:93
 msgid "If the moment was missed"
 msgstr "Si se perdió el momento"
 
@@ -609,7 +617,7 @@ msgstr "Si se perdió el momento"
 msgid "Import rules"
 msgstr "Importar reglas"
 
-#: powerclock/cli/main.py:654
+#: powerclock/cli/main.py:677
 msgid "Imported"
 msgstr "Importada"
 
@@ -617,7 +625,7 @@ msgstr "Importada"
 msgid "Import…"
 msgstr "Importar…"
 
-#: powerclock/cli/main.py:431
+#: powerclock/cli/main.py:454
 msgid "In"
 msgstr "Falta"
 
@@ -645,7 +653,7 @@ msgstr "Instalar PowerClock"
 msgid "installed and up to date"
 msgstr "instalado y al día"
 
-#: powerclock/labels.py:361
+#: powerclock/labels.py:366
 msgid "Installed applications"
 msgstr "Aplicaciones instaladas"
 
@@ -673,15 +681,15 @@ msgstr "Instalando…"
 msgid "Interface"
 msgstr "Interfaz"
 
-#: powerclock/labels.py:249
+#: powerclock/labels.py:250
 msgid "internal error: {error}"
 msgstr "error interno: {error}"
 
-#: powerclock/cli/main.py:582 powerclock/gui/editor.py:231 powerclock/gui/forms.py:559
+#: powerclock/cli/main.py:605 powerclock/gui/editor.py:240 powerclock/gui/forms.py:564
 msgid "invalid JSON: {error}"
 msgstr "JSON no válido: {error}"
 
-#: powerclock/labels.py:194
+#: powerclock/labels.py:195
 msgid "it was not running"
 msgstr "no estaba en marcha"
 
@@ -693,7 +701,7 @@ msgstr "kbit/s"
 msgid "KDE: install kscreen"
 msgstr "KDE: instala kscreen"
 
-#: powerclock/labels.py:100
+#: powerclock/labels.py:101
 msgid "Keep it open (open it again if it closes)"
 msgstr "Mantenerla abierta (volver a abrirla si se cierra)"
 
@@ -701,11 +709,11 @@ msgstr "Mantenerla abierta (volver a abrirla si se cierra)"
 msgid "keyboard and mouse only"
 msgstr "solo teclado y ratón"
 
-#: powerclock/labels.py:351
+#: powerclock/labels.py:355
 msgid "Know when something is playing"
 msgstr "Saber si algo se está reproduciendo"
 
-#: powerclock/labels.py:350
+#: powerclock/labels.py:354
 msgid "Know when the computer is not in use"
 msgstr "Saber cuándo no se usa el equipo"
 
@@ -713,11 +721,11 @@ msgstr "Saber cuándo no se usa el equipo"
 msgid "late"
 msgstr "tarde"
 
-#: powerclock/labels.py:291 powerclock/labels.py:349
+#: powerclock/labels.py:292 powerclock/labels.py:353
 msgid "Let applications ask to save"
 msgstr "Dejar que las aplicaciones pidan guardar"
 
-#: powerclock/labels.py:294 powerclock/labels.py:297
+#: powerclock/labels.py:295 powerclock/labels.py:298
 msgid "Like Ctrl+C (INT: recorders save the video)"
 msgstr "Como Ctrl+C (INT: los grabadores guardan el vídeo)"
 
@@ -732,6 +740,14 @@ msgstr "Bloquear la pantalla"
 #: powerclock/i18n.py:55
 msgid "Lock the screen now"
 msgstr "Bloquear la pantalla ahora"
+
+#: powerclock/labels.py:365
+msgid "Log in after turning the computer on"
+msgstr "Entrar en la sesión tras encender el equipo"
+
+#: powerclock/labels.py:91
+msgid "Log in when it turns the computer on"
+msgstr "Entrar en la sesión al encender el equipo"
 
 #: powerclock/i18n.py:26
 msgid "Log out"
@@ -749,11 +765,11 @@ msgstr "no se puede contactar con logind: {error}"
 msgid "logind session {id}"
 msgstr "sesión de logind {id}"
 
-#: powerclock/labels.py:334
+#: powerclock/labels.py:338
 msgid "Manual"
 msgstr "Manual"
 
-#: powerclock/labels.py:300
+#: powerclock/labels.py:304
 msgid "Maximized"
 msgstr "Maximizada"
 
@@ -765,11 +781,11 @@ msgstr "midiendo: {elapsed} de {window}"
 msgid "measuring…"
 msgstr "midiendo…"
 
-#: powerclock/labels.py:302
+#: powerclock/labels.py:306
 msgid "Minimized"
 msgstr "Minimizada"
 
-#: powerclock/labels.py:191
+#: powerclock/labels.py:192
 msgid "missed: the computer was off or asleep, or PowerClock was not running"
 msgstr "perdida: el equipo estaba apagado o suspendido, o PowerClock no estaba funcionando"
 
@@ -777,15 +793,15 @@ msgstr "perdida: el equipo estaba apagado o suspendido, o PowerClock no estaba f
 msgid "Mode"
 msgstr "Modo"
 
-#: powerclock/labels.py:303
+#: powerclock/labels.py:307
 msgid "Mon"
 msgstr "Lun"
 
-#: powerclock/gui/forms.py:760
+#: powerclock/gui/forms.py:765
 msgid "Move down"
 msgstr "Bajar"
 
-#: powerclock/gui/forms.py:760
+#: powerclock/gui/forms.py:765
 msgid "Move up"
 msgstr "Subir"
 
@@ -793,7 +809,7 @@ msgstr "Subir"
 msgid "MPRIS: {count} player(s), {playing} playing"
 msgstr "MPRIS: {count} reproductor(es), {playing} reproduciendo"
 
-#: powerclock/cli/main.py:370 powerclock/cli/main.py:535 powerclock/gui/rules.py:41
+#: powerclock/cli/main.py:393 powerclock/cli/main.py:558 powerclock/gui/rules.py:41
 msgid "Name"
 msgstr "Nombre"
 
@@ -821,11 +837,11 @@ msgstr "NetworkManager · sin Wi-Fi"
 msgid "NetworkManager · Wi-Fi {ssid}"
 msgstr "NetworkManager · Wi-Fi {ssid}"
 
-#: powerclock/gui/quick.py:149
+#: powerclock/gui/quick.py:157
 msgid "New quick action"
 msgstr "Nueva acción rápida"
 
-#: powerclock/gui/editor.py:251 powerclock/gui/editor.py:47
+#: powerclock/gui/editor.py:260 powerclock/gui/editor.py:56
 msgid "New rule"
 msgstr "Nueva regla"
 
@@ -833,11 +849,11 @@ msgstr "Nueva regla"
 msgid "New…"
 msgstr "Nueva…"
 
-#: powerclock/cli/main.py:535 powerclock/cli/main.py:430 powerclock/gui/rules.py:41
+#: powerclock/cli/main.py:558 powerclock/cli/main.py:453 powerclock/gui/rules.py:41
 msgid "Next"
 msgstr "Próximo"
 
-#: powerclock/labels.py:360
+#: powerclock/labels.py:364
 msgid "Next wake-up alarm"
 msgstr "Próxima alarma de encendido"
 
@@ -845,15 +861,19 @@ msgstr "Próxima alarma de encendido"
 msgid "Next wake-up alarm: {time} ({relative})"
 msgstr "Próxima alarma de encendido: {time} ({relative})"
 
+#: powerclock/labels.py:300
+msgid "No"
+msgstr "No"
+
 #: powerclock/doctor.py:38
 msgid "no battery: always on AC"
 msgstr "sin batería: siempre enchufado"
 
-#: powerclock/cli/main.py:577
+#: powerclock/cli/main.py:600
 msgid "No changes."
 msgstr "Sin cambios."
 
-#: powerclock/labels.py:245
+#: powerclock/labels.py:246
 msgid "no desktop session after {time}"
 msgstr "no hay sesión del escritorio tras {time}"
 
@@ -881,7 +901,7 @@ msgstr "no se encontró ningún método"
 msgid "no notification server"
 msgstr "no hay servidor de notificaciones"
 
-#: powerclock/gui/quick.py:163
+#: powerclock/gui/quick.py:171
 msgid "No quick actions scheduled."
 msgstr "No hay acciones rápidas programadas."
 
@@ -889,11 +909,11 @@ msgstr "No hay acciones rápidas programadas."
 msgid "no RTC with a wake alarm"
 msgstr "no hay un RTC con alarma de encendido"
 
-#: powerclock/cli/main.py:532
+#: powerclock/cli/main.py:555
 msgid "No rules yet: powerclock rules add FILE.json (see examples/)."
 msgstr "Aún no hay reglas: powerclock rules add ARCHIVO.json (mira examples/)."
 
-#: powerclock/cli/main.py:489
+#: powerclock/cli/main.py:512
 msgid "No runs yet."
 msgstr "Aún no hay ejecuciones."
 
@@ -921,15 +941,15 @@ msgstr "no hay forma de medir la inactividad"
 msgid "none"
 msgstr "ninguna"
 
-#: powerclock/labels.py:299
+#: powerclock/labels.py:303
 msgid "Normal"
 msgstr "Normal"
 
-#: powerclock/gui/forms.py:853
+#: powerclock/gui/forms.py:858
 msgid "not"
 msgstr "no"
 
-#: powerclock/labels.py:165
+#: powerclock/labels.py:166
 msgid "not ({condition})"
 msgstr "no ({condition})"
 
@@ -961,7 +981,7 @@ msgstr "No se instaló (código de salida {code})."
 msgid "not set"
 msgstr "sin definir"
 
-#: powerclock/cli/main.py:736
+#: powerclock/cli/main.py:759
 msgid "Nothing done: you can run them yourself."
 msgstr "No se ha hecho nada: puedes ejecutarlos tú."
 
@@ -969,27 +989,27 @@ msgstr "No se ha hecho nada: puedes ejecutarlos tú."
 msgid "Nothing scheduled"
 msgstr "Nada programado"
 
-#: powerclock/cli/main.py:444
+#: powerclock/cli/main.py:467
 msgid "Nothing scheduled."
 msgstr "Nada programado."
 
-#: powerclock/labels.py:354
+#: powerclock/labels.py:358
 msgid "Notice shutdowns and suspends"
 msgstr "Enterarse de apagados y suspensiones"
 
-#: powerclock/labels.py:352
+#: powerclock/labels.py:356
 msgid "Notifications"
 msgstr "Notificaciones"
 
-#: powerclock/cli/main.py:438 powerclock/gui/quick.py:54 powerclock/gui/tray.py:68
+#: powerclock/cli/main.py:461 powerclock/gui/quick.py:54 powerclock/gui/tray.py:68
 msgid "Now"
 msgstr "Ahora"
 
-#: powerclock/labels.py:324
+#: powerclock/labels.py:328
 msgid "ok"
 msgstr "bien"
 
-#: powerclock/cli/main.py:535 powerclock/labels.py:70
+#: powerclock/cli/main.py:558 powerclock/labels.py:70
 msgid "On"
 msgstr "Cuándo"
 
@@ -1001,11 +1021,11 @@ msgstr "enchufado"
 msgid "on battery"
 msgstr "con batería"
 
-#: powerclock/labels.py:284
+#: powerclock/labels.py:285
 msgid "On battery"
 msgstr "Con batería"
 
-#: powerclock/gui/forms.py:473
+#: powerclock/gui/forms.py:478
 msgid "on top"
 msgstr "encima de todo"
 
@@ -1017,11 +1037,11 @@ msgstr "tan fiable como el escritorio que lo marca"
 msgid "Only by hand"
 msgstr "Solo a mano"
 
-#: powerclock/gui/editor.py:71
+#: powerclock/gui/editor.py:80
 msgid "Only if all of these hold"
 msgstr "Solo si se cumplen todas estas"
 
-#: powerclock/gui/editor.py:94
+#: powerclock/gui/editor.py:103
 msgid "Only if…"
 msgstr "Solo si…"
 
@@ -1029,7 +1049,11 @@ msgstr "Solo si…"
 msgid "only on KDE Plasma (KWin)"
 msgstr "solo en KDE Plasma (KWin)"
 
-#: powerclock/labels.py:91
+#: powerclock/gui/quick.py:125
+msgid "Only on the start-up that PowerClock causes: any other start-up asks for the password as usual."
+msgstr "Solo en el arranque que provoca PowerClock: cualquier otro arranque pide la contraseña como siempre."
+
+#: powerclock/labels.py:92
 msgid "Only once (then disable it)"
 msgstr "Solo una vez (luego se desactiva)"
 
@@ -1045,11 +1069,11 @@ msgstr "Abrir un archivo o una web"
 msgid "Open an application"
 msgstr "Abrir una aplicación"
 
-#: powerclock/labels.py:362
+#: powerclock/labels.py:367
 msgid "Open applications"
 msgstr "Abrir aplicaciones"
 
-#: powerclock/gui/quick.py:275
+#: powerclock/gui/quick.py:294
 msgid "Open now"
 msgstr "Abrir ahora"
 
@@ -1057,7 +1081,7 @@ msgstr "Abrir ahora"
 msgid "Open PowerClock"
 msgstr "Abrir PowerClock"
 
-#: powerclock/daemon/core.py:275
+#: powerclock/daemon/core.py:309
 msgid "Open {app}"
 msgstr "Abrir {app}"
 
@@ -1065,7 +1089,7 @@ msgstr "Abrir {app}"
 msgid "Optional: a file, a web address, options…"
 msgstr "Opcional: un archivo, una dirección web, opciones…"
 
-#: powerclock/gui/editor.py:97
+#: powerclock/gui/editor.py:106
 msgid "Options"
 msgstr "Opciones"
 
@@ -1077,7 +1101,7 @@ msgstr "Quitado del menú de aplicaciones"
 msgid "Percent"
 msgstr "Porcentaje"
 
-#: powerclock/labels.py:357
+#: powerclock/labels.py:361
 msgid "Permission to turn the computer on"
 msgstr "Permiso para encender el equipo"
 
@@ -1085,7 +1109,7 @@ msgstr "Permiso para encender el equipo"
 msgid "Permission to turn the computer on removed"
 msgstr "Permiso para encender el equipo retirado"
 
-#: powerclock/cli/main.py:791
+#: powerclock/cli/main.py:814
 msgid "Permission to turn the computer on removed."
 msgstr "Permiso para encender el equipo retirado."
 
@@ -1097,7 +1121,7 @@ msgstr "Elige una ejecución para ver sus pasos."
 msgid "Pick an application"
 msgstr "Elige una aplicación"
 
-#: powerclock/gui/quick.py:205
+#: powerclock/gui/quick.py:214
 msgid "Pick the application to open."
 msgstr "Elige la aplicación que abrir."
 
@@ -1109,15 +1133,15 @@ msgstr "PID"
 msgid "pkcheck failed ({code})"
 msgstr "pkcheck falló ({code})"
 
-#: powerclock/gui/forms.py:461
+#: powerclock/gui/forms.py:466
 msgid "Place it:"
 msgstr "Colocarla:"
 
-#: powerclock/labels.py:363
+#: powerclock/labels.py:368
 msgid "Place windows"
 msgstr "Colocar ventanas"
 
-#: powerclock/labels.py:283
+#: powerclock/labels.py:284
 msgid "Plugged in"
 msgstr "Enchufado"
 
@@ -1129,15 +1153,15 @@ msgstr "Enchufado o con batería"
 msgid "Postpone 10 min"
 msgstr "Posponer 10 min"
 
-#: powerclock/gui/countdown.py:63 powerclock/gui/quick.py:344 powerclock/gui/tray.py:63
+#: powerclock/gui/countdown.py:63 powerclock/gui/quick.py:363 powerclock/gui/tray.py:63
 msgid "Postpone 10 minutes"
 msgstr "Posponer 10 minutos"
 
-#: powerclock/cli/main.py:472
+#: powerclock/cli/main.py:495
 msgid "Postponed"
 msgstr "Pospuesta"
 
-#: powerclock/labels.py:318
+#: powerclock/labels.py:322
 msgid "postponed"
 msgstr "pospuesta"
 
@@ -1145,11 +1169,11 @@ msgstr "pospuesta"
 msgid "Power"
 msgstr "Alimentación"
 
-#: powerclock/platform/linux/capabilities.py:280
+#: powerclock/platform/linux/capabilities.py:295
 msgid "Power on from off: BIOS → Power Management → Auto On Time (usually needs AC)"
 msgstr "Encender desde apagado: BIOS → Power Management → Auto On Time (suele necesitar AC)"
 
-#: powerclock/labels.py:367
+#: powerclock/labels.py:372
 msgid "Power supply"
 msgstr "Alimentación"
 
@@ -1169,7 +1193,7 @@ msgstr "PowerClock aún no puede encender el equipo (¿se canceló la contraseñ
 msgid "PowerClock has never run on this account yet (no API token)"
 msgstr "PowerClock aún no se ha ejecutado nunca en esta cuenta (no hay token del API)"
 
-#: powerclock/platform/linux/capabilities.py:224 powerclock/platform/linux/capabilities.py:231
+#: powerclock/platform/linux/capabilities.py:224 powerclock/platform/linux/capabilities.py:231 powerclock/platform/linux/capabilities.py:282
 msgid "powerclock helper install"
 msgstr "powerclock helper install"
 
@@ -1193,7 +1217,7 @@ msgstr "PowerClock no está funcionando en segundo plano ({error})"
 msgid "PowerClock is ready."
 msgstr "PowerClock está listo."
 
-#: powerclock/cli/main.py:875
+#: powerclock/cli/main.py:898
 msgid "PowerClock is ready. Open it with: powerclock gui"
 msgstr "PowerClock está listo. Ábrelo con: powerclock gui"
 
@@ -1205,15 +1229,15 @@ msgstr "PowerClock no está funcionando"
 msgid "PowerClock isn't running. Your rules won't run until you start it."
 msgstr "PowerClock no está funcionando. Tus reglas no se ejecutarán hasta que lo inicies."
 
-#: powerclock/cli/main.py:824
+#: powerclock/cli/main.py:847
 msgid "PowerClock opened"
 msgstr "PowerClock abierto"
 
-#: powerclock/platform/linux/capabilities.py:289
+#: powerclock/platform/linux/capabilities.py:304
 msgid "powerclock service install --linger"
 msgstr "powerclock service install --linger"
 
-#: powerclock/cli/main.py:927
+#: powerclock/cli/main.py:950
 msgid "PowerClock uninstalled."
 msgstr "PowerClock desinstalado."
 
@@ -1237,7 +1261,7 @@ msgstr "Ha salido PowerClock {version}."
 msgid "PowerClock {version} is out; update it the way you installed it."
 msgstr "Ha salido PowerClock {version}; actualízalo como lo instalaste."
 
-#: powerclock/cli/main.py:886
+#: powerclock/cli/main.py:909
 msgid "PowerClock {version} is the newest version."
 msgstr "PowerClock {version} es la versión más reciente."
 
@@ -1245,7 +1269,7 @@ msgstr "PowerClock {version} es la versión más reciente."
 msgid "PowerClock — countdown"
 msgstr "PowerClock — cuenta atrás"
 
-#: powerclock/gui/quick.py:126
+#: powerclock/gui/quick.py:133
 msgid "Program:"
 msgstr "Programa:"
 
@@ -1265,19 +1289,19 @@ msgstr "Rápido"
 msgid "Quick: shut down, suspend or run a program at a time, after a while or when a condition is met: a program ends, you stop using the computer, a download finishes…"
 msgstr "Rápido: apaga, suspende o ejecuta un programa a una hora, dentro de un rato o cuando se cumpla una condición: termina un programa, dejas de usar el equipo, acaba una descarga…"
 
-#: powerclock/cli/main.py:492 powerclock/gui/history.py:45
+#: powerclock/cli/main.py:515 powerclock/gui/history.py:45
 msgid "Reason"
 msgstr "Motivo"
 
-#: powerclock/cli/main.py:385 powerclock/labels.py:98
+#: powerclock/cli/main.py:408 powerclock/labels.py:99
 msgid "Recipe"
 msgstr "Receta"
 
-#: powerclock/gui/quick.py:128
+#: powerclock/gui/quick.py:135
 msgid "Recipe:"
 msgstr "Receta:"
 
-#: powerclock/cli/main.py:370
+#: powerclock/cli/main.py:393
 msgid "Recipes"
 msgstr "Recetas"
 
@@ -1285,11 +1309,11 @@ msgstr "Recetas"
 msgid "Refresh"
 msgstr "Actualizar"
 
-#: powerclock/gui/forms.py:771
+#: powerclock/gui/forms.py:776
 msgid "Remove"
 msgstr "Quitar"
 
-#: powerclock/cli/main.py:923
+#: powerclock/cli/main.py:946
 msgid "Remove the program the way you installed it (e.g. pipx uninstall powerclock)."
 msgstr "Quita el programa como lo instalaste (p. ej. pipx uninstall powerclock)."
 
@@ -1301,7 +1325,7 @@ msgstr "Quita el programa como lo instalaste."
 msgid "Repeats (cron expression)"
 msgstr "Se repite (expresión cron)"
 
-#: powerclock/gui/forms.py:448 powerclock/gui/quick.py:319
+#: powerclock/gui/forms.py:453 powerclock/gui/quick.py:338
 msgid "Replace <{key}> with: {what}"
 msgstr "Cambia <{key}> por: {what}"
 
@@ -1321,7 +1345,7 @@ msgstr "Reiniciar ahora"
 msgid "Result"
 msgstr "Resultado"
 
-#: powerclock/cli/main.py:492 powerclock/cli/main.py:419 powerclock/cli/main.py:431
+#: powerclock/cli/main.py:515 powerclock/cli/main.py:442 powerclock/cli/main.py:454
 msgid "Rule"
 msgstr "Regla"
 
@@ -1345,7 +1369,7 @@ msgstr "Reglas e historial borrados"
 msgid "Rules: for what repeats, such as a nightly backup that turns the computer on, runs and shuts it down again."
 msgstr "Reglas: para lo que se repite, como una copia de seguridad nocturna que enciende el equipo, se ejecuta y lo vuelve a apagar."
 
-#: powerclock/cli/main.py:419
+#: powerclock/cli/main.py:442
 msgid "Run"
 msgstr "Ejecución"
 
@@ -1353,7 +1377,7 @@ msgstr "Ejecución"
 msgid "Run a program"
 msgstr "Ejecutar un programa"
 
-#: powerclock/labels.py:288
+#: powerclock/labels.py:289
 msgid "Run it once"
 msgstr "Ejecutarla una vez"
 
@@ -1361,7 +1385,7 @@ msgstr "Ejecutarla una vez"
 msgid "Run now"
 msgstr "Ejecutar ahora"
 
-#: powerclock/cli/main.py:735
+#: powerclock/cli/main.py:758
 msgid "Run these commands now with sudo?"
 msgstr "¿Ejecutar ahora estos comandos con sudo?"
 
@@ -1369,11 +1393,11 @@ msgstr "¿Ejecutar ahora estos comandos con sudo?"
 msgid "Run through the shell"
 msgstr "Ejecutar a través del shell"
 
-#: powerclock/daemon/core.py:279
+#: powerclock/daemon/core.py:313
 msgid "Run {program}"
 msgstr "Ejecutar {program}"
 
-#: powerclock/cli/main.py:418
+#: powerclock/cli/main.py:441
 msgid "Running"
 msgstr "En marcha"
 
@@ -1381,7 +1405,7 @@ msgstr "En marcha"
 msgid "running"
 msgstr "en marcha"
 
-#: powerclock/cli/main.py:403
+#: powerclock/cli/main.py:426
 msgid "running for"
 msgstr "funcionando desde hace"
 
@@ -1397,15 +1421,15 @@ msgstr "Funcionando en segundo plano"
 msgid "Running in the background, also with the session closed"
 msgstr "Funcionando en segundo plano, también con la sesión cerrada"
 
-#: powerclock/labels.py:308
+#: powerclock/labels.py:312
 msgid "Sat"
 msgstr "Sáb"
 
-#: powerclock/cli/main.py:584
+#: powerclock/cli/main.py:607
 msgid "Saved"
 msgstr "Guardada"
 
-#: powerclock/labels.py:332
+#: powerclock/labels.py:336
 msgid "Schedule"
 msgstr "Horario"
 
@@ -1421,7 +1445,7 @@ msgstr "Programar suspensión híbrida"
 msgid "Schedule log out"
 msgstr "Programar cierre de sesión"
 
-#: powerclock/gui/quick.py:275
+#: powerclock/gui/quick.py:294
 msgid "Schedule opening"
 msgstr "Programar apertura"
 
@@ -1453,7 +1477,7 @@ msgstr "Programar suspensión"
 msgid "Schedule the program"
 msgstr "Programar la ejecución"
 
-#: powerclock/gui/quick.py:165
+#: powerclock/gui/quick.py:173
 msgid "Scheduled"
 msgstr "Programado"
 
@@ -1461,11 +1485,11 @@ msgstr "Programado"
 msgid "Schedule…"
 msgstr "Programar…"
 
-#: powerclock/gui/forms.py:465
+#: powerclock/gui/forms.py:470
 msgid "screen"
 msgstr "pantalla"
 
-#: powerclock/labels.py:368
+#: powerclock/labels.py:373
 msgid "Sensors"
 msgstr "Sensores"
 
@@ -1493,15 +1517,15 @@ msgstr "Apagar ahora"
 msgid "Shut down, restart, suspend…"
 msgstr "Apagar, reiniciar, suspender…"
 
-#: powerclock/labels.py:287
+#: powerclock/labels.py:288
 msgid "Skip it"
 msgstr "Saltarla"
 
-#: powerclock/labels.py:323
+#: powerclock/labels.py:327
 msgid "skipped"
 msgstr "omitida"
 
-#: powerclock/cli/main.py:648
+#: powerclock/cli/main.py:671
 msgid "Skipped (already exists)"
 msgstr "Omitida (ya existe)"
 
@@ -1533,11 +1557,11 @@ msgstr "Iniciar el icono de la bandeja al iniciar la sesión"
 msgid "start with the session"
 msgstr "inicio con la sesión"
 
-#: powerclock/cli/main.py:616
+#: powerclock/cli/main.py:639
 msgid "Started"
 msgstr "Iniciada"
 
-#: powerclock/labels.py:235
+#: powerclock/labels.py:236
 msgid "started in the background (PID {pid})"
 msgstr "arrancado en segundo plano (PID {pid})"
 
@@ -1545,23 +1569,23 @@ msgstr "arrancado en segundo plano (PID {pid})"
 msgid "started {start} · finished {end}"
 msgstr "empezó {start} · terminó {end}"
 
-#: powerclock/cli/main.py:492 powerclock/cli/main.py:419
+#: powerclock/cli/main.py:515 powerclock/cli/main.py:442
 msgid "State"
 msgstr "Estado"
 
-#: powerclock/labels.py:201
+#: powerclock/labels.py:202
 msgid "step {number} ({kind}) failed: {detail}"
 msgstr "falló el paso {number} ({kind}): {detail}"
 
-#: powerclock/labels.py:207
+#: powerclock/labels.py:208
 msgid "still held after {time}: {guard}"
 msgstr "seguía cumpliéndose tras {time}: {guard}"
 
-#: powerclock/labels.py:289
+#: powerclock/labels.py:290
 msgid "Stop"
 msgstr "Parar"
 
-#: powerclock/labels.py:309
+#: powerclock/labels.py:313
 msgid "Sun"
 msgstr "Dom"
 
@@ -1573,11 +1597,11 @@ msgstr "Suspender"
 msgid "Suspend now"
 msgstr "Suspender ahora"
 
-#: powerclock/cli/main.py:945 powerclock/gui/diagnostics.py:273
+#: powerclock/cli/main.py:968 powerclock/gui/diagnostics.py:273
 msgid "Suspend now?"
 msgstr "¿Suspender ahora?"
 
-#: powerclock/cli/main.py:949 powerclock/gui/diagnostics.py:418
+#: powerclock/cli/main.py:972 powerclock/gui/diagnostics.py:418
 msgid "Suspending in {seconds} s: hands off the keyboard, touchpad and stick…"
 msgstr "Suspendiendo en {seconds} s: aparta las manos del teclado, el touchpad y el stick…"
 
@@ -1593,11 +1617,11 @@ msgstr "gestor de usuario de systemd · {state}"
 msgid "Test a wake-up in 2 minutes…"
 msgstr "Probar un despertar dentro de 2 minutos…"
 
-#: powerclock/gui/window.py:97 powerclock/labels.py:325
+#: powerclock/gui/window.py:97 powerclock/labels.py:329
 msgid "test mode"
 msgstr "modo prueba"
 
-#: powerclock/labels.py:94
+#: powerclock/labels.py:95
 msgid "Test mode (nothing really turns off)"
 msgstr "Modo prueba (no apaga nada de verdad)"
 
@@ -1617,7 +1641,7 @@ msgstr "Modo prueba: PowerClock no apagará nada de verdad."
 msgid "Test mode: the test would suspend the computer, so nothing was done."
 msgstr "Modo prueba: la prueba suspendería el equipo, así que no se ha hecho nada."
 
-#: powerclock/labels.py:239
+#: powerclock/labels.py:240
 msgid "test mode: {action} was not really done"
 msgstr "modo prueba: «{action}» no se hizo de verdad"
 
@@ -1653,7 +1677,7 @@ msgstr "El equipo se suspenderá en {seconds} s"
 msgid "The computer's"
 msgstr "La del equipo"
 
-#: powerclock/labels.py:223
+#: powerclock/labels.py:224
 msgid "the condition was not met within {time}"
 msgstr "la condición no se cumplió en {time}"
 
@@ -1665,7 +1689,7 @@ msgstr "la sesión del escritorio está abierta"
 msgid "The desktop session is up"
 msgstr "La sesión del escritorio está abierta"
 
-#: powerclock/cli/main.py:815 powerclock/gui/app.py:29
+#: powerclock/cli/main.py:838 powerclock/gui/app.py:29
 msgid "The GUI is not installed: pipx install --force 'powerclock[gui]'"
 msgstr "La interfaz gráfica no está instalada: pipx install --force 'powerclock[gui]'"
 
@@ -1673,7 +1697,7 @@ msgstr "La interfaz gráfica no está instalada: pipx install --force 'powercloc
 msgid "The icon in the tray shows what comes next; click it to open this window."
 msgstr "El icono de la bandeja muestra lo próximo; haz clic en él para abrir esta ventana."
 
-#: powerclock/gui/editor.py:233 powerclock/gui/forms.py:794
+#: powerclock/gui/editor.py:242 powerclock/gui/forms.py:799
 msgid "the JSON must be an object"
 msgstr "el JSON debe ser un objeto"
 
@@ -1685,11 +1709,11 @@ msgstr "el sistema no dijo qué lo despertó"
 msgid "the permission to turn the computer on was not removed"
 msgstr "no se retiró el permiso para encender el equipo"
 
-#: powerclock/labels.py:187
+#: powerclock/labels.py:188
 msgid "the previous run of this rule is still active"
 msgstr "la ejecución anterior de esta regla sigue en marcha"
 
-#: powerclock/cli/main.py:355
+#: powerclock/cli/main.py:378
 msgid "The recipe {recipe} needs: {inputs}"
 msgstr "La receta {recipe} necesita: {inputs}"
 
@@ -1701,7 +1725,7 @@ msgstr "La pantalla se bloqueará en {seconds} s"
 msgid "The screen will turn off in {seconds} s"
 msgstr "La pantalla se apagará en {seconds} s"
 
-#: powerclock/cli/main.py:894
+#: powerclock/cli/main.py:917
 msgid "the update failed"
 msgstr "la actualización falló"
 
@@ -1709,7 +1733,7 @@ msgstr "la actualización falló"
 msgid "The update failed."
 msgstr "La actualización falló."
 
-#: powerclock/cli/main.py:343
+#: powerclock/cli/main.py:364
 msgid "There is no recipe {recipe!r}: see powerclock recipes."
 msgstr "No hay ninguna receta {recipe!r}: mira powerclock recipes."
 
@@ -1725,7 +1749,7 @@ msgstr "este proceso no puede programar la alarma"
 msgid "this process may program the alarm without a password"
 msgstr "este proceso puede programar la alarma sin contraseña"
 
-#: powerclock/cli/main.py:940
+#: powerclock/cli/main.py:963
 msgid "This programs a wake-up in {seconds} s and [bold]suspends the computer now[/]. Save your work and do not touch it until it wakes up by itself."
 msgstr "Esto programa un despertar dentro de {seconds} s y [bold]suspende el equipo ahora[/]. Guarda tu trabajo y no lo toques hasta que despierte solo."
 
@@ -1741,7 +1765,7 @@ msgstr "Esto quita PowerClock en segundo plano, la entrada del menú, el inicio 
 msgid "This sets PowerClock to work in the background: it starts now and every time you log in."
 msgstr "Esto deja PowerClock funcionando en segundo plano: arranca ahora y cada vez que inicies sesión."
 
-#: powerclock/labels.py:306
+#: powerclock/labels.py:310
 msgid "Thu"
 msgstr "Jue"
 
@@ -1753,11 +1777,11 @@ msgstr "Tiempo máximo"
 msgid "Time of day between"
 msgstr "Hora del día entre"
 
-#: powerclock/labels.py:95 powerclock/labels.py:366
+#: powerclock/labels.py:96 powerclock/labels.py:371
 msgid "Time zone"
 msgstr "Zona horaria"
 
-#: powerclock/labels.py:219
+#: powerclock/labels.py:220
 msgid "timed out after {time}"
 msgstr "se agotó el tiempo tras {time}"
 
@@ -1769,11 +1793,11 @@ msgstr "Título"
 msgid "To"
 msgstr "Hasta"
 
-#: powerclock/cli/main.py:765 powerclock/cli/main.py:869
+#: powerclock/cli/main.py:788 powerclock/cli/main.py:892
 msgid "To allow turning the computer on, these commands run as root:"
 msgstr "Para permitir encender el equipo, estas órdenes se ejecutan como root:"
 
-#: powerclock/cli/main.py:788 powerclock/cli/main.py:915
+#: powerclock/cli/main.py:811 powerclock/cli/main.py:938
 msgid "To remove the permission to turn the computer on, these commands run as root:"
 msgstr "Para retirar el permiso para encender el equipo, estas órdenes se ejecutan como root:"
 
@@ -1793,11 +1817,11 @@ msgstr "mañana {time}"
 msgid "Tray icon when the session starts"
 msgstr "Icono en la bandeja al iniciar la sesión"
 
-#: powerclock/gui/forms.py:854
+#: powerclock/gui/forms.py:859
 msgid "True when the condition does not hold"
 msgstr "Se cumple cuando la condición no se cumple"
 
-#: powerclock/labels.py:304
+#: powerclock/labels.py:308
 msgid "Tue"
 msgstr "Mar"
 
@@ -1813,15 +1837,15 @@ msgstr "Apagar la pantalla"
 msgid "Turn off the screen now"
 msgstr "Apagar la pantalla ahora"
 
-#: powerclock/labels.py:359
+#: powerclock/labels.py:363
 msgid "Turn on and off with the session closed"
 msgstr "Encender y apagar con la sesión cerrada"
 
-#: powerclock/daemon/core.py:353
+#: powerclock/daemon/core.py:389
 msgid "Turn on at {time}"
 msgstr "Encender: {time}"
 
-#: powerclock/labels.py:358
+#: powerclock/labels.py:362
 msgid "Turn on without asking for a password"
 msgstr "Encender sin pedir contraseña"
 
@@ -1841,7 +1865,7 @@ msgstr "Programar un encendido"
 msgid "Turn the computer on to run it"
 msgstr "Encender el equipo para ejecutarlo"
 
-#: powerclock/daemon/core.py:358
+#: powerclock/daemon/core.py:395
 msgid "Turned on as scheduled"
 msgstr "Encendido a la hora programada"
 
@@ -1853,7 +1877,7 @@ msgstr "Encender y despertar"
 msgid "Uninstall PowerClock"
 msgstr "Desinstalar PowerClock"
 
-#: powerclock/cli/main.py:909
+#: powerclock/cli/main.py:932
 msgid "Uninstall PowerClock?"
 msgstr "¿Desinstalar PowerClock?"
 
@@ -1865,11 +1889,11 @@ msgstr "Desinstalar PowerClock…"
 msgid "Uninstalling…"
 msgstr "Desinstalando…"
 
-#: powerclock/cli/main.py:706
+#: powerclock/cli/main.py:729
 msgid "unit"
 msgstr "unidad"
 
-#: powerclock/cli/format.py:93 powerclock/cli/format.py:98 powerclock/platform/linux/capabilities.py:278
+#: powerclock/cli/format.py:93 powerclock/cli/format.py:98 powerclock/platform/linux/capabilities.py:293
 msgid "unknown"
 msgstr "desconocido"
 
@@ -1881,7 +1905,7 @@ msgstr "Actualizar"
 msgid "Update to {version}"
 msgstr "Actualizar a la {version}"
 
-#: powerclock/cli/main.py:898
+#: powerclock/cli/main.py:921
 msgid "Updated to {version}."
 msgstr "Actualizado a la {version}."
 
@@ -1893,11 +1917,11 @@ msgstr "Actualizado: PowerClock se reinicia."
 msgid "Updating…"
 msgstr "Actualizando…"
 
-#: powerclock/labels.py:281
+#: powerclock/labels.py:282
 msgid "Upload"
 msgstr "Subida"
 
-#: powerclock/cli/main.py:891
+#: powerclock/cli/main.py:914
 msgid "Version {latest} is out; update it the way you installed it."
 msgstr "Ha salido la versión {latest}; actualízalo como lo instalaste."
 
@@ -1905,7 +1929,7 @@ msgstr "Ha salido la versión {latest}; actualízalo como lo instalaste."
 msgid "Wait"
 msgstr "Esperar"
 
-#: powerclock/labels.py:103
+#: powerclock/labels.py:104
 msgid "Wait for the desktop up to"
 msgstr "Esperar al escritorio como mucho"
 
@@ -1917,15 +1941,15 @@ msgstr "Esperar hasta que"
 msgid "Wait until it ends"
 msgstr "Esperar a que termine"
 
-#: powerclock/gui/editor.py:77
+#: powerclock/gui/editor.py:86
 msgid "Wait while any of these holds"
 msgstr "Esperar mientras se cumpla alguna de estas"
 
-#: powerclock/gui/editor.py:95
+#: powerclock/gui/editor.py:104
 msgid "Wait while…"
 msgstr "Esperar mientras…"
 
-#: powerclock/labels.py:317
+#: powerclock/labels.py:321
 msgid "waiting"
 msgstr "esperando"
 
@@ -1933,23 +1957,23 @@ msgstr "esperando"
 msgid "waiting for a desktop session"
 msgstr "esperando a que haya una sesión del escritorio"
 
-#: powerclock/labels.py:195
+#: powerclock/labels.py:196
 msgid "waiting for the desktop session"
 msgstr "esperando a la sesión del escritorio"
 
-#: powerclock/labels.py:215
+#: powerclock/labels.py:216
 msgid "waiting until: {condition}"
 msgstr "esperando hasta que: {condition}"
 
-#: powerclock/labels.py:211
+#: powerclock/labels.py:212
 msgid "waiting while: {guard}"
 msgstr "esperando mientras: {guard}"
 
-#: powerclock/cli/main.py:220 powerclock/cli/main.py:413 powerclock/cli/main.py:222
+#: powerclock/cli/main.py:227 powerclock/cli/main.py:436 powerclock/cli/main.py:229
 msgid "wake-up alarm"
 msgstr "alarma de encendido"
 
-#: powerclock/labels.py:356
+#: powerclock/labels.py:360
 msgid "Wake-up clock (RTC)"
 msgstr "Reloj de encendido (RTC)"
 
@@ -1957,7 +1981,7 @@ msgstr "Reloj de encendido (RTC)"
 msgid "Wake-up test"
 msgstr "Prueba de despertar"
 
-#: powerclock/platform/linux/capabilities.py:282
+#: powerclock/platform/linux/capabilities.py:297
 msgid "Waking from off (S5) depends on the BIOS/UEFI; from suspend it usually works"
 msgstr "Encender desde apagado (S5) depende de la BIOS/UEFI; desde suspensión suele funcionar"
 
@@ -1965,15 +1989,15 @@ msgstr "Encender desde apagado (S5) depende de la BIOS/UEFI; desde suspensión s
 msgid "Warn before shutting down, restarting or suspending"
 msgstr "Avisar antes de apagar, reiniciar o suspender"
 
-#: powerclock/gui/quick.py:134
+#: powerclock/gui/quick.py:141
 msgid "Warn me first:"
 msgstr "Avisar antes:"
 
-#: powerclock/cli/main.py:437
+#: powerclock/cli/main.py:460
 msgid "Watching"
 msgstr "Vigilando"
 
-#: powerclock/labels.py:305
+#: powerclock/labels.py:309
 msgid "Wed"
 msgstr "Mié"
 
@@ -1981,7 +2005,7 @@ msgstr "Mié"
 msgid "Welcome to PowerClock"
 msgstr "Bienvenido a PowerClock"
 
-#: powerclock/cli/main.py:385 powerclock/gui/editor.py:96
+#: powerclock/cli/main.py:408 powerclock/gui/editor.py:105
 msgid "What it does"
 msgstr "Qué hará"
 
@@ -1989,7 +2013,7 @@ msgstr "Qué hará"
 msgid "What works on this computer"
 msgstr "Qué funciona en este equipo"
 
-#: powerclock/cli/main.py:535 powerclock/cli/main.py:431 powerclock/gui/editor.py:67
+#: powerclock/cli/main.py:558 powerclock/cli/main.py:454 powerclock/gui/editor.py:76
 msgid "When"
 msgstr "Cuándo"
 
@@ -1997,7 +2021,7 @@ msgstr "Cuándo"
 msgid "When a program ends"
 msgstr "Cuando termine un programa"
 
-#: powerclock/labels.py:285
+#: powerclock/labels.py:286
 msgid "When PowerClock starts"
 msgstr "Al arrancar PowerClock"
 
@@ -2013,15 +2037,15 @@ msgstr "Cuando el equipo quede en reposo"
 msgid "When the download finishes"
 msgstr "Cuando termine la descarga"
 
-#: powerclock/gui/quick.py:133
+#: powerclock/gui/quick.py:140
 msgid "When:"
 msgstr "Cuándo:"
 
-#: powerclock/labels.py:353
+#: powerclock/labels.py:357
 msgid "Wi-Fi network"
 msgstr "Red Wi-Fi"
 
-#: powerclock/labels.py:99
+#: powerclock/labels.py:100
 msgid "Window"
 msgstr "Ventana"
 
@@ -2037,7 +2061,7 @@ msgstr "sin el gestor de usuario de systemd: las aplicaciones se abren directame
 msgid "woken by: {source}"
 msgstr "lo despertó: {source}"
 
-#: powerclock/labels.py:365
+#: powerclock/labels.py:370
 msgid "Work with the session closed"
 msgstr "Funcionar con la sesión cerrada"
 
@@ -2045,17 +2069,25 @@ msgstr "Funcionar con la sesión cerrada"
 msgid "Working folder"
 msgstr "Carpeta de trabajo"
 
-#: powerclock/gui/quick.py:227
+#: powerclock/gui/quick.py:242
 msgid "Write or pick the program to wait for."
 msgstr "Escribe o elige el programa por el que esperar."
 
-#: powerclock/gui/quick.py:200
+#: powerclock/gui/quick.py:209
 msgid "Write the program to run."
 msgstr "Escribe el programa que ejecutar."
 
 #: powerclock/platform/linux/capabilities.py:119
 msgid "X11: install xprintidle"
 msgstr "X11: instala xprintidle"
+
+#: powerclock/labels.py:301
+msgid "Yes, with the screen locked"
+msgstr "Sí, con la pantalla bloqueada"
+
+#: powerclock/labels.py:302
+msgid "Yes, with the screen visible"
+msgstr "Sí, con la pantalla visible"
 
 #: powerclock/i18n.py:79
 msgid "You can cancel it until the last second."
@@ -2073,27 +2105,27 @@ msgstr "Tus reglas siguen funcionando en segundo plano."
 msgid "Your session will close in {seconds} s"
 msgstr "Tu sesión se cerrará en {seconds} s"
 
-#: powerclock/daemon/core.py:318
+#: powerclock/daemon/core.py:353
 msgid "{action} after {delay} without use"
 msgstr "{action} tras {delay} sin usar el equipo"
 
-#: powerclock/daemon/core.py:315
+#: powerclock/daemon/core.py:350
 msgid "{action} at {time}"
 msgstr "{action}: {time}"
 
-#: powerclock/daemon/core.py:309
+#: powerclock/daemon/core.py:344
 msgid "{action} in {delay}"
 msgstr "{action} dentro de {delay}"
 
-#: powerclock/daemon/core.py:330
+#: powerclock/daemon/core.py:365
 msgid "{action} when the computer goes quiet (CPU below {percent} % for {delay})"
 msgstr "{action} cuando el equipo quede en reposo (CPU por debajo del {percent} % durante {delay})"
 
-#: powerclock/daemon/core.py:337
+#: powerclock/daemon/core.py:372
 msgid "{action} when the download finishes (network below {kbps} kbit/s for {delay})"
 msgstr "{action} cuando termine la descarga (red por debajo de {kbps} kbit/s durante {delay})"
 
-#: powerclock/daemon/core.py:328
+#: powerclock/daemon/core.py:363
 msgid "{action} when {process} ends"
 msgstr "{action} cuando termine {process}"
 
@@ -2112,6 +2144,14 @@ msgstr "{method}: las aplicaciones pueden pedir guardar"
 #: powerclock/platform/linux/capabilities.py:213
 msgid "{name} · clock in {clock}"
 msgstr "{name} · reloj en {clock}"
+
+#: powerclock/platform/linux/capabilities.py:284
+msgid "{name} · ready"
+msgstr "{name} · listo"
+
+#: powerclock/platform/linux/capabilities.py:280
+msgid "{name}: the permission to turn the computer on is from an older version"
+msgstr "{name}: el permiso para encender el equipo es de una versión anterior"
 
 #: powerclock/cli/format.py:75
 msgid "{process} is not running yet: waiting for it to start"
@@ -2137,7 +2177,7 @@ msgstr "{server} · sin botones: cancela la cuenta atrás desde la CLI o la inte
 msgid "{server} · with buttons"
 msgstr "{server} · con botones"
 
-#: powerclock/cli/main.py:503
+#: powerclock/cli/main.py:526
 msgid "{shown} of {total} runs"
 msgstr "{shown} de {total} ejecuciones"
 
@@ -2157,7 +2197,7 @@ msgstr "{text!r} no es una duración válida: usa p. ej. 30s, 5m o 1h30m"
 msgid "{time} ago"
 msgstr "hace {time}"
 
-#: powerclock/cli/main.py:958
+#: powerclock/cli/main.py:981
 msgid "⏰ alarm set for {time}; suspending…"
 msgstr "⏰ alarma programada para las {time}; suspendiendo…"
 

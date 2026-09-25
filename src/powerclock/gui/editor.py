@@ -31,7 +31,16 @@ from powerclock.i18n import _
 from powerclock.models import Guards, Rule
 
 GENERAL = ("name", "enabled")
-OPTIONS = ("warning", "wake", "one_shot", "on_missed", "on_error", "dry_run", "timezone")
+OPTIONS = (
+    "warning",
+    "wake",
+    "log_in",
+    "one_shot",
+    "on_missed",
+    "on_error",
+    "dry_run",
+    "timezone",
+)
 PLACEHOLDER_ID = "new-rule"  # only to validate a new rule locally; the daemon picks its id
 
 

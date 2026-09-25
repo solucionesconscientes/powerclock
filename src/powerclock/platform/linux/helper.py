@@ -3,7 +3,7 @@
 import re
 import shlex
 import subprocess
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from importlib.resources import files
 from pathlib import Path
 
@@ -12,6 +12,15 @@ from powerclock.config import atomic_write
 HELPER = Path("/usr/local/libexec/powerclock-helper")
 POLICY = Path("/usr/share/polkit-1/actions/org.powerclock.helper.policy")
 RULES = Path("/etc/polkit-1/rules.d/50-powerclock-unattended.rules")
+BOOT_UNIT = Path("/etc/systemd/system/powerclock-boot.service")
+BOOT_WANTS = Path("/etc/systemd/system/graphical.target.wants/powerclock-boot.service")
+STATE = Path("/var/lib/powerclock")
+RUNTIME = Path("/run/powerclock")
+# Display managers whose settings folder can point at this boot's log-in setting in /run.
+DM_LINKS = {
+    "sddm": (Path("/etc/sddm.conf.d/zz-powerclock.conf"), RUNTIME / "sddm.conf"),
+    "lightdm": (Path("/etc/lightdm/lightdm.conf.d/99-powerclock.conf"), RUNTIME / "lightdm.conf"),
+}
 ACTION = "org.powerclock.helper.wake"
 _USER = re.compile(r"[a-z_][a-z0-9_.-]*")
 
@@ -28,8 +37,24 @@ def render_rules(user: str) -> str:
     return packaged("50-powerclock-unattended.rules.in").read_text().replace("@USER@", user)
 
 
-def install_commands(*, unattended_user: str | None, rules_file: Path) -> list[Command]:
-    """Copy the helper and the polkit policy (and the unattended rule) into place as root."""
+def display_managers(root: Path = Path("/")) -> list[str]:
+    """The display managers installed (the ones the one-time log-in knows)."""
+    found = []
+    if (root / "etc/sddm.conf.d").is_dir() or (root / "usr/bin/sddm").exists():
+        found.append("sddm")
+    if (root / "etc/lightdm").is_dir():
+        found.append("lightdm")
+    return found
+
+
+def install_commands(
+    *,
+    unattended_user: str | None,
+    rules_file: Path,
+    managers: Iterable[str] | None = None,
+) -> list[Command]:
+    """Copy the helper, the polkit policy (and the unattended rule) and the boot service
+    into place as root, and point the display managers' settings at /run."""
     commands = [
         _install("0755", packaged("powerclock_helper_linux.py"), HELPER),
         _install("0644", packaged("org.powerclock.helper.policy"), POLICY),
@@ -37,12 +62,38 @@ def install_commands(*, unattended_user: str | None, rules_file: Path) -> list[C
     if unattended_user is not None:
         atomic_write(rules_file, render_rules(unattended_user))
         commands.append(_install("0644", rules_file, RULES))
+    commands += [
+        _install("0644", packaged("powerclock-boot.service"), BOOT_UNIT),
+        ["sudo", "systemctl", "daemon-reload"],
+        ["sudo", "systemctl", "enable", BOOT_UNIT.name],
+    ]
+    for manager in display_managers() if managers is None else managers:
+        link, target = DM_LINKS[manager]
+        commands += [
+            ["sudo", "mkdir", "-p", str(link.parent)],
+            ["sudo", "ln", "-sfn", str(target), str(link)],
+        ]
     return commands
 
 
 def uninstall_commands(helper_present: bool) -> list[Command]:
     commands = [["sudo", str(HELPER), "wake-clear"]] if helper_present else []
-    commands.append(["sudo", "rm", "-f", str(HELPER), str(POLICY), str(RULES)])
+    commands += [
+        [
+            "sudo",
+            "rm",
+            "-rf",
+            str(HELPER),
+            str(POLICY),
+            str(RULES),
+            str(BOOT_UNIT),
+            str(BOOT_WANTS),  # what `systemctl disable` removes (it fails if the unit is gone)
+            *(str(link) for link, _ in DM_LINKS.values()),
+            str(STATE),
+            str(RUNTIME),
+        ],
+        ["sudo", "systemctl", "daemon-reload"],
+    ]
     return commands
 
 

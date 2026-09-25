@@ -43,7 +43,13 @@ from powerclock.models import (
     format_duration,
 )
 from powerclock.platform import dry_run_requested
-from powerclock.platform.base import NotSupported, PlatformBackend, PowerAction, PowerMode
+from powerclock.platform.base import (
+    LogInMode,
+    NotSupported,
+    PlatformBackend,
+    PowerAction,
+    PowerMode,
+)
 from powerclock.sensors.base import Readings
 from powerclock.sensors.system import SystemReadings
 from powerclock.timeparse import resolve_at
@@ -53,6 +59,8 @@ log = logging.getLogger(__name__)
 QUICK_PREFIX = "quick-"  # one-shot rules created by quick actions; removed once they end
 HEARTBEAT = 60.0  # seconds between "still alive" marks, used to detect missed fires
 RELOAD_POLL = 2.0  # seconds between checks of rules.json for hand edits
+AUTOLOGIN_WATCH = 600.0  # seconds after starting to look for this boot's automatic log-in
+AUTOLOGIN_POLL = 2.0
 POSTPONE = timedelta(minutes=10)
 SUSTAIN = timedelta(minutes=5)  # default `for` of --when-cpu-below / --when-net-below
 
@@ -81,6 +89,7 @@ class QuickRequest(BaseModel):
     dry_run: bool = False
     wake: bool = False  # wake the machine up for this action (needs `in` or `at`)
     wake_at: str | None = None  # and/or wake it up at another time (suspend --wake 07:30)
+    log_in: LogInMode | None = None  # log in once when that wake-up powers it on
     when_idle: PositiveDuration | None = None
     when_exits: str | None = Field(default=None, min_length=1)  # a process name or a PID
     when_cpu_below: float | None = Field(default=None, gt=0, le=100)  # percent
@@ -93,6 +102,8 @@ class QuickRequest(BaseModel):
             raise ValueError("set exactly one of: action, command, app")
         if self.args and self.app is None:
             raise ValueError("args only apply to app")
+        if self.log_in is not None and not (self.wake or self.wake_at):
+            raise ValueError("log_in needs wake or wake_at")
         when = ("in_", "at", "when_idle", "when_exits", "when_cpu_below", "when_net_below")
         if sum(getattr(self, name) is not None for name in when) > 1:
             raise ValueError(
@@ -107,6 +118,7 @@ class WakeRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     at: str
+    log_in: LogInMode | None = None
 
 
 class PostponeRequest(BaseModel):
@@ -170,6 +182,7 @@ class Daemon:
             asyncio.create_task(_every(RELOAD_POLL, self.reload_rules), name="powerclock-reload"),
             asyncio.create_task(_every(HEARTBEAT, self._heartbeat), name="powerclock-heartbeat"),
             asyncio.create_task(self._learn_app_names(), name="powerclock-apps"),
+            asyncio.create_task(self._after_autologin(), name="powerclock-autologin"),
         ]
         log.info("powerclock %s started: %d rule(s)", __version__, len(self.engine.rules))
 
@@ -217,6 +230,27 @@ class Daemon:
 
     def list_recipes(self) -> list[dict[str, Any]]:
         return [recipe.as_json() for recipe in recipes.recipes()]
+
+    async def _after_autologin(self) -> None:
+        """If this boot logged the user in by itself (a scheduled power-on with log_in), lock
+        the screen as soon as the desktop is up (unless the rule asked for it visible) and
+        remove the log-in setting, so nothing is left for another boot or display manager
+        restart. Looked for during the first minutes after starting."""
+        clock = self.engine.clock
+        try:
+            for _ in range(round(AUTOLOGIN_WATCH / AUTOLOGIN_POLL)):
+                mode = await self.backend.autologin_used()
+                if mode is not None and await self.backend.desktop_session():
+                    if mode == "locked":
+                        await self.backend.power(PowerAction.LOCK, PowerMode.GRACEFUL)
+                    await self.backend.autologin_done()
+                    log.info("logged in by itself after a scheduled power-on (%s)", mode)
+                    return
+                await clock.sleep(AUTOLOGIN_POLL)
+        except NotSupported:
+            return
+        except Exception:
+            log.exception("could not finish the automatic log-in")
 
     async def _learn_app_names(self) -> None:
         with contextlib.suppress(Exception):
@@ -288,13 +322,14 @@ class Daemon:
                 one_shot=True,
                 dry_run=request.dry_run,
                 wake=request.wake,
+                log_in=request.log_in if request.wake else None,
             )
         except ValidationError as exc:
             raise DaemonError(422, json.loads(exc.json(include_url=False))) from None
         wake_at = self._resolve(request.wake_at, now) if request.wake_at else None
         stored = self._save(rule, "created")
         if wake_at is not None:
-            self.create_wake(wake_at)
+            self.create_wake(wake_at, log_in=request.log_in)
         if isinstance(trigger, ManualTrigger):
             self.engine.run_now(rule.id)
         return stored
@@ -343,9 +378,10 @@ class Daemon:
         return ManualTrigger(), label
 
     def wake(self, request: WakeRequest) -> Rule:
-        return self.create_wake(self._resolve(request.at, self.engine.clock.now()))
+        when = self._resolve(request.at, self.engine.clock.now())
+        return self.create_wake(when, log_in=request.log_in)
 
-    def create_wake(self, when: datetime) -> Rule:
+    def create_wake(self, when: datetime, *, log_in: LogInMode | None = None) -> Rule:
         """A one-shot rule whose only job is to wake the machine up at `when`."""
         local = when.astimezone(self.tz).strftime("%Y-%m-%d %H:%M")
         rule = Rule(
@@ -353,6 +389,7 @@ class Daemon:
             name=_("Turn on at {time}").format(time=local),
             trigger=AtTrigger(when=when),
             wake=True,
+            log_in=log_in,
             one_shot=True,
             warning=timedelta(0),
             actions=[NotifyStep(title="PowerClock", body=_("Turned on as scheduled"))],

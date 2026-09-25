@@ -235,3 +235,11 @@ def test_apps_recipes_and_launch(daemon: Daemon) -> None:
     ]
     assert "needs: <file>" in powerclock_fails("launch", "vlc", "--recipe", "vlc.loop")
     assert "no recipe 'nope'" in powerclock_fails("launch", "vlc", "--recipe", "nope")
+
+
+def test_log_in_after_turning_on(daemon: Daemon) -> None:
+    powerclock("wake", "--at", "23:00", "--log-in")
+    powerclock("run", "--at", "03:00", "--wake", "--log-in", "--", "backup.sh")
+    assert "log_in needs wake" in powerclock_fails("run", "--at", "03:00", "--log-in", "--", "x")
+    modes = sorted(str(rule.log_in) for rule in daemon.engine.rules.values())
+    assert modes == ["locked", "locked"]

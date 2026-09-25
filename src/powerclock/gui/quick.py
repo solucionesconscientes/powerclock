@@ -120,6 +120,13 @@ class QuickTab(QWidget):
         self.wake_at = QTimeEdit(QTime(7, 30))
         self.wake_at.setDisplayFormat("HH:mm")
         self.wake_to_run = QCheckBox(_("Turn the computer on to run it"))
+        self.log_in = QCheckBox(_("and log in (screen locked)"))
+        self.log_in.setToolTip(
+            _(
+                "Only on the start-up that PowerClock causes: any other start-up asks for the "
+                "password as usual."
+            )
+        )
 
         form = QFormLayout()
         form.addRow(_("Action:"), self.action)
@@ -136,6 +143,7 @@ class QuickTab(QWidget):
         form.addRow("", self.force)
         form.addRow("", _row(self.wake, self.wake_at))
         form.addRow("", self.wake_to_run)
+        form.addRow("", self.log_in)
 
         self.ok = QPushButton(themed("dialog-ok-apply"), "")
         self.ok.setDefault(True)
@@ -174,6 +182,7 @@ class QuickTab(QWidget):
         self.action.currentIndexChanged.connect(self._update_form)
         self.when.currentIndexChanged.connect(self._update_form)
         self.wake.toggled.connect(self._update_form)
+        self.wake_to_run.toggled.connect(self._update_form)
         self.app.currentTextChanged.connect(lambda _text: self._offer_recipes())
         self.recipe.activated.connect(self._use_recipe)
         link.changed.connect(self.update_pending)
@@ -214,6 +223,12 @@ class QuickTab(QWidget):
                 payload["wake_at"] = self.wake_at.time().toString("HH:mm")
         if action in TASKS and when in TIME_WHEN and self.wake_to_run.isChecked():
             payload["wake"] = True
+        if (
+            not self.log_in.isHidden()
+            and self.log_in.isChecked()
+            and (payload.get("wake") or payload.get("wake_at"))
+        ):
+            payload["log_in"] = "locked"
         match when:
             case "at":
                 payload["at"] = self.at.value().isoformat()
@@ -271,6 +286,10 @@ class QuickTab(QWidget):
             widget.setVisible(not is_task)
         self.wake_at.setEnabled(self.wake.isChecked())
         self.wake_to_run.setVisible(is_task and when in TIME_WHEN)
+        waking = (is_task and when in TIME_WHEN and self.wake_to_run.isChecked()) or (
+            not is_task and self.wake.isChecked()
+        )
+        self.log_in.setVisible(waking)
         if kind == APP:
             self.ok.setText(_("Open now") if when == "now" else _("Schedule opening"))
             return

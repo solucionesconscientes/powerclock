@@ -305,6 +305,7 @@ as `30s`, `5m`, `2h`, `1d` or combined (`1h30m`).
 | `--force` | Do not let applications ask to save. |
 | `--wake 07:30` | (power actions) Also turn the computer on at that time — e.g. suspend now, wake up in the morning. |
 | `--wake` | (`run`, `launch`) Turn the computer on to run or open it (with `--in`/`--at`). |
+| `--log-in` | With `--wake` (or `powerclock wake`): log in by itself when that turns the computer on, screen locked. |
 | `--recipe ID` | (`launch`) Take the arguments from a recipe; what it asks for (`<url>`, `<file>`…) goes after `--`, in order. |
 | `--dry-run` | Global option (`powerclock --dry-run shutdown …`): test mode, the power action is only noted down. |
 
@@ -445,6 +446,7 @@ same time, and only one power action (and one countdown) happens at a time.
 |---|---|---|
 | `warning` | `60s` | Countdown before each power action (`0s` for none). |
 | `wake` | `false` | Turn the computer on for this rule (only with `at`, `countdown` or `cron`). |
+| `log_in` | `null` | With `wake`: log in by itself when that turns the computer on from off, leaving the screen `locked` or `unlocked` (see below). |
 | `on_missed` | `skip` | If its moment passed while the computer was off or asleep (more than 2 minutes late): `skip` or `run_once`. |
 | `on_error` | `stop` | `stop` or `continue` when a step fails. |
 | `one_shot` | `false` | Disable the rule after it fires once. |
@@ -476,6 +478,19 @@ the BIOS/UEFI allows it, power them on from off. PowerClock manages that alarm f
   after that wake-ups need no password while you are logged in (even with the screen locked). It
   only accepts "set / clear / read the alarm", validates the time strictly and runs `rtcwake`
   with an absolute path and a clean environment.
+- **Logging in by itself** (`"log_in": "locked"`, `--log-in`, *and log in* in the Quick tab):
+  programs with a window need a desktop session, and after powering on from off the computer
+  waits at the login screen. PowerClock never turns on automatic log-in for good. Instead, the
+  helper keeps a **one-time ticket** with the alarm's time for **your** user (the one who asked,
+  never another account or root). At boot, before the login screen, `powerclock-boot.service`
+  looks at it: only if this boot is that alarm's (from the alarm to 10 minutes later, and not
+  switched on with the power button when the BIOS tells) does it write the automatic log-in to
+  `/run` (memory), where the display manager's settings point. PowerClock then **locks the
+  screen** at once (unless the rule says `unlocked`, for a kiosk with a user of its own) and
+  removes that setting. Any other start-up asks for your password as usual, and a power cut
+  leaves nothing behind. Works with SDDM (KDE) and LightDM; GDM not yet. The alarm goes 3 minutes
+  early instead of 2. With automatic log-in the KDE wallet does not open: the browser recipes use
+  a profile of their own that does not need it.
 - **Unattended mode** (turn on → run → shut down with nobody logged in):
   `powerclock helper install --unattended` adds a polkit rule for your user, and
   `powerclock service install --linger` keeps the daemon running without a login.

@@ -58,6 +58,20 @@ class Host:
         except OSError:
             return False
 
+    def display_manager(self) -> str | None:
+        """The display manager systemd starts (sddm, lightdm, gdm…), if any."""
+        try:
+            target = (self.root / "etc/systemd/system/display-manager.service").readlink()
+        except OSError:
+            return None
+        name = target.name.removesuffix(".service")
+        return "gdm" if name == "gdm3" else name
+
+    def boot_unit_enabled(self) -> bool:
+        """powerclock-boot.service (the one-time log-in) is installed and enabled."""
+        wants = self.root / "etc/systemd/system/graphical.target.wants/powerclock-boot.service"
+        return wants.is_symlink() or wants.exists()
+
     def unattended_installed(self) -> bool | None:
         # rules.d is root:polkitd 0750: a normal user cannot even see inside.
         return _exists(self.root / HELPER_RULES)

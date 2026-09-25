@@ -194,7 +194,9 @@ async def test_helper_dialog_shows_and_runs_the_commands(link: DaemonLink, tmp_p
     [command] = ran
     assert command[:3] == ["pkexec", "/bin/sh", "-c"]
     assert "sudo" not in command[3]
-    assert command[3].count(" && ") == 2
+    assert command[3].startswith("install -D -o root")
+    assert "systemctl enable powerclock-boot.service" in command[3]  # the one-time log-in
+    assert "50-powerclock-unattended.rules" in command[3]
     assert dialog.result.text().startswith("✔")
 
 

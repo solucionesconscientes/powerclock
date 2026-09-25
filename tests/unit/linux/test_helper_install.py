@@ -9,7 +9,7 @@ from powerclock.platform.linux import helper
 
 def test_install_commands(tmp_path: Path) -> None:
     rules = tmp_path / "50-powerclock-unattended.rules"
-    commands = helper.install_commands(unattended_user=None, rules_file=rules)
+    commands = helper.install_commands(unattended_user=None, rules_file=rules, managers=["sddm"])
     assert commands == [
         [
             "sudo", "install", "-D", "-o", "root", "-g", "root", "-m", "0755",
@@ -21,18 +21,41 @@ def test_install_commands(tmp_path: Path) -> None:
             str(helper.packaged("org.powerclock.helper.policy")),
             "/usr/share/polkit-1/actions/org.powerclock.helper.policy",
         ],
+        [
+            "sudo", "install", "-D", "-o", "root", "-g", "root", "-m", "0644",
+            str(helper.packaged("powerclock-boot.service")),
+            "/etc/systemd/system/powerclock-boot.service",
+        ],
+        ["sudo", "systemctl", "daemon-reload"],
+        ["sudo", "systemctl", "enable", "powerclock-boot.service"],
+        ["sudo", "mkdir", "-p", "/etc/sddm.conf.d"],
+        ["sudo", "ln", "-sfn", "/run/powerclock/sddm.conf", "/etc/sddm.conf.d/zz-powerclock.conf"],
     ]  # fmt: skip
     assert not rules.exists()
 
 
 def test_unattended_rule_is_generated_for_the_user(tmp_path: Path) -> None:
     rules = tmp_path / "50-powerclock-unattended.rules"
-    commands = helper.install_commands(unattended_user="pc", rules_file=rules)
-    assert commands[-1][-2:] == [str(rules), "/etc/polkit-1/rules.d/50-powerclock-unattended.rules"]
+    commands = helper.install_commands(unattended_user="pc", rules_file=rules, managers=[])
+    assert commands[2][-2:] == [str(rules), "/etc/polkit-1/rules.d/50-powerclock-unattended.rules"]
     text = rules.read_text()
     assert 'subject.user !== "pc"' in text
     assert '"org.powerclock.helper.wake"' in text
     assert "@USER@" not in text
+
+
+def test_display_managers(tmp_path: Path) -> None:
+    assert helper.display_managers(tmp_path) == []
+    (tmp_path / "etc/sddm.conf.d").mkdir(parents=True)
+    (tmp_path / "etc/lightdm").mkdir()
+    assert helper.display_managers(tmp_path) == ["sddm", "lightdm"]
+    commands = helper.install_commands(
+        unattended_user=None, rules_file=tmp_path / "r", managers=["lightdm"]
+    )
+    assert commands[-1] == [
+        "sudo", "ln", "-sfn", "/run/powerclock/lightdm.conf",
+        "/etc/lightdm/lightdm.conf.d/99-powerclock.conf",
+    ]  # fmt: skip
 
 
 @pytest.mark.parametrize("user", ["root; rm -rf /", 'pc"', "Pc", "", "../x"])
@@ -45,12 +68,19 @@ def test_uninstall_commands() -> None:
     assert helper.uninstall_commands(helper_present=True) == [
         ["sudo", "/usr/local/libexec/powerclock-helper", "wake-clear"],
         [
-            "sudo", "rm", "-f", "/usr/local/libexec/powerclock-helper",
+            "sudo", "rm", "-rf", "/usr/local/libexec/powerclock-helper",
             "/usr/share/polkit-1/actions/org.powerclock.helper.policy",
             "/etc/polkit-1/rules.d/50-powerclock-unattended.rules",
+            "/etc/systemd/system/powerclock-boot.service",
+            "/etc/systemd/system/graphical.target.wants/powerclock-boot.service",
+            "/etc/sddm.conf.d/zz-powerclock.conf",
+            "/etc/lightdm/lightdm.conf.d/99-powerclock.conf",
+            "/var/lib/powerclock",
+            "/run/powerclock",
         ],
+        ["sudo", "systemctl", "daemon-reload"],
     ]  # fmt: skip
-    assert len(helper.uninstall_commands(helper_present=False)) == 1
+    assert len(helper.uninstall_commands(helper_present=False)) == 2
 
 
 def test_run_all_stops_at_the_first_failure() -> None:
@@ -91,7 +121,8 @@ def test_cli_prints_and_asks(monkeypatch: pytest.MonkeyPatch) -> None:
     assert accepted.exit_code == 0, accepted.output
     assert "Done: PowerClock can turn the computer on." in accepted.output
     assert "powerclock service install --linger" in accepted.output
-    assert len(ran) == 3
+    assert ran[0][:3] == ["sudo", "install", "-D"]
+    assert ["sudo", "systemctl", "enable", "powerclock-boot.service"] in ran
 
 
 def test_cli_reports_a_failed_command(monkeypatch: pytest.MonkeyPatch) -> None:

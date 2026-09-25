@@ -27,7 +27,13 @@ from pydantic import (
 )
 from pydantic.json_schema import GenerateJsonSchema
 
-from powerclock.platform.base import PowerAction, PowerMode, StopSignal, WindowPlacement
+from powerclock.platform.base import (
+    LogInMode,
+    PowerAction,
+    PowerMode,
+    StopSignal,
+    WindowPlacement,
+)
 
 # ── Durations ─────────────────────────────────────────────────────────────────
 
@@ -558,6 +564,7 @@ class Rule(_Model):
     enabled: bool = True
     trigger: Trigger
     wake: bool = False
+    log_in: LogInMode | None = None  # with wake: log in once if it powered the computer on
     conditions: Predicate | None = None
     guards: Guards | None = None
     actions: list[Action] = Field(min_length=1)
@@ -572,6 +579,8 @@ class Rule(_Model):
     def _consistent(self) -> Self:
         if self.wake and not isinstance(self.trigger, TIME_TRIGGERS):
             raise ValueError("wake: true needs a time trigger (at, countdown or cron)")
+        if self.log_in is not None and not self.wake:
+            raise ValueError("log_in needs wake: true (it logs in after turning the computer on)")
         for step in self.actions[:-1]:
             if isinstance(step, PowerStep) and step.action in TERMINAL_POWER_ACTIONS:
                 raise ValueError(

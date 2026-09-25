@@ -9,6 +9,7 @@ from powerclock.platform.base import (
     AppInfo,
     Capability,
     LaunchRequest,
+    LogInMode,
     PlatformBackend,
     PowerAction,
     PowerEventCallback,
@@ -34,6 +35,15 @@ class DryRunPlatform(PlatformBackend):
 
     async def wake_clear(self) -> None:
         self._block("wake_clear")
+
+    async def autologin_arm(self, alarm: datetime, mode: LogInMode) -> None:
+        self._block("autologin_arm", alarm, mode)
+
+    async def autologin_disarm(self) -> None:
+        self._block("autologin_disarm")
+
+    async def autologin_done(self) -> None:
+        self._block("autologin_done")
 
     # Everything else goes to the real backend.
 
@@ -74,6 +84,9 @@ class DryRunPlatform(PlatformBackend):
 
     async def session_env(self) -> dict[str, str]:
         return await self.inner.session_env()
+
+    async def autologin_used(self) -> LogInMode | None:
+        return await self.inner.autologin_used()
 
     async def subscribe_power_events(self, callback: PowerEventCallback) -> None:
         await self.inner.subscribe_power_events(callback)

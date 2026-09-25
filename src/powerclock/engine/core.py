@@ -15,7 +15,7 @@ from powerclock.engine.executor import Executor, RequestWake
 from powerclock.engine.processes import ProcessManager
 from powerclock.engine.runs import Event, EventSink, Run, RunCause
 from powerclock.engine.scheduler import Scheduler
-from powerclock.engine.wake import WakePlanner
+from powerclock.engine.wake import WakeNeed, WakePlanner
 from powerclock.engine.watcher import STATE_TRIGGERS, Watcher, WatchStatus, sensor_predicates
 from powerclock.models import CountdownTrigger, Rule, StartupTrigger
 from powerclock.platform.base import NotSupported, PlatformBackend, PowerEvent
@@ -211,10 +211,10 @@ class Engine:
             self._startup("resume")
         await self.wake.on_power_event(event)
 
-    def _wake_times(self) -> list[datetime]:
+    def _wake_times(self) -> list[WakeNeed]:
         rules = self._rules
         return [
-            due
+            (due, rules[rule_id].log_in)
             for rule_id, due in self.scheduler.pending().items()
             if rule_id in rules and rules[rule_id].wake
         ]

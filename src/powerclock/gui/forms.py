@@ -228,17 +228,22 @@ class BoolField(FieldEditor):
 
 
 class ChoiceField(FieldEditor):
-    def __init__(self, name: str, choices: list[str]) -> None:
+    """One of a list; with `optional`, the first entry means null (labelled as the value "")."""
+
+    def __init__(self, name: str, choices: list[str], *, optional: bool = False) -> None:
         self.combo = QComboBox()
+        if optional:
+            self.combo.addItem(value_label(name, ""), "")
         for choice in choices:
             self.combo.addItem(value_label(name, choice), choice)
         super().__init__(name, self.combo)
 
     def get(self) -> Any:
-        return self.combo.currentData()
+        value = self.combo.currentData()
+        return None if value == "" else value
 
     def set(self, value: Any) -> None:
-        index = self.combo.findData(value)
+        index = self.combo.findData("" if value is None else value)
         self.combo.setCurrentIndex(max(0, index))
 
 
@@ -584,7 +589,7 @@ def editor_for(
     schema = _resolve(schema, defs)
     kind, fmt = schema.get("type"), schema.get("format")
     if "enum" in schema:
-        return ChoiceField(name, list(schema["enum"]))
+        return ChoiceField(name, list(schema["enum"]), optional=optional)
     if kind == "boolean":
         return BoolField(name)
     if kind == "string" and schema.get("pattern") == DURATION_PATTERN:

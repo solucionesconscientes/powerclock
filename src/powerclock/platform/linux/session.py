@@ -17,6 +17,7 @@ from pathlib import Path
 from dbus_fast import Variant
 
 from powerclock.platform.base import StopSignal
+from powerclock.platform.linux.apps import parse as parse_entry
 from powerclock.platform.linux.dbus import Bus, DBusError, get_property
 
 SYSTEMD = "org.freedesktop.systemd1"
@@ -140,6 +141,27 @@ class UserManager:
 
     async def stop(self, name: str) -> None:
         await self._bus.call(SYSTEMD, SYSTEMD_PATH, MANAGER, "StopUnit", "ss", [name, "replace"])
+
+
+def pick_session(root: Path, desktop: str, kind: str | None) -> str | None:
+    """The desktop session file (wayland-sessions/ or xsessions/) for a desktop name such as
+    "KDE", preferring the kind in use (wayland or x11); None if none matches."""
+    if not desktop:
+        return None
+    wanted = desktop.lower()
+    folders = ["usr/share/wayland-sessions", "usr/share/xsessions"]
+    if kind == "x11":
+        folders.reverse()
+    for folder in folders:
+        for path in sorted((root / folder).glob("*.desktop")):
+            try:
+                values = parse_entry(path.read_text(encoding="utf-8", errors="replace"))
+            except OSError:
+                continue
+            names = [n.lower() for n in values.get("DesktopNames", "").split(";") if n]
+            if wanted in names or path.stem.lower() == wanted:
+                return path.stem
+    return None
 
 
 def display_ready(env: Mapping[str, str], runtime_dir: Path) -> bool:

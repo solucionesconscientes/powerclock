@@ -144,6 +144,13 @@ ForOption = Annotated[
     str | None,
     typer.Option("--for", help="How long CPU or network must stay below (default: 5m)."),
 ]
+LogInOption = Annotated[
+    bool,
+    typer.Option(
+        "--log-in",
+        help="With --wake: log in once when that turns the computer on (screen locked).",
+    ),
+]
 
 
 def _when(
@@ -225,10 +232,17 @@ def _show_wake(wait: float = 3.0) -> None:
 @app.command("wake")
 def wake_command(
     at: Annotated[str, typer.Option("--at", help="23:30 or '2026-09-24 07:30'.")],
+    log_in: Annotated[
+        bool,
+        typer.Option("--log-in", help="Log in once if this turns the computer on (screen locked)."),
+    ] = False,
 ) -> None:
     """Wake the computer up (from suspend, or from off if the firmware allows it)."""
+    body: dict[str, Any] = {"at": at}
+    if log_in:
+        body["log_in"] = "locked"
     with _daemon() as client:
-        rule = client.post("/wake", json={"at": at})
+        rule = client.post("/wake", json=body)
     console.print(f"[green]✔[/] {rule['name']}")
     _show_wake()
 
@@ -253,6 +267,7 @@ def _power_command(action: PowerAction) -> Callable[..., None]:
             str | None,
             typer.Option("--wake", help="Also wake the computer up at this time (07:30)."),
         ] = None,
+        log_in: LogInOption = False,
     ) -> None:
         payload: dict[str, Any] = {
             "action": action.value,
@@ -261,6 +276,8 @@ def _power_command(action: PowerAction) -> Callable[..., None]:
         }
         if wake:
             payload["wake_at"] = wake
+        if log_in:
+            payload["log_in"] = "locked"
         _when(payload, in_, at, when_idle, when_exits, when_cpu_below, when_net_below, for_)
         _quick(ctx, payload)
 
@@ -304,10 +321,13 @@ def run_command(
     wake: Annotated[
         bool, typer.Option("--wake", help="Wake the computer up to run it (needs --in/--at).")
     ] = False,
+    log_in: LogInOption = False,
 ) -> None:
     """Run a program now, after a delay, at a time or when a condition is met:
     powerclock run --at 03:00 --wake -- backup.sh"""
     payload: dict[str, Any] = {"command": command, "wake": wake}
+    if log_in:
+        payload["log_in"] = "locked"
     _when(payload, in_, at, when_idle, when_exits, when_cpu_below, when_net_below, for_)
     _quick(ctx, payload)
 
@@ -333,6 +353,7 @@ def launch_command(
     wake: Annotated[
         bool, typer.Option("--wake", help="Wake the computer up to open it (needs --in/--at).")
     ] = False,
+    log_in: LogInOption = False,
 ) -> None:
     """Open an installed application now, after a delay, at a time or when a condition is
     met: powerclock launch org.kde.okular --at 09:00 -- ~/informe.pdf"""
@@ -343,6 +364,8 @@ def launch_command(
             _fail(_("There is no recipe {recipe!r}: see powerclock recipes.").format(recipe=recipe))
         arguments = [*_fill_inputs(found, arguments), *arguments[len(found.inputs) :]]
     payload: dict[str, Any] = {"app": app_id, "args": arguments, "wake": wake}
+    if log_in:
+        payload["log_in"] = "locked"
     _when(payload, in_, at, when_idle, when_exits, when_cpu_below, when_net_below, for_)
     _quick(ctx, payload)
 

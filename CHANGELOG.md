@@ -41,6 +41,11 @@ The first release, for Linux.
   started before the session; `run` now gets the session's variables too. `{date}`, `{time}`…
   in commands, file names and notifications; a `desktop_session` trigger and condition;
   `powerclock apps` and `powerclock recipes`.
+- **Logging in by itself after a scheduled power-on** (`log_in` in a rule, `--log-in`, "and
+  log in" in the Quick tab): a one-time ticket for the calling user that the root helper uses
+  at boot, before the login screen, only if this boot is that alarm's (and not the power
+  button, when the BIOS tells). The display manager's setting goes to /run and is removed once
+  PowerClock has locked the screen. SDDM and LightDM.
 - **Plain words** in the interface (English and Spanish): the Quick button says what it will do
   (*Schedule shutdown*, *Shut down now*), the warning says what is about to happen (*The computer
   will shut down in 42 s*), the rule editor asks *When*, *Only if…*, *Wait while…* and *What it

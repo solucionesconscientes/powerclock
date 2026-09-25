@@ -62,6 +62,7 @@ class WindowPlacement(BaseModel):
 
 
 StopSignal = Literal["TERM", "INT", "HUP"]
+LogInMode = Literal["locked", "unlocked"]  # how the screen is left after logging in by itself
 
 
 @dataclass(frozen=True)
@@ -168,6 +169,22 @@ class PlatformBackend(ABC):
     async def desktop_session(self) -> bool | None:
         """Whether a desktop session is up and apps can be opened in it (None: unknown)."""
         self._unsupported("desktop_session")
+
+    async def autologin_arm(self, alarm: datetime, mode: LogInMode) -> None:
+        """Log the user in once if `alarm` powers the computer on (a one-time ticket)."""
+        self._unsupported("autologin")
+
+    async def autologin_disarm(self) -> None:
+        self._unsupported("autologin")
+
+    async def autologin_used(self) -> LogInMode | None:
+        """How the screen should be left if this boot logged the user in by itself (and
+        that was not handled yet); None if it did not."""
+        self._unsupported("autologin")
+
+    async def autologin_done(self) -> None:
+        """Forget this boot's automatic log-in (nothing is left for another one)."""
+        self._unsupported("autologin")
 
     async def session_env(self) -> dict[str, str]:
         """Variables that programs need to reach the desktop session (display, bus…), for

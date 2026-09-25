@@ -1,0 +1,17 @@
+# Installed by `powerclock helper install` as /etc/systemd/system/powerclock-boot.service
+#
+# Before the display manager starts, logs the user in once if this boot is a power-on that
+# PowerClock scheduled with "log in" (a ticket in /var/lib/powerclock). The display
+# manager's setting goes to /run: nothing stays for the next boot.
+[Unit]
+Description=PowerClock: log in once after a scheduled power-on
+DefaultDependencies=no
+After=local-fs.target
+Before=display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/powerclock-helper boot
+
+[Install]
+WantedBy=graphical.target
