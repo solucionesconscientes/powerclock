@@ -4,6 +4,27 @@ All notable changes to PowerClock are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Commands in a terminal**: a `run` step (and Quick's *Command*, and `powerclock run
+  --terminal`) can open in a terminal window of the desktop, so scripts that ask for the
+  password (sudo) or ask questions work; the history keeps their exit code, and explains the
+  failure of a script that needed a terminal and did not have one.
+
+### Changed
+
+- Quick's button for running something is now *Command*.
+- The history shows the arguments an application was opened with, and when a browser already
+  open took the order.
+
+### Fixed
+
+- "A web page in a new full-screen window" is full screen also when the browser is already
+  open (browsers ignore `--start-fullscreen` then: KWin puts the window in full screen), and
+  Quick applies the chosen recipe's window placement.
+
 ## [0.1.0] — 2026-09-25
 
 The first release, for Linux.

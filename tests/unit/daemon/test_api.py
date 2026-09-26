@@ -410,6 +410,14 @@ async def test_apps_and_recipes(http: httpx.AsyncClient) -> None:
     assert {"id", "apps", "label", "args", "inputs"} <= set(listed[0])
 
 
+async def test_quick_command_in_a_terminal(http: httpx.AsyncClient) -> None:
+    payload = {"command": ["/home/pc/setup.sh"], "terminal": True, "in": "1m"}
+    [step] = (await http.post("/quick", json=payload)).json()["actions"]
+    assert (step["type"], step["terminal"]) == ("run", True)
+    wrong = {"action": "shutdown", "terminal": True}
+    assert (await http.post("/quick", json=wrong)).status_code == 422
+
+
 async def test_quick_uses_the_recipe_window(http: httpx.AsyncClient) -> None:
     """A browser already open ignores --start-fullscreen: the recipe asks KWin instead."""
     args = ["--new-window", "--start-fullscreen", "https://example.org"]

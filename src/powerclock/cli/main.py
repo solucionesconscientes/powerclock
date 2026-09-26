@@ -328,10 +328,19 @@ def run_command(
         bool, typer.Option("--wake", help="Wake the computer up to run it (needs --in/--at).")
     ] = False,
     log_in: LogInOption = False,
+    terminal: Annotated[
+        bool,
+        typer.Option(
+            "--terminal",
+            help="Run it in a terminal window, where it can ask for a password (sudo).",
+        ),
+    ] = False,
 ) -> None:
     """Run a program now, after a delay, at a time or when a condition is met:
     powerclock run --at 03:00 --wake -- backup.sh"""
     payload: dict[str, Any] = {"command": command, "wake": wake}
+    if terminal:
+        payload["terminal"] = True
     if log_in:
         payload["log_in"] = "locked"
     _when(payload, in_, at, when_idle, when_exits, when_cpu_below, when_net_below, for_)

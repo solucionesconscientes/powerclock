@@ -111,6 +111,13 @@ class QuickTab(QWidget):
             button.setToolTip(long_label(action))
         self.command = QLineEdit()
         self.command.setPlaceholderText(_("e.g. /home/pc/bin/backup.sh --full"))
+        self.terminal = QCheckBox(_("Open in a terminal (to answer questions or type a password)"))
+        self.terminal.setToolTip(
+            _(
+                "For scripts that ask something or use sudo: they need you in front of the "
+                "screen. The window stays open at the end so you can read what happened."
+            )
+        )
         self.app = AppCombo()
         self.recipe = QComboBox()
         self.args = QLineEdit()
@@ -170,6 +177,7 @@ class QuickTab(QWidget):
         form.setVerticalSpacing(style.SPACE[2])
         self.command_label = QLabel(_("Command:"))
         form.addRow(self.command_label, self.command)
+        form.addRow("", self.terminal)
         self.app_rows = [QLabel(_("Application:")), QLabel(_("Recipe:")), QLabel(_("Arguments:"))]
         form.addRow(self.app_rows[0], self.app)
         form.addRow(self.app_rows[1], self.recipe)
@@ -260,6 +268,8 @@ class QuickTab(QWidget):
             if not command:
                 raise ValueError(_("Write the command to run."))
             payload["command"] = command
+            if self.terminal.isChecked():
+                payload["terminal"] = True
         elif action == APP:
             app = self.app.value()
             if not app:
@@ -334,6 +344,7 @@ class QuickTab(QWidget):
         self.params.setCurrentIndex(WHEN.index(when))
         self.command_label.setVisible(kind == RUN)
         self.command.setVisible(kind == RUN)
+        self.terminal.setVisible(kind == RUN)
         for widget in (*self.app_rows, self.app, self.recipe, self.args):
             widget.setVisible(kind == APP)
         self.recipe_hint.setVisible(kind == APP and bool(self.recipe_hint.text()))

@@ -1,9 +1,11 @@
 """In-memory backend that records every call. Used by all tests; never touches the OS."""
 
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, tzinfo
+from pathlib import Path
 from typing import Any
 
 from powerclock.platform.base import (
@@ -63,6 +65,7 @@ class FakePlatform(PlatformBackend):
             ),
         ]
         self.opened: dict[str, int] = {}  # app → instances PowerClock opened
+        self.terminal_code: int | None = 0  # what a command run in a terminal ends with
         self.login: tuple[datetime, LogInMode] | None = None  # the armed log-in ticket
         self.logged_in: LogInMode | None = None  # this boot logged in by itself
         self.players: list[str] = ["vlc"]  # media players open (MPRIS names)
@@ -135,6 +138,15 @@ class FakePlatform(PlatformBackend):
             raise NotSupported("launch", f"{request.app!r} is not an installed application")
         self.opened[app.id] = self.opened.get(app.id, 0) + 1
         return f"{app.name} (simulated)"
+
+    async def open_terminal(
+        self, argv: list[str], *, shell: bool, cwd: str | None, env: dict[str, str], result: Path
+    ) -> str:
+        """Pretends the command ran and ended with `terminal_code` (None: still running)."""
+        self._record("open_terminal", list(argv), shell, cwd, dict(env))
+        if self.terminal_code is not None:
+            await asyncio.to_thread(result.write_text, f"{self.terminal_code}\n")
+        return "konsole (simulated)"
 
     async def close_app(self, app: str, grace: timedelta) -> int:
         self._record("close_app", app, grace)

@@ -280,3 +280,11 @@ def test_stats(daemon: Daemon) -> None:
     powerclock("stats", "--watts", "auto")
     assert daemon.settings.watts is None
     assert "not a number" in powerclock_fails("stats", "--price", "cheap")
+
+
+def test_run_in_a_terminal(daemon: Daemon) -> None:
+    powerclock("run", "--in", "10m", "--terminal", "--", "/home/pc/setup.sh")
+    [rule] = daemon.engine.rules.values()
+    [step] = rule.actions
+    assert isinstance(step, RunStep)
+    assert step.terminal

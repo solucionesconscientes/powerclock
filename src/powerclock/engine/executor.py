@@ -4,10 +4,13 @@ import asyncio
 import contextlib
 import logging
 import os
+import shutil
+import tempfile
 from collections import deque
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, tzinfo
+from pathlib import Path
 from typing import Any
 
 from powerclock.engine import variables, wol
@@ -61,6 +64,8 @@ OUTPUT_TAIL = 4000  # characters of command output kept in the run record
 TERMINATE_GRACE = 5.0  # seconds between asking a command to stop and killing it
 DESKTOP_POLL = 2.0  # seconds between checks while a launch waits for the desktop session
 FADE_STEP = 1.0  # seconds between volume changes of a fade
+TERMINAL_POLL = 1.0  # seconds between checks for the exit code of a command in a terminal
+CLOSED_TERMINAL = 129  # what the terminal wrapper writes when its window is closed first
 
 RequestWake = Callable[[datetime], Awaitable[None]]
 Outcome = tuple[StepStatus, str | None]
@@ -583,6 +588,8 @@ class Executor:
             return {}
 
     async def _command(self, step: RunStep, values: Mapping[str, str]) -> Outcome:
+        if step.terminal:
+            return await self._in_terminal(step, values)
         extra = {**await self._session_env(), **step.env}
         env = {**os.environ, **_expand_env(extra, values)} if extra else None
         cmd = variables.expand_all(step.cmd, values)
@@ -616,6 +623,42 @@ class Executor:
         if process.returncode != 0:
             raise StepFailed(f"exit code {process.returncode}" + (f": {tail}" if tail else ""))
         return "ok", tail or None
+
+    async def _in_terminal(self, step: RunStep, values: Mapping[str, str]) -> Outcome:
+        """In a terminal window of the desktop, where it can ask for the password: wait for
+        the exit code the window's wrapper writes (129: the window was closed first)."""
+        cmd = variables.expand_all(step.cmd, values)
+        cwd = variables.expand(step.cwd, values) if step.cwd else None
+        env = _expand_env(step.env, values)
+        if not step.wait:
+            where = await self._backend.open_terminal(
+                cmd, shell=step.shell, cwd=cwd, env=env, result=Path(os.devnull)
+            )
+            return "ok", where
+        folder = Path(await asyncio.to_thread(tempfile.mkdtemp, prefix="powerclock-"))
+        result = folder / "exit-code"
+        where = await self._backend.open_terminal(
+            cmd, shell=step.shell, cwd=cwd, env=env, result=result
+        )
+        code = await self._exit_code(result, step.timeout)
+        if code is None:
+            assert step.timeout is not None
+            raise StepFailed(f"timed out after {format_duration(step.timeout)} ({where})")
+        await asyncio.to_thread(shutil.rmtree, folder, True)
+        if code == CLOSED_TERMINAL:
+            raise StepFailed(f"the terminal window was closed before it finished ({where})")
+        if code != 0:
+            raise StepFailed(f"exit code {code} (the output is in the terminal window)")
+        return "ok", where
+
+    async def _exit_code(self, result: Path, limit: timedelta | None) -> int | None:
+        waited = 0.0
+        while (code := await asyncio.to_thread(_read_code, result)) is None:
+            if limit is not None and waited >= limit.total_seconds():
+                return None
+            await self._clock.sleep(TERMINAL_POLL)
+            waited += TERMINAL_POLL
+        return code
 
     async def _within(self, awaitable: Awaitable[Any], limit: timedelta | None) -> bool:
         """Await with a time limit measured on the engine's clock; False if it ran out."""
@@ -677,6 +720,13 @@ class Executor:
             self._sink(event)
         except Exception:
             log.exception("event listener failed")
+
+
+def _read_code(path: Path) -> int | None:
+    try:
+        return int(path.read_text().strip())
+    except (OSError, ValueError):
+        return None  # not written yet (or half written)
 
 
 def _expand_env(env: Mapping[str, str], values: Mapping[str, str]) -> dict[str, str]:

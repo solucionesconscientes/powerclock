@@ -103,6 +103,7 @@ def field_label(name: str, kind: str | None = None) -> str:
         "action": _("Action"),
         "mode": _("Mode"),
         "cmd": _("Command"),
+        "terminal": _("Open in a terminal (to answer questions or type a password)"),
         "cwd": _("Working folder"),
         "env": _("Environment"),
         "shell": _("Run through the shell"),
@@ -325,7 +326,10 @@ def describe_step(step: dict[str, Any]) -> str:
         case "run":
             command = step.get("cmd") or [""]
             program = command[0].split()[0] if step.get("shell") else command[0]
-            return _("run {program}").format(program=program.rsplit("/", 1)[-1])
+            name = program.rsplit("/", 1)[-1]
+            if step.get("terminal"):
+                return _("run {program} in a terminal").format(program=name)
+            return _("run {program}").format(program=name)
         case "launch":
             return _("open {app}").format(app=step.get("app", ""))
         case "open":
@@ -386,6 +390,20 @@ _REASONS: dict[str, Callable[[], str]] = {
     "waiting for the desktop session": lambda: _("waiting for the desktop session"),
 }
 
+# What programs say when they need someone at a terminal (sudo's password, dialog menus…).
+NEEDS_TERMINAL = re.compile(
+    r"terminal is required|no tty present|cannot open tty|not a tty|a password is required",
+    re.IGNORECASE,
+)
+
+
+def needs_terminal_hint() -> str:
+    return _(
+        "→ It needs a terminal (a password or questions): tick «Open in a terminal» and be "
+        "in front of the screen when it runs."
+    )
+
+
 _PATTERNS: list[tuple[re.Pattern[str], Callable[[re.Match[str]], str]]] = [
     (
         re.compile(r"step (\d+) \((\w+)\) failed: (.*)", re.DOTALL),
@@ -414,8 +432,22 @@ _PATTERNS: list[tuple[re.Pattern[str], Callable[[re.Match[str]], str]]] = [
         lambda m: _("the condition was not met within {time}").format(time=m[1]),
     ),
     (
+        re.compile(r"exit code (-?\d+) \(the output is in the terminal window\)"),
+        lambda m: _("exit code {code} (the output is in the terminal window)").format(code=m[1]),
+    ),
+    (
         re.compile(r"exit code (-?\d+)(?:: (.*))?", re.DOTALL),
-        lambda m: _("exit code {code}").format(code=m[1]) + (f": {m[2]}" if m[2] else ""),
+        lambda m: (
+            _("exit code {code}").format(code=m[1])
+            + (f": {m[2]}" if m[2] else "")
+            + (" " + needs_terminal_hint() if NEEDS_TERMINAL.search(m[2] or "") else "")
+        ),
+    ),
+    (
+        re.compile(r"the terminal window was closed before it finished \((.*)\)"),
+        lambda m: _("the terminal window was closed before it finished ({terminal})").format(
+            terminal=m[1]
+        ),
     ),
     (
         re.compile(r"closed (\d+) process\(es\)"),

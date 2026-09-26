@@ -543,6 +543,8 @@ TERMINAL_POWER_ACTIONS = frozenset({PowerAction.SHUTDOWN, PowerAction.REBOOT, Po
 
 class RunStep(_Tagged):
     """Run a program. `cmd` is an argument list; with `shell: true`, a single command line.
+    With `terminal: true` it runs in a terminal window in the desktop session, so it can ask
+    questions or for the password (sudo); the window stays open until Enter is pressed.
 
     `{date}`, `{time}`, `{datetime}`, `{weekday}` and `{rule}` in `cmd`, `cwd` and `env` are
     replaced when it runs (see engine/variables.py)."""
@@ -554,6 +556,7 @@ class RunStep(_Tagged):
     shell: bool = False
     timeout: PositiveDuration | None = None
     wait: bool = True
+    terminal: bool = False
 
     @model_validator(mode="after")
     def _consistent(self) -> Self:

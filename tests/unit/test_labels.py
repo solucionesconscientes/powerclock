@@ -100,3 +100,13 @@ def test_capabilities_have_names_for_people(capability: str, name: str) -> None:
 )
 def test_new_triggers_in_words(trigger: dict[str, object], text: str) -> None:
     assert describe_trigger(trigger) == text
+
+
+def test_a_script_that_needs_a_terminal_says_so() -> None:
+    reason = "step 1 (run) failed: exit code 1: sudo: A terminal is required to authenticate"
+    text = reason_label(reason)
+    assert text.startswith("step 1 (Run a command) failed: exit code 1: sudo:")
+    assert text.endswith("be in front of the screen when it runs.")
+    assert "Open in a terminal" in text
+    plain = reason_label("step 1 (run) failed: exit code 2: no such file")
+    assert "terminal" not in plain

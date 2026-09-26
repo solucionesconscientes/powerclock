@@ -255,6 +255,18 @@ async def test_quick_opens_an_application(link: DaemonLink) -> None:
         tab.payload()
 
 
+async def test_quick_command_in_a_terminal(link: DaemonLink) -> None:
+    tab = QuickTab(link)
+    tab.select(PowerAction.SHUTDOWN, "now")
+    assert tab.terminal.isHidden()
+    tab.select("run", "in")
+    assert not tab.terminal.isHidden()
+    tab.command.setText("/home/pc/Desktop/postinstall.sh")
+    assert "terminal" not in tab.payload()
+    tab.terminal.setChecked(True)
+    assert tab.payload()["terminal"] is True
+
+
 async def test_quick_can_log_in_after_turning_on(link: DaemonLink) -> None:
     tab = QuickTab(link)
     tab.select("run", "at")

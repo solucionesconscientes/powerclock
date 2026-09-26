@@ -14,6 +14,7 @@ from pathlib import Path
 
 from dbus_fast import BusType
 
+from powerclock.i18n import _
 from powerclock.platform.base import (
     AppInfo,
     Capability,
@@ -28,7 +29,7 @@ from powerclock.platform.base import (
     PowerProfile,
     Release,
 )
-from powerclock.platform.linux import apps, devices, session
+from powerclock.platform.linux import apps, devices, session, terminal
 from powerclock.platform.linux.apps import DesktopEntry
 from powerclock.platform.linux.commands import Commands, SystemCommands
 from powerclock.platform.linux.dbus import Bus, DBusError, DBusFastBus
@@ -254,6 +255,29 @@ class LinuxPlatform(PlatformBackend):
         except (DBusError, OSError) as exc:
             return f" · window not placed: {exc}"
         return " · window placement requested"
+
+    async def open_terminal(
+        self, argv: list[str], *, shell: bool, cwd: str | None, env: dict[str, str], result: Path
+    ) -> str:
+        found = terminal.pick({**self.env, **await self.session_env()})
+        if found is None:
+            raise NotSupported(
+                "terminal", "no terminal is installed", fix_hint="install konsole or xterm"
+            )
+        done = _("PowerClock: finished. Press Enter to close this window. Exit code:")
+        command = terminal.command(found, argv, shell=shell, env=env, result=result, done=done)
+        folder = terminal.folder(cwd, self.home)
+        name = session.unit_name("terminal")
+        try:
+            await self.session.start(
+                name, command, description="Terminal (PowerClock)", workdir=folder
+            )
+        except DBusError as exc:
+            if not exc.name.endswith(NO_MANAGER):
+                raise OSError(f"systemd could not open the terminal: {exc}") from exc
+            inside = ["/bin/sh", "-c", 'cd "$0" && exec "$@"', str(folder), *command]
+            await self.commands.spawn(inside, self.desktop.graphical_env())
+        return f"{Path(found[0]).name}: {terminal.shown(argv)}"
 
     async def close_app(self, app: str, grace: timedelta) -> int:
         entry = apps.find(await self._catalog(), app)

@@ -10,6 +10,7 @@ from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, tzinfo
 from enum import StrEnum
+from pathlib import Path
 from typing import Literal, NoReturn
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -163,6 +164,14 @@ class PlatformBackend(ABC):
         """Open an application in the desktop session; returns what was started (for the
         history). Raises NotSupported without a desktop session."""
         self._unsupported("launch")
+
+    async def open_terminal(
+        self, argv: list[str], *, shell: bool, cwd: str | None, env: dict[str, str], result: Path
+    ) -> str:
+        """Run a command in a terminal window of the desktop session (it can ask questions
+        or for a password there). Its exit code is written to `result` when it ends; the
+        window then waits for Enter. Returns which terminal it used."""
+        self._unsupported("terminal")
 
     async def close_app(self, app: str, grace: timedelta) -> int:
         """Close the instances of `app` that PowerClock opened (killing them after `grace`);

@@ -3,6 +3,7 @@
 import logging
 from contextlib import AbstractAsyncContextManager
 from datetime import datetime, timedelta, tzinfo
+from pathlib import Path
 from typing import Any
 
 from powerclock.platform.base import (
@@ -78,6 +79,11 @@ class DryRunPlatform(PlatformBackend):
 
     async def launch(self, request: LaunchRequest) -> str:
         return await self.inner.launch(request)
+
+    async def open_terminal(
+        self, argv: list[str], *, shell: bool, cwd: str | None, env: dict[str, str], result: Path
+    ) -> str:
+        return await self.inner.open_terminal(argv, shell=shell, cwd=cwd, env=env, result=result)
 
     async def close_app(self, app: str, grace: timedelta) -> int:
         return await self.inner.close_app(app, grace)

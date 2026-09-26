@@ -10,7 +10,7 @@ from powerclock.engine.runs import Event, Run
 from powerclock.platform.base import NotSupported, PowerAction, PowerMode
 from powerclock.platform.fake import FakeCall, FakePlatform
 from powerclock.sensors.fake import FakeSensors
-from support import MADRID, START, rule
+from support import MADRID, START, rule, until_sleeping
 
 SHUTDOWN = {"type": "power", "action": "shutdown"}
 NOTIFY = {"type": "notify", "title": "PowerClock", "body": "hola"}
@@ -351,3 +351,48 @@ async def test_shutdown_cancels_active_runs(executor: Executor) -> None:
     await executor.shutdown()
     assert run.state == "cancelled"
     assert executor.active == []
+
+
+# ── Commands in a terminal window ────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    ("code", "state", "detail"),
+    [
+        (0, "ok", "konsole (simulated)"),
+        (3, "failed", "exit code 3 (the output is in the terminal window)"),
+        (129, "failed", "the terminal window was closed before it finished"),
+    ],
+)
+async def test_a_command_in_a_terminal(
+    executor: Executor, fake: FakePlatform, code: int, state: str, detail: str
+) -> None:
+    fake.terminal_code = code
+    step = {"type": "run", "cmd": ["./setup.sh", "{rule}"], "terminal": True, "env": {"A": "1"}}
+    run = await finish(executor, executor.start(rule(actions=[step]), MADRID, cause="manual"))
+    [result] = run.steps
+    assert result.status == state
+    assert result.detail is not None
+    assert result.detail.startswith(detail)
+    [call] = fake.calls_to("open_terminal")
+    assert call.args == (["./setup.sh", "test"], False, None, {"A": "1"})  # {rule}: its id
+
+
+async def test_a_terminal_that_runs_too_long(
+    executor: Executor, fake: FakePlatform, clock: FakeClock
+) -> None:
+    fake.terminal_code = None  # it never ends
+    step = {"type": "run", "cmd": ["./setup.sh"], "terminal": True, "timeout": "5s"}
+    run = executor.start(rule(actions=[step]), MADRID, cause="manual")
+    for _ in range(5):  # one check a second: after 5 s it gives up
+        await until_sleeping(clock)  # the check (in a thread) is done: it waits on the clock
+        await clock.advance(1)
+    run = await finish(executor, run)
+    assert run.steps[0].status == "failed"
+    assert run.steps[0].detail == "timed out after 5s (konsole (simulated))"
+
+
+async def test_a_terminal_without_waiting(executor: Executor, fake: FakePlatform) -> None:
+    step = {"type": "run", "cmd": ["./setup.sh"], "terminal": True, "wait": False}
+    run = await finish(executor, executor.start(rule(actions=[step]), MADRID, cause="manual"))
+    assert (run.steps[0].status, run.steps[0].detail) == ("ok", "konsole (simulated)")

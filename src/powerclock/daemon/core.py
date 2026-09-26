@@ -93,6 +93,7 @@ class QuickRequest(BaseModel):
     app: str | None = Field(default=None, min_length=1)  # open this application…
     args: list[str] = Field(default_factory=list)  # …with these arguments
     recipe: str | None = None  # …and the window placement of this recipe (recipes.json)
+    terminal: bool = False  # run the command in a terminal window (it can ask things there)
     in_: PositiveDuration | None = Field(default=None, alias="in")
     at: str | None = None  # "23:30", "2026-09-24 07:30" or ISO with offset
     mode: PowerMode = PowerMode.GRACEFUL
@@ -113,6 +114,8 @@ class QuickRequest(BaseModel):
             raise ValueError("set exactly one of: action, command, app")
         if (self.args or self.recipe) and self.app is None:
             raise ValueError("args and recipe only apply to app")
+        if self.terminal and self.command is None:
+            raise ValueError("terminal only applies to command")
         if self.log_in is not None and not (self.wake or self.wake_at):
             raise ValueError("log_in needs wake or wake_at")
         when = ("in_", "at", "when_idle", "when_exits", "when_cpu_below", "when_net_below")
@@ -332,7 +335,7 @@ class Daemon:
             label = _("Open {app}").format(app=self._app_names.get(request.app, request.app))
         else:
             assert request.command is not None
-            step = RunStep(cmd=request.command)
+            step = RunStep(cmd=request.command, terminal=request.terminal)
             label = _("Run {program}").format(program=request.command[0].rsplit("/", 1)[-1])
         try:
             trigger, name = self._quick_trigger(request, label, now)
