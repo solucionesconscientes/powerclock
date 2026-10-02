@@ -3,7 +3,7 @@ from importlib.metadata import distribution
 
 from typer.testing import CliRunner
 
-from powerclock import __version__
+from powerclock import SITE, __version__
 from powerclock.cli.main import _MARKS, app
 
 runner = CliRunner()
@@ -12,7 +12,7 @@ runner = CliRunner()
 def test_version() -> None:
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
-    assert result.output.strip() == f"powerclock {__version__}"
+    assert result.output.strip() == f"powerclock {__version__} · {SITE}"
 
 
 def test_no_arguments_shows_help() -> None:

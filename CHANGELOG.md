@@ -28,6 +28,9 @@ All notable changes to PowerClock are listed here. The format follows
   page, so nothing is cut off and there is only one scroll bar.
 - The gallery highlights no card over the others, and a condition's lone *not* box now reads
   *the opposite*.
+- PowerClock's home page, <https://solucionesconscientes.es/powerclock>, is now in
+  `powerclock --version`, in Diagnostics and in both READMEs.
+- The README says which processors are supported, and CI now runs the whole suite on ARM too.
 
 ### Fixed
 

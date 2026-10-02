@@ -4,7 +4,7 @@
 
 **Shutdown, wake-up and task scheduler**
 
-**English** · [Español](README.es.md)
+**English** · [Español](README.es.md)  ·  [solucionesconscientes.es/powerclock](https://solucionesconscientes.es/powerclock)
 
 > **Status:** pre-release (0.1.0 in preparation). Linux is supported today; Windows and macOS are
 > planned. Its Quick tab was inspired by [KShutdown](https://kshutdown.sourceforge.io/); it is a
@@ -124,6 +124,9 @@ interface in **English and Spanish**.
 - To **turn the computer on** at a time: an RTC wake alarm (almost every PC) and, to power on from
   *off*, a BIOS/UEFI that allows it (usually only on AC power for laptops). `powerclock doctor` tells you.
 - A server without a desktop (a VPS) can run PowerClock in the background and its command line alone.
+- **Intel/AMD (x86-64) or ARM (aarch64)**: PowerClock is pure Python and every dependency ships
+  builds for both. On ARM with a desktop you need glibc 2.39 or newer (Ubuntu 24.04 onwards),
+  which is what Qt asks for; headless it runs on any ARM, a Raspberry Pi included.
 
 ## Installation
 

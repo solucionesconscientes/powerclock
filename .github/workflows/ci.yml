@@ -10,12 +10,20 @@ permissions:
 
 jobs:
   test:
-    name: Tests (Python ${{ matrix.python }})
-    runs-on: ubuntu-latest
+    name: Tests (Python ${{ matrix.python }}, ${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         python: ["3.11", "3.12", "3.13", "3.14"]
+        arch: [x86-64]
+        runner: [ubuntu-latest]
+        include:
+          # PowerClock is pure Python, but its dependencies are not: this checks that Qt,
+          # pydantic and psutil really do install and run on ARM.
+          - python: "3.13"
+            arch: arm64
+            runner: ubuntu-24.04-arm
     env:
       QT_QPA_PLATFORM: offscreen  # the GUI tests never open a window
     steps:

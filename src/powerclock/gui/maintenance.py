@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from powerclock import __version__
+from powerclock import SITE, __version__
 from powerclock.gui.icons import themed
 from powerclock.gui.setup import RunRoot, pkexec_runner
 from powerclock.gui.tasks import inform, spawn
@@ -69,7 +69,10 @@ class MaintenanceBox(QGroupBox):
             "pipx": _("installed with pipx"),
             "other": _("installed by hand or from the source code"),
         }[program.installed_by()]
-        self.version = QLabel(f"PowerClock {__version__} · {how}")
+        site = f'<a href="{SITE}">{SITE.removeprefix("https://")}</a>'
+        self.version = QLabel(f"PowerClock {__version__} · {how} · {site}")
+        self.version.setOpenExternalLinks(True)
+        self.version.setToolTip(_("PowerClock's web page"))
         self.status = QLabel()
         self.status.setWordWrap(True)
         self.check_button = QPushButton(themed("view-refresh"), _("Check for updates"))

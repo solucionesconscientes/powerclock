@@ -25,7 +25,7 @@ from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 
-from powerclock import __version__, recipes
+from powerclock import SITE, __version__, recipes
 from powerclock.cli import client as api
 from powerclock.config import Paths, read_secrets, write_secret
 from powerclock.doctor import WakeTest, collect, run_wake_test, verdict_message
@@ -108,7 +108,7 @@ def _table(columns: str, **options: Any) -> Table:
 
 def _show_version(value: bool) -> None:
     if value:
-        typer.echo(f"powerclock {__version__}")
+        typer.echo(f"powerclock {__version__} · {SITE}")
         raise typer.Exit()
 
 

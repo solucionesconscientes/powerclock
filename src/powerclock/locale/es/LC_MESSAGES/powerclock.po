@@ -177,7 +177,7 @@ msgstr "Permitir encender el equipo"
 msgid "Allow turning the computer on…"
 msgstr "Permitir encender el equipo…"
 
-#: powerclock/gui/maintenance.py:157
+#: powerclock/gui/maintenance.py:160
 msgid "Also delete my rules and history"
 msgstr "Borrar también mis reglas y el historial"
 
@@ -381,11 +381,11 @@ msgstr "Comprobar de nuevo"
 msgid "Check again every"
 msgstr "Volver a mirar cada"
 
-#: powerclock/gui/maintenance.py:75
+#: powerclock/gui/maintenance.py:78
 msgid "Check for updates"
 msgstr "Buscar actualizaciones"
 
-#: powerclock/gui/maintenance.py:98
+#: powerclock/gui/maintenance.py:101
 msgid "Checking…"
 msgstr "Comprobando…"
 
@@ -469,7 +469,7 @@ msgstr "Seguir con el siguiente paso"
 msgid "Control a media player"
 msgstr "Controlar un reproductor"
 
-#: powerclock/gui/maintenance.py:121
+#: powerclock/gui/maintenance.py:124
 msgid "Could not check for updates: {error}"
 msgstr "No se pudo buscar actualizaciones: {error}"
 
@@ -821,7 +821,7 @@ msgstr "Pantalla completa"
 msgid "Function"
 msgstr "Función"
 
-#: powerclock/gui/gallery.py:53
+#: powerclock/gui/gallery.py:55
 msgid "Gallery of rules"
 msgstr "Galería de reglas"
 
@@ -1673,7 +1673,7 @@ msgstr "Marco de fotos"
 msgid "Pick a run to see its steps."
 msgstr "Elige una ejecución para ver sus pasos."
 
-#: powerclock/gui/gallery.py:72
+#: powerclock/gui/gallery.py:74
 msgid "Pick a starting point: you can change everything before saving."
 msgstr "Elige un punto de partida: puedes cambiarlo todo antes de guardar."
 
@@ -1837,7 +1837,7 @@ msgstr "powerclock service install --linger"
 msgid "PowerClock uninstalled."
 msgstr "PowerClock desinstalado."
 
-#: powerclock/gui/maintenance.py:181
+#: powerclock/gui/maintenance.py:184
 msgid "PowerClock was uninstalled."
 msgstr "PowerClock se ha desinstalado."
 
@@ -1849,11 +1849,11 @@ msgstr "PowerClock actuará en {seconds} s"
 msgid "PowerClock works in the background: your rules keep running with this window closed, after restarting and, if you chose so, with the session closed."
 msgstr "PowerClock funciona en segundo plano: tus reglas siguen funcionando con esta ventana cerrada, después de reiniciar y, si lo elegiste, con la sesión cerrada."
 
-#: powerclock/gui/maintenance.py:115
+#: powerclock/gui/maintenance.py:118
 msgid "PowerClock {version} is out."
 msgstr "Ha salido PowerClock {version}."
 
-#: powerclock/gui/maintenance.py:110
+#: powerclock/gui/maintenance.py:113
 msgid "PowerClock {version} is out; update it the way you installed it."
 msgstr "Ha salido PowerClock {version}; actualízalo como lo instalaste."
 
@@ -1864,6 +1864,10 @@ msgstr "PowerClock {version} es la versión más reciente."
 #: powerclock/gui/countdown.py:43
 msgid "PowerClock — countdown"
 msgstr "PowerClock — cuenta atrás"
+
+#: powerclock/gui/maintenance.py:75
+msgid "PowerClock's web page"
+msgstr "La página web de PowerClock"
 
 #: powerclock/platform/linux/backend.py:267
 msgid "PowerClock: finished. Press Enter to close this window. Exit code:"
@@ -1937,7 +1941,7 @@ msgstr "Quitar"
 msgid "Remove the program the way you installed it (e.g. pipx uninstall powerclock)."
 msgstr "Quita el programa como lo instalaste (p. ej. pipx uninstall powerclock)."
 
-#: powerclock/gui/maintenance.py:185
+#: powerclock/gui/maintenance.py:188
 msgid "Remove the program the way you installed it."
 msgstr "Quita el programa como lo instalaste."
 
@@ -2513,7 +2517,7 @@ msgstr "la ventana de la terminal se cerró antes de terminar ({terminal})"
 msgid "the update failed"
 msgstr "la actualización falló"
 
-#: powerclock/gui/maintenance.py:134
+#: powerclock/gui/maintenance.py:137
 msgid "The update failed."
 msgstr "La actualización falló."
 
@@ -2549,7 +2553,7 @@ msgstr "Esto programa un despertar dentro de {seconds} s y [bold]suspende el equ
 msgid "This programs a wake-up in {seconds} s and suspends the computer now. Save your work and do not touch it until it wakes up by itself."
 msgstr "Esto programa un despertar dentro de {seconds} s y suspende el equipo ahora. Guarda tu trabajo y no lo toques hasta que despierte solo."
 
-#: powerclock/gui/maintenance.py:148
+#: powerclock/gui/maintenance.py:151
 msgid "This removes PowerClock in the background, the menu entry, the start with the session, the permission to turn the computer on (asks for your password) and the program."
 msgstr "Esto quita PowerClock en segundo plano, la entrada del menú, el inicio con la sesión, el permiso para encender el equipo (pide tu contraseña) y el programa."
 
@@ -2717,7 +2721,7 @@ msgstr "se volverá a encender {when}"
 msgid "Typical"
 msgstr "Típico"
 
-#: powerclock/gui/maintenance.py:147
+#: powerclock/gui/maintenance.py:150
 msgid "Uninstall PowerClock"
 msgstr "Desinstalar PowerClock"
 
@@ -2725,11 +2729,11 @@ msgstr "Desinstalar PowerClock"
 msgid "Uninstall PowerClock?"
 msgstr "¿Desinstalar PowerClock?"
 
-#: powerclock/gui/maintenance.py:78
+#: powerclock/gui/maintenance.py:81
 msgid "Uninstall PowerClock…"
 msgstr "Desinstalar PowerClock…"
 
-#: powerclock/gui/maintenance.py:171
+#: powerclock/gui/maintenance.py:174
 msgid "Uninstalling…"
 msgstr "Desinstalando…"
 
@@ -2745,11 +2749,11 @@ msgstr "desconocido"
 msgid "Unmute"
 msgstr "Quitar el silencio"
 
-#: powerclock/gui/maintenance.py:76
+#: powerclock/gui/maintenance.py:79
 msgid "Update"
 msgstr "Actualizar"
 
-#: powerclock/gui/maintenance.py:116
+#: powerclock/gui/maintenance.py:119
 msgid "Update to {version}"
 msgstr "Actualizar a la {version}"
 
@@ -2757,11 +2761,11 @@ msgstr "Actualizar a la {version}"
 msgid "Updated to {version}."
 msgstr "Actualizado a la {version}."
 
-#: powerclock/gui/maintenance.py:139
+#: powerclock/gui/maintenance.py:142
 msgid "Updated: PowerClock restarts."
 msgstr "Actualizado: PowerClock se reinicia."
 
-#: powerclock/gui/maintenance.py:128
+#: powerclock/gui/maintenance.py:131
 msgid "Updating…"
 msgstr "Actualizando…"
 
@@ -2773,7 +2777,7 @@ msgstr "Subida"
 msgid "Urgent"
 msgstr "Urgente"
 
-#: powerclock/gui/gallery.py:36
+#: powerclock/gui/gallery.py:38
 msgid "Use this"
 msgstr "Usar esta"
 
@@ -3037,7 +3041,7 @@ msgstr "Sí, con la pantalla visible"
 msgid "You can cancel it until the last second."
 msgstr "Puedes cancelarlo hasta el último segundo."
 
-#: powerclock/gui/maintenance.py:105
+#: powerclock/gui/maintenance.py:108
 msgid "You have the newest version."
 msgstr "Tienes la versión más reciente."
 

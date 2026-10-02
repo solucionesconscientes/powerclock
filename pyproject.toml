@@ -13,6 +13,7 @@ classifiers = [
     "Environment :: X11 Applications :: Qt",
     "Intended Audience :: End Users/Desktop",
     "Operating System :: POSIX :: Linux",
+    "Environment :: No Input/Output (Daemon)",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -38,8 +39,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/solucionesconscientes/powerclock"
-Documentation = "https://github.com/solucionesconscientes/powerclock#readme"
+Homepage = "https://solucionesconscientes.es/powerclock"
+Documentation = "https://solucionesconscientes.es/powerclock"
 Repository = "https://github.com/solucionesconscientes/powerclock"
 Issues = "https://github.com/solucionesconscientes/powerclock/issues"
 Changelog = "https://github.com/solucionesconscientes/powerclock/blob/main/CHANGELOG.md"

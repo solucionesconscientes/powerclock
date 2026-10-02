@@ -4,7 +4,7 @@
 
 **Programador de apagado, encendido y tareas**
 
-[English](README.md) · **Español**
+[English](README.md) · **Español**  ·  [solucionesconscientes.es/powerclock](https://solucionesconscientes.es/powerclock)
 
 > **Estado:** versión previa (se prepara la 0.1.0). Hoy funciona en Linux; Windows y macOS están
 > previstos. Su pestaña Rápido se inspiró en [KShutdown](https://kshutdown.sourceforge.io/); es un
@@ -131,6 +131,10 @@ un **icono en la bandeja** · la interfaz en **español e inglés**.
   para encender desde *apagado*, una BIOS/UEFI que lo permita (en portátiles, normalmente solo
   enchufado a la corriente). `powerclock doctor` te lo dice.
 - Un servidor sin escritorio (un VPS) puede usar solo PowerClock en segundo plano y la línea de comandos.
+- **Procesador Intel/AMD (x86-64) o ARM (aarch64)**: PowerClock es Python puro y todas sus
+  dependencias publican versiones para ambos. En ARM con escritorio hace falta glibc 2.39 o
+  posterior (Ubuntu 24.04 en adelante), que es lo que pide Qt; sin escritorio funciona en
+  cualquier ARM, una Raspberry Pi incluida.
 
 ## Instalación
 
