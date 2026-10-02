@@ -24,7 +24,7 @@ from powerclock.gui.icons import themed
 from powerclock.gui.setup import RunRoot, pkexec_runner
 from powerclock.gui.tasks import inform, spawn
 from powerclock.i18n import _
-from powerclock.install import program
+from powerclock.install import program, updates
 from powerclock.install.steps import Setup
 
 Latest = Callable[[], Awaitable[str]]
@@ -79,6 +79,12 @@ class MaintenanceBox(QGroupBox):
         self.update_button = QPushButton(themed("system-software-update"), _("Update"))
         self.update_button.hide()
         self.uninstall_button = QPushButton(themed("edit-delete"), _("Uninstall PowerClock…"))
+        self.watch = QCheckBox(_("Tell me when a new version is out"))
+        self.watch.setToolTip(
+            _("PowerClock asks pypi.org once a day. It never installs anything by itself.")
+        )
+        self.watch.setChecked(updates.read().enabled)
+        self.watch.toggled.connect(updates.set_enabled)
         self.check_button.clicked.connect(self.check)
         self.update_button.clicked.connect(self.update_now)
         self.uninstall_button.clicked.connect(self.confirm_uninstall)
@@ -91,10 +97,18 @@ class MaintenanceBox(QGroupBox):
         layout = QVBoxLayout(self)
         layout.addWidget(self.version)
         layout.addWidget(self.status)
+        layout.addWidget(self.watch)
         layout.addLayout(buttons)
         self.status.hide()
+        self.show_known_update()
 
     # ── Updates ───────────────────────────────────────────────────────────────
+
+    def show_known_update(self) -> None:
+        """What the last daily check saw, with no network of its own."""
+        available = updates.read().available
+        if available is not None:
+            self._offer(available)
 
     def check(self) -> None:
         self.check_button.setEnabled(False)
@@ -107,6 +121,11 @@ class MaintenanceBox(QGroupBox):
         if not program.newer(latest):
             self._say(_("You have the newest version."))
             return
+        updates.remember(latest)
+        self._offer(latest)
+
+    def _offer(self, latest: str) -> None:
+        """Say that `latest` is out, with the button when we know how to install it."""
         self.latest = latest
         if self._commands().upgrade is None:
             self._say(

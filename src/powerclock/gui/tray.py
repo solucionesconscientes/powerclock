@@ -74,6 +74,9 @@ class Tray(QObject):
         schedule = self.menu.addAction(themed("chronometer-start"), _("Schedule…"))
         schedule.triggered.connect(lambda: show_window("quick"))
         self.menu.addSeparator()
+        self.new_version = self.menu.addAction(themed("system-software-update"), "")
+        self.new_version.setVisible(False)
+        self.new_version.triggered.connect(lambda: show_window("diagnostics"))
         self.open = self.menu.addAction(themed("configure"), _("Open PowerClock"))
         self.open.triggered.connect(lambda: show_window(None))
         leave = self.menu.addAction(
@@ -116,6 +119,11 @@ class Tray(QObject):
 
     def _act_now(self, action: PowerAction) -> None:
         spawn(self._link.api.post("/quick", json=quick_now(action)))
+
+    def show_update(self, version: str) -> None:
+        """A new version is out: one line in the menu, no pop-up and no nagging."""
+        self.new_version.setText(_("PowerClock {version} is out").format(version=version))
+        self.new_version.setVisible(True)
 
     def _activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         if reason == QSystemTrayIcon.ActivationReason.Trigger:  # left click

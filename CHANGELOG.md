@@ -4,6 +4,16 @@ All notable changes to PowerClock are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **PowerClock says when a new version is out.** It asks pypi.org once a day, in the
+  background, and puts one quiet line in the tray menu; opening it goes to Diagnostics, where
+  the update button already was. Nothing is ever installed on its own, failures are silent
+  (offline today, it tries again tomorrow), and a checkbox in Diagnostics turns the whole
+  thing off, after which nothing leaves the machine.
+
 ## [0.1.1] — 2026-10-02
 
 ### Added

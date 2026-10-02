@@ -70,6 +70,7 @@ def run(*, tray_only: bool) -> int:
         controller = Controller(app)
         single.listen(controller.on_request)
         controller.start(show_window=not tray_only)
+        controller.look_for_updates()  # once a day, in the background; never in the tests
         loop.run_until_complete(closed.wait())
         with contextlib.suppress(Exception):
             loop.run_until_complete(controller.stop())

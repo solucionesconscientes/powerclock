@@ -1,14 +1,18 @@
 """Holds the GUI together: the link with the daemon, the tray, the countdown dialogs and the
 window, which exists only while it is open."""
 
+from collections.abc import Awaitable, Callable
+
 from PySide6.QtCore import QObject
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon
 
 from powerclock.gui.client import Api, DaemonLink, EventStream, HttpApi, event_stream
 from powerclock.gui.countdown import Countdowns
+from powerclock.gui.tasks import spawn
 from powerclock.gui.tray import Tray
 from powerclock.gui.welcome import WelcomeDialog, welcomed
 from powerclock.gui.window import MainWindow
+from powerclock.install import program, updates
 
 
 class Controller(QObject):
@@ -20,9 +24,11 @@ class Controller(QObject):
         stream: EventStream | None = None,
         tray: bool | None = None,
         welcome: bool | None = None,
+        latest: Callable[[], Awaitable[str]] = program.latest_version,
     ) -> None:
         super().__init__()
         self._app = app
+        self._latest = latest
         self.api = api or HttpApi()
         self.link = DaemonLink(self.api, stream or event_stream())
         self.countdowns = Countdowns(self.link)
@@ -40,6 +46,23 @@ class Controller(QObject):
             self.tray.show()
         if show_window or self.tray is None:  # without a tray, the window is the app
             self.show_window(None)
+
+    def look_for_updates(self) -> None:
+        """Ask PyPI at most once a day, in the background. A version nobody hears about is a
+        version nobody installs; a check that interrupts is worse than none."""
+        if not updates.read().due():
+            self.show_update()
+            return
+        spawn(self._look(), self, on_error=lambda _error: None)  # offline: try again tomorrow
+
+    async def _look(self) -> None:
+        updates.remember(await self._latest())
+        self.show_update()
+
+    def show_update(self) -> None:
+        available = updates.read().available
+        if available is not None and self.tray is not None:
+            self.tray.show_update(available)
 
     def show_window(self, tab: str | None = None) -> None:
         if self.window is None:

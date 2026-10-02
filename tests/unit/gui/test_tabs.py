@@ -19,8 +19,11 @@ from powerclock.gui.client import DaemonLink
 from powerclock.gui.controller import Controller
 from powerclock.gui.diagnostics import DiagnosticsTab, HandsOffDialog, HelperDialog
 from powerclock.gui.history import HistoryTab
+from powerclock.gui.maintenance import MaintenanceBox
 from powerclock.gui.rules import RulesTab
 from powerclock.gui.window import MainWindow
+from powerclock.install import program, updates
+from powerclock.install.steps import Setup
 from powerclock.platform.linux import helper
 
 RULE = {
@@ -348,3 +351,62 @@ async def test_controller_with_tray(link: DaemonLink, clock: FakeClock) -> None:
     await pump()
     assert controller.window is None
     await controller.stop()
+
+
+async def test_a_new_version_is_one_quiet_line_in_the_tray(link: DaemonLink) -> None:
+    """No pop-up and no nagging: the menu says it, and PyPI is asked once a day."""
+    asked: list[bool] = []
+
+    async def latest() -> str:
+        asked.append(True)
+        return "9.9.9"
+
+    app = SimpleNamespace(quit=lambda: None)
+    controller = Controller(app, api=link.api, stream=None, tray=True, latest=latest)  # type: ignore[arg-type]
+    assert controller.tray is not None
+    assert not controller.tray.new_version.isVisible()
+    controller.look_for_updates()
+    await pump()
+    assert asked == [True]
+    assert "9.9.9" in controller.tray.new_version.text()
+
+    controller.look_for_updates()  # again today: what it knows, without asking again
+    await pump()
+    assert asked == [True]
+    await controller.stop()
+
+
+async def test_the_daily_check_never_breaks_the_gui(link: DaemonLink) -> None:
+    """Offline, or PyPI down: nothing is said and it tries again tomorrow."""
+
+    async def latest() -> str:
+        raise OSError("no network")
+
+    app = SimpleNamespace(quit=lambda: None)
+    controller = Controller(app, api=link.api, stream=None, tray=True, latest=latest)  # type: ignore[arg-type]
+    controller.look_for_updates()
+    await pump()
+    assert controller.tray is not None
+    assert not controller.tray.new_version.isVisible()
+    await controller.stop()
+
+
+async def test_diagnostics_offers_what_the_daily_check_already_found(
+    link: DaemonLink, tmp_path: Path
+) -> None:
+    """Opening the window after the check does not ask PyPI again."""
+    updates.remember("9.9.9")
+    box = MaintenanceBox(
+        Setup(service=FakeService(installed=True), helper=None, desktop=None),
+        latest=_never_called,
+        commands=lambda: program.Commands(upgrade=["true"], uninstall=None),
+    )
+    assert "9.9.9" in box.status.text()
+    assert not box.update_button.isHidden()
+    assert box.watch.isChecked()
+    box.watch.setChecked(False)
+    assert not updates.read().enabled
+
+
+async def _never_called() -> str:
+    raise AssertionError("the network must not be touched here")
