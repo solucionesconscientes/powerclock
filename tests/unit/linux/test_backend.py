@@ -213,3 +213,16 @@ async def test_capabilities_of_a_server(tmp_path: Path) -> None:
     ):
         assert not rows[row_id].supported, row_id
     assert not rows["power_events"].supported  # no logind properties in this fake
+
+
+async def test_a_tool_that_is_there_is_not_asked_to_be_installed(
+    tmp_path: Path, buses: tuple[FakeBus, FakeBus]
+) -> None:
+    """ "How to fix" is for what is missing: a found program gets no advice."""
+    commands = FakeCommands(available=["wpctl", "spd-say"])
+    rows = {row.id: row for row in await platform(tmp_path, *buses, commands).capabilities()}
+    assert (rows["volume"].supported, rows["volume"].fix_hint) == (True, None)
+    assert (rows["speech"].supported, rows["speech"].fix_hint) == (True, None)
+    missing = {row.id: row for row in await platform(tmp_path, *buses).capabilities()}
+    assert missing["volume"].fix_hint is not None
+    assert missing["speech"].fix_hint is not None

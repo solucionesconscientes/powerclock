@@ -4,7 +4,7 @@ from importlib.metadata import distribution
 from typer.testing import CliRunner
 
 from powerclock import __version__
-from powerclock.cli.main import app
+from powerclock.cli.main import _MARKS, app
 
 runner = CliRunner()
 
@@ -43,6 +43,12 @@ def test_doctor_table() -> None:
     assert "fake (dry-run)" in result.output
     assert "power.shutdown" in result.output
     assert "power_source" in result.output
+
+
+def test_doctor_marks_what_it_could_not_check() -> None:
+    """A capability the report cannot verify is shown as unknown, not as working."""
+    assert _MARKS[True] != _MARKS[None] != _MARKS[False]
+    assert "?" in _MARKS[None]
 
 
 def test_doctor_json() -> None:

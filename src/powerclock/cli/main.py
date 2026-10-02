@@ -75,6 +75,9 @@ STATE_STYLES = {
     "postponed": "yellow",
 }
 
+# A doctor line: it works, it does not, or it could not be checked from here.
+_MARKS = {True: "[green]✔[/]", False: "[red]✘[/]", None: "[dim]?[/]"}
+
 
 def _show_version(value: bool) -> None:
     if value:
@@ -677,7 +680,7 @@ def rules_list() -> None:
         console.print(_("No rules yet: powerclock rules add FILE.json (see examples/)."))
         return
     table = Table(header_style="bold")
-    for column in (_("Id"), _("Name"), _("When"), _("On"), _("Next")):
+    for column in (_("Id"), _("Name"), _("When"), _("Enabled"), _("Next")):
         table.add_column(column)
     for rule in rules:
         when, watch = upcoming.get(rule["id"]), watched.get(rule["id"])
@@ -1156,6 +1159,6 @@ def doctor(
     table.add_column(_("Detail"))
     table.add_column(_("How to fix"))
     for capability in capabilities:
-        mark = "[green]✔[/]" if capability.supported else "[red]✘[/]"
+        mark = _MARKS[capability.supported]
         table.add_row(mark, capability.id, capability.detail, capability.fix_hint or "")
     console.print(table)

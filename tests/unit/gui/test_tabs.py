@@ -146,6 +146,29 @@ async def test_capabilities_and_status(link: DaemonLink) -> None:
     assert tab.start_service.isHidden()
 
 
+async def test_the_capability_table_grows_instead_of_scrolling(link: DaemonLink) -> None:
+    """One scroll bar for the page, none inside the table: no maze."""
+    tab = diagnostics(link)
+    tab.reload()
+    await pump()
+    assert not tab.table.verticalScrollBar().isVisible()
+    assert tab.table.height() >= tab.table.rowHeight(0) * tab.table.rowCount()
+
+
+async def test_what_could_not_be_checked_is_neither_a_tick_nor_a_cross(
+    link: DaemonLink,
+) -> None:
+    tab = diagnostics(link)
+    tab.show_capabilities(
+        [
+            {"id": "power.shutdown", "supported": True, "detail": "yes"},
+            {"id": "wake.unattended", "supported": None, "detail": "cannot be checked"},
+            {"id": "power.hibernate", "supported": False, "detail": "no"},
+        ]
+    )
+    assert [tab.table.item(row, 0).text()[0] for row in range(3)] == ["✔", "?", "✘"]
+
+
 async def test_electricity_settings(link: DaemonLink, daemon: Daemon) -> None:
     tab = diagnostics(link)
     tab.reload()

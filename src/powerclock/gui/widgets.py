@@ -4,9 +4,16 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import psutil
-from PySide6.QtCore import QDateTime
-from PySide6.QtGui import QIcon, QValidator
-from PySide6.QtWidgets import QComboBox, QDateTimeEdit, QLineEdit, QWidget
+from PySide6.QtCore import QDateTime, Qt
+from PySide6.QtGui import QIcon, QResizeEvent, QValidator
+from PySide6.QtWidgets import (
+    QComboBox,
+    QDateTimeEdit,
+    QLineEdit,
+    QSizePolicy,
+    QTableWidget,
+    QWidget,
+)
 
 from powerclock import recipes
 from powerclock.i18n import _
@@ -188,3 +195,29 @@ class AppCombo(QComboBox):
     def app(self) -> dict[str, Any] | None:
         chosen = self.value()
         return next((app for app in APP_CATALOG if app["id"] == chosen), None)
+
+
+class FitTable(QTableWidget):
+    """A table that grows with its rows instead of scrolling inside the page: two scroll bars
+    one inside the other are a maze. Rows with wrapped text are measured again on every
+    resize, because their height depends on how wide the columns ended up."""
+
+    def __init__(self, columns: int, parent: QWidget | None = None) -> None:
+        super().__init__(0, columns, parent)
+        self.setWordWrap(True)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+    def fit(self) -> None:
+        """Make the table exactly as tall as its header and rows."""
+        self.resizeRowsToContents()
+        header = self.horizontalHeader()
+        height = (header.height() if header.isVisible() else 0) + 2 * self.frameWidth()
+        height += sum(self.rowHeight(row) for row in range(self.rowCount()))
+        self.setFixedHeight(height)
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        if event.oldSize().width() != event.size().width():
+            self.fit()

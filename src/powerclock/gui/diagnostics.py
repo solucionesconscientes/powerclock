@@ -22,7 +22,6 @@ from PySide6.QtWidgets import (
     QLabel,
     QPlainTextEdit,
     QPushButton,
-    QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
@@ -38,6 +37,7 @@ from powerclock.gui.icons import themed
 from powerclock.gui.maintenance import MaintenanceBox
 from powerclock.gui.summary import not_running_text, test_mode_text
 from powerclock.gui.tasks import ask, inform, show_error, spawn
+from powerclock.gui.widgets import FitTable
 from powerclock.i18n import _
 from powerclock.install.autostart import desktop_module
 from powerclock.install.helper import helper_module
@@ -49,6 +49,13 @@ from powerclock.platform.base import NotSupported
 
 WAKE_TEST_SECONDS = 120
 HANDS_OFF = 10  # seconds between confirming the wake test and suspending
+
+# A capability line: it works, it does not, or it could not be checked from here.
+MARKS: dict[bool | None, tuple[str, style.State]] = {
+    True: ("\u2714", "done"),
+    False: ("\u2718", "failed"),
+    None: ("?", "neutral"),
+}
 
 RunElevated = Callable[[list[str]], Awaitable[int]]
 WakeTester = Callable[[Callable[[datetime], None]], Awaitable[WakeTest]]
@@ -108,11 +115,10 @@ class DiagnosticsTab(QWidget):
         daemon_row.addWidget(self.start_service)
 
         # What works here
-        self.table = QTableWidget(0, 3)
+        self.table = FitTable(3)
         self.table.setHorizontalHeaderLabels([_("Function"), _("Detail"), _("How to fix")])
         self.table.verticalHeader().setVisible(False)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.table.setWordWrap(True)
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
@@ -164,7 +170,7 @@ class DiagnosticsTab(QWidget):
 
         layout = QVBoxLayout(self)
         layout.addWidget(daemon_box)
-        layout.addWidget(checks_box, 1)
+        layout.addWidget(checks_box)
         layout.addWidget(wake_box)
         layout.addWidget(desktop_box)
         layout.addWidget(self.energy)
@@ -219,15 +225,14 @@ class DiagnosticsTab(QWidget):
     def show_capabilities(self, rows: list[dict[str, Any]]) -> None:
         self.table.setRowCount(len(rows))
         for row, capability in enumerate(rows):
-            mark = "✔" if capability["supported"] else "✘"
+            mark, tone = MARKS[capability["supported"]]
             name = QTableWidgetItem(f"{mark} {capability_label(capability['id'])}")
             name.setToolTip(capability["id"])
-            tone = "done" if capability["supported"] else "failed"
             name.setForeground(QBrush(style.text_color(tone)))
             self.table.setItem(row, 0, name)
             self.table.setItem(row, 1, QTableWidgetItem(capability["detail"]))
             self.table.setItem(row, 2, QTableWidgetItem(capability.get("fix_hint") or ""))
-        self.table.resizeRowsToContents()
+        self.table.fit()
 
     # ── The service ───────────────────────────────────────────────────────────
 

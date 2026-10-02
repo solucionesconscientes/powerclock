@@ -186,3 +186,13 @@ async def test_autologin_used_is_this_users(tmp_path: Path) -> None:
     assert await backend.autologin_used() == "unlocked"
     write(tmp_path, "run/powerclock/used", '{"uid": 1001, "mode": "locked"}')
     assert await backend.autologin_used() is None  # someone else's log-in
+
+
+async def test_unattended_rule_that_cannot_be_read_is_not_a_tick(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """rules.d is root-only: unknown is reported as unknown, never as "it works"."""
+    install_helper(tmp_path)
+    backend = linux(tmp_path, FakeCommands(available=["pkexec"], results={"pkcheck": (0, "")}))
+    monkeypatch.setattr(backend.host, "unattended_installed", lambda: None)
+    assert (await rows(backend))["wake.unattended"][0] is None

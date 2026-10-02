@@ -25,7 +25,7 @@ log = logging.getLogger(__name__)
 Check = Callable[["LinuxPlatform"], Awaitable[list[Capability]]]
 
 
-def row(id_: str, supported: bool, detail: str, fix_hint: str | None = None) -> Capability:
+def row(id_: str, supported: bool | None, detail: str, fix_hint: str | None = None) -> Capability:
     return Capability(id=id_, supported=supported, detail=detail, fix_hint=fix_hint)
 
 
@@ -217,7 +217,12 @@ async def _desktop_tools(p: "LinuxPlatform") -> list[Capability]:
     with contextlib.suppress(DBusError):
         profiles = await has_owner(p.system_bus, PROFILES)
     return [
-        row("volume", volume is not None, volume or missing, _("install wpctl (PipeWire)")),
+        row(
+            "volume",
+            volume is not None,
+            volume or missing,
+            None if volume else _("install wpctl (PipeWire)"),
+        ),
         row("sound", sound is not None, sound or missing),
         row(
             "speech",
@@ -291,7 +296,7 @@ async def _helper_rows(p: "LinuxPlatform") -> list[Capability]:
     rows.append(row("wake.authorized", supported, detail, fix))
     unattended = p.host.unattended_installed()
     if unattended is None:
-        rows.append(row("wake.unattended", True, _("cannot be checked by a normal user")))
+        rows.append(row("wake.unattended", None, _("cannot be checked by a normal user")))
     elif unattended:
         rows.append(
             row("wake.unattended", True, _("rule installed: works with the session closed"))

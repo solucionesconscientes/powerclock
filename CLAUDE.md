@@ -36,3 +36,6 @@ Antes de escribir código lee SIEMPRE: `docs/ARCHITECTURE.md` (diseño) y `docs/
 - Tests: `uv run pytest -m "not real"`
 - Demonio en primer plano (seguro): `POWERCLOCK_DRY_RUN=1 uv run powerclock-daemon --foreground`
 - CLI: `uv run powerclock --help`
+
+## Notion
+Proyecto Notion: slug=powerclock

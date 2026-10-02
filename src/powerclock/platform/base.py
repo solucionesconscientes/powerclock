@@ -100,7 +100,7 @@ class Capability(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     id: str
-    supported: bool
+    supported: bool | None  # None: it could not be checked from here
     detail: str
     fix_hint: str | None = None
 
