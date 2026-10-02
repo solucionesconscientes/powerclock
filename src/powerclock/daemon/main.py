@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import socket
 import sys
 
 import uvicorn
@@ -39,6 +40,7 @@ def main(argv: list[str] | None = None) -> None:
         backend = get_backend(dry_run=dry_run)
     except NotSupported as exc:
         sys.exit(f"{exc} ({exc.fix_hint})" if exc.fix_hint else str(exc))
+    _check_port(settings.port)
     daemon = Daemon(backend, paths=paths, settings=settings, dry_run=dry_run)
     config = uvicorn.Config(
         daemon.app,
@@ -50,3 +52,17 @@ def main(argv: list[str] | None = None) -> None:
         lifespan="on",
     )
     uvicorn.Server(config).run()
+
+
+def _check_port(port: int) -> None:
+    """Say who is in the way before uvicorn prints its own error: another PowerClock is the
+    usual answer, and starting a second one is never what the user wanted."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        try:
+            probe.bind(("127.0.0.1", port))
+        except OSError:
+            sys.exit(
+                f"PowerClock is already running on port {port} "
+                f"(powerclock status), or something else is using it "
+                f"(change `port` in {Paths.default().settings})."
+            )

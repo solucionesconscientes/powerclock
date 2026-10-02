@@ -267,7 +267,9 @@ class Executor:
         failure: str | None = None
         values = variables.context(self._clock.now().astimezone(tz), rule.id, self._variables)
         for index, step in enumerate(rule.actions):
-            result = StepResult(index=index, type=step.type, started_at=self._clock.now())
+            result = StepResult(
+                index=index, type=step.type, about=_about(step), started_at=self._clock.now()
+            )
             run.steps.append(result)
             try:
                 result.status, result.detail = await self._do(step, rule, tz, run, values)
@@ -295,7 +297,11 @@ class Executor:
         """The rule's "if a step fails" steps: all of them, whatever each one does."""
         for step in rule.on_failure:
             result = StepResult(
-                index=len(run.steps), type=step.type, started_at=self._clock.now(), on_failure=True
+                index=len(run.steps),
+                type=step.type,
+                about=_about(step),
+                started_at=self._clock.now(),
+                on_failure=True,
             )
             run.steps.append(result)
             try:
@@ -720,6 +726,29 @@ class Executor:
             self._sink(event)
         except Exception:
             log.exception("event listener failed")
+
+
+def _about(step: Action) -> str | None:
+    """What a step is about, so the history can say "Restart" instead of the kind of step it
+    was. Never a translated word: the history outlives the language it was written in."""
+    match step:
+        case PowerStep():
+            return step.action.value
+        case RunStep():
+            command = step.cmd[0] if step.cmd else ""
+            program = command.split()[0] if step.shell else command
+            return program.rsplit("/", 1)[-1] or None
+        case LaunchStep():
+            return step.app
+        case CloseAppStep():
+            return step.app or step.name
+        case OpenStep():
+            return step.target
+        case PushStep():
+            return step.service
+        case MediaStep():
+            return step.command
+    return None
 
 
 def _read_code(path: Path) -> int | None:

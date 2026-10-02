@@ -7,6 +7,7 @@ from powerclock.labels import (
     describe_predicate,
     describe_trigger,
     reason_label,
+    step_label,
 )
 
 
@@ -110,3 +111,18 @@ def test_a_script_that_needs_a_terminal_says_so() -> None:
     assert "Open in a terminal" in text
     plain = reason_label("step 1 (run) failed: exit code 2: no such file")
     assert "terminal" not in plain
+
+
+@pytest.mark.parametrize(
+    ("type_", "about", "text"),
+    [
+        ("power", "reboot", "Restart"),
+        ("power", "shutdown", "Shut down"),
+        ("power", None, "Shut down, restart, suspend…"),
+        ("run", "backup.sh", "Run a command: backup.sh"),
+        ("launch", "org.kde.okular", "Open an application: org.kde.okular"),
+        ("notify", None, "Show a notification"),
+    ],
+)
+def test_a_step_of_the_history_says_what_it_did(type_: str, about: str | None, text: str) -> None:
+    assert step_label(type_, about) == text

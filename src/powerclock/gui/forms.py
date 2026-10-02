@@ -1090,8 +1090,8 @@ class PredicateEditor(KindEditor):
 
     def __init__(self, *, removable: bool = True, parent: QWidget | None = None) -> None:
         super().__init__(removable=removable, allow_json=True, parent=parent)
-        self.negate = QCheckBox(_("not"))
-        self.negate.setToolTip(_("True when the condition does not hold"))
+        self.negate = QCheckBox(_("the opposite"))
+        self.negate.setToolTip(_("It counts when this does NOT hold"))
         self.extra.addWidget(self.negate)
 
     def get(self) -> dict[str, Any]:

@@ -25,7 +25,13 @@ from powerclock.gui.icons import themed
 from powerclock.gui.summary import when_text
 from powerclock.gui.tasks import spawn
 from powerclock.i18n import _
-from powerclock.labels import cause_label, detail_label, kind_label, reason_label, state_label
+from powerclock.labels import (
+    cause_label,
+    detail_label,
+    reason_label,
+    state_label,
+    step_label,
+)
 
 LIMIT = 200
 
@@ -117,7 +123,8 @@ class HistoryTab(QWidget):
         if run.get("dry_run"):
             lines.append(_("test mode: nothing was really turned off"))
         for step in run.get("steps", []):
-            line = f"{step['index'] + 1}. {kind_label(step['type'])}: {state_label(step['status'])}"
+            what = step_label(step["type"], step.get("about"))
+            line = f"{step['index'] + 1}. {what}: {state_label(step['status'])}"
             if step.get("detail"):
                 line += f" — {detail_label(step['detail'])}"
             lines.append(line)

@@ -396,3 +396,26 @@ async def test_a_terminal_without_waiting(executor: Executor, fake: FakePlatform
     step = {"type": "run", "cmd": ["./setup.sh"], "terminal": True, "wait": False}
     run = await finish(executor, executor.start(rule(actions=[step]), MADRID, cause="manual"))
     assert (run.steps[0].status, run.steps[0].detail) == ("ok", "konsole (simulated)")
+
+
+async def test_the_history_records_which_action_a_step_took(
+    executor: Executor, fake: FakePlatform
+) -> None:
+    """ "Shut down, restart, suspend…" is the kind of step; the history says which one."""
+    run = executor.start(
+        rule(
+            actions=[
+                {"type": "power", "action": "lock"},
+                NOTIFY,
+                {"type": "run", "cmd": ["/home/me/bin/backup.sh", "--full"]},
+            ]
+        ),
+        MADRID,
+        cause="manual",
+    )
+    run = await finish(executor, run)
+    assert [(step.type, step.about) for step in run.steps] == [
+        ("power", "lock"),
+        ("notify", None),
+        ("run", "backup.sh"),  # it fails here: there is no such script
+    ]

@@ -29,6 +29,7 @@ EventType = Literal[
 class StepResult(BaseModel):
     index: int
     type: str
+    about: str | None = None  # what the step was about ("reboot", "backup.sh"), never translated
     status: StepStatus = "running"
     started_at: datetime
     finished_at: datetime | None = None

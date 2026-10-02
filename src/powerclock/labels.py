@@ -491,6 +491,19 @@ def reason_label(reason: str | None) -> str:
     return reason
 
 
+def step_label(type_: str, about: str | None = None) -> str:
+    """A step in the history: what it did, not what kind of step it was ("Restart", not
+    "Shut down, restart, suspend…")."""
+    if about is None:
+        return kind_label(type_)
+    if type_ == "power":
+        try:
+            return power_action_label(PowerAction(about))
+        except ValueError:
+            pass
+    return f"{kind_label(type_)}: {about}"
+
+
 def detail_label(detail: str | None) -> str:
     """What a step reported (its output is shown as it came)."""
     return reason_label(detail)
