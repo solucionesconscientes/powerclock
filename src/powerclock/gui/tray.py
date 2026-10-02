@@ -60,7 +60,7 @@ class Tray(QObject):
         self.headline.setEnabled(False)
         self.cancel = self.menu.addAction(themed("dialog-cancel"), _("Cancel"))
         self.cancel.triggered.connect(lambda: spawn(link.api.post("/cancel")))
-        self.postpone = self.menu.addAction(themed("chronometer"), _("Postpone 10 minutes"))
+        self.postpone = self.menu.addAction(themed("chronometer"), _("Postpone 10 min"))
         self.postpone.triggered.connect(
             lambda: spawn(link.api.post("/postpone", json={"delay": "10m"}))
         )

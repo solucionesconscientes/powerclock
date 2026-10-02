@@ -15,6 +15,12 @@ def _(message: str) -> str:
     return _translation.gettext(message)
 
 
+def N_(message: str) -> str:
+    """Mark a text for translation without translating it yet: for texts written once in a
+    table or a list and shown later, when the language is already in place."""
+    return message
+
+
 def power_action_label(action: PowerAction) -> str:
     labels = {
         PowerAction.SHUTDOWN: _("Shut down"),

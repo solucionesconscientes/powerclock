@@ -28,7 +28,7 @@ def extract(source: Path = SOURCE) -> dict[str, list[str]]:
             if (
                 isinstance(node, ast.Call)
                 and isinstance(node.func, ast.Name)
-                and node.func.id == "_"
+                and node.func.id in ("_", "N_")
                 and len(node.args) == 1
                 and isinstance(node.args[0], ast.Constant)
                 and isinstance(node.args[0].value, str)

@@ -54,7 +54,7 @@ class CountdownDialog(QDialog):
 
         buttons = QDialogButtonBox()
         self.cancel_button = QPushButton(themed("dialog-cancel"), _("Cancel"))
-        self.postpone_button = QPushButton(themed("chronometer"), _("Postpone 10 minutes"))
+        self.postpone_button = QPushButton(themed("chronometer"), _("Postpone 10 min"))
         buttons.addButton(self.cancel_button, QDialogButtonBox.ButtonRole.RejectRole)
         buttons.addButton(self.postpone_button, QDialogButtonBox.ButtonRole.ActionRole)
         self.cancel_button.clicked.connect(self._cancel)

@@ -41,22 +41,6 @@ def span(seconds: int) -> str:
     return f"{secs}s"
 
 
-def trigger(rule: dict[str, Any]) -> str:
-    data = dict(rule["trigger"])
-    kind = data.pop("type")
-    match kind:
-        case "at":
-            return f"at {local(data['when'])}"
-        case "countdown":
-            return f"countdown {data['duration']}"
-        case "cron":
-            return f"cron {data['expr']}"
-        case "manual":
-            return "manual"
-    details = " ".join(f"{key}={value}" for key, value in data.items() if value is not None)
-    return f"{kind} {details}".strip()
-
-
 def watch_detail(item: dict[str, Any]) -> str:
     """What a rule with a state trigger sees now (an item of /pending "watching")."""
     trigger_ = item["trigger"]

@@ -85,6 +85,18 @@ def test_the_gui_speaks_the_users_words() -> None:
             assert not SPANISH_JARGON.search(msgstr), msgid
 
 
+@pytest.mark.parametrize("po", CATALOGS, ids=lambda path: path.parts[-3])
+def test_two_columns_of_a_table_never_read_alike(po: Path) -> None:
+    """A word like "On" means different things in different places; if two columns of the
+    same table end up with the same translation, the table lies."""
+    from powerclock.cli.main import COLUMNS
+
+    catalog = tool.read_po(po)
+    for name, columns in COLUMNS.items():
+        shown = [catalog.get(column) or column for column in columns]
+        assert len(set(shown)) == len(columns), (name, shown)
+
+
 def test_tests_run_in_english() -> None:
     from powerclock.i18n import _
 

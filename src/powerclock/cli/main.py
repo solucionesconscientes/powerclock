@@ -27,17 +27,23 @@ from rich.table import Table
 
 from powerclock import __version__, recipes
 from powerclock.cli import client as api
-from powerclock.cli.format import local, relative, span, trigger, watch_detail
+from powerclock.cli.format import local, relative, span, watch_detail
 from powerclock.config import Paths, read_secrets, write_secret
 from powerclock.doctor import WakeTest, collect, run_wake_test, verdict_message
 from powerclock.engine import wol
-from powerclock.i18n import _
+from powerclock.i18n import N_, _
 from powerclock.install.helper import helper_module
 from powerclock.install.program import commands as program_commands
 from powerclock.install.program import latest_version, newer
 from powerclock.install.service import service_module
 from powerclock.install.steps import Options, Report, Setup
-from powerclock.labels import reason_label, savings_text
+from powerclock.labels import (
+    capability_label,
+    describe_trigger,
+    reason_label,
+    savings_text,
+    state_label,
+)
 from powerclock.models import WakeLanStep
 from powerclock.platform import dry_run_requested, get_backend
 from powerclock.platform.base import NotSupported, PowerAction
@@ -77,6 +83,27 @@ STATE_STYLES = {
 
 # A doctor line: it works, it does not, or it could not be checked from here.
 _MARKS = {True: "[green]✔[/]", False: "[red]✘[/]", None: "[dim]?[/]"}
+
+# The columns of every table the CLI prints. Two columns of the same table must never read
+# alike in any language (tests/unit/test_i18n.py checks it).
+COLUMNS: dict[str, tuple[str, ...]] = {
+    "apps": (N_("Name"), N_("Id"), N_("Recipes")),
+    "recipes": (N_("Recipe"), N_("What it does"), N_("Arguments")),
+    "running": (N_("Rule"), N_("Result"), N_("Detail"), N_("Run")),
+    "next": (N_("When"), N_("In"), N_("Rule"), N_("Id")),
+    "watching": (N_("Rule"), N_("Now"), N_("Id")),
+    "history": (N_("Finished"), N_("Rule"), N_("Result"), N_("Reason")),
+    "rules": (N_("Id"), N_("Name"), N_("When"), N_("Enabled"), N_("Next")),
+    "doctor": (N_("Capability"), N_("Detail"), N_("How to fix")),
+}
+
+
+def _table(columns: str, **options: Any) -> Table:
+    """A table with its columns already in the user's language."""
+    table = Table(header_style="bold", **options)
+    for column in COLUMNS[columns]:
+        table.add_column(_(column))
+    return table
 
 
 def _show_version(value: bool) -> None:
@@ -124,7 +151,8 @@ def _fail(message: str) -> NoReturn:
 
 def _styled(state: str) -> str:
     style = STATE_STYLES.get(state)
-    return f"[{style}]{state}[/]" if style else state
+    text = escape(state_label(state))
+    return f"[{style}]{text}[/]" if style else text
 
 
 # ── Quick actions ──────────────────────────────────────────────────────────────
@@ -407,9 +435,7 @@ def apps_command(
     if search:
         needle = search.lower()
         found = [a for a in found if needle in a["name"].lower() or needle in a["id"].lower()]
-    table = Table(header_style="bold")
-    for column in (_("Name"), _("Id"), _("Recipes")):
-        table.add_column(column)
+    table = _table("apps")
     for item in found:
         name = escape(item["name"]) + (" [dim](Flatpak)[/]" if item.get("flatpak") else "")
         table.add_row(name, escape(item["id"]), escape(", ".join(item.get("recipes", []))))
@@ -422,9 +448,7 @@ def recipes_command(
 ) -> None:
     """Ready-made arguments for common applications (use them with launch --recipe)."""
     found = recipes.for_app(app_id) if app_id else list(recipes.recipes())
-    table = Table(header_style="bold", show_lines=True)
-    for column in (_("Recipe"), _("What it does"), _("Arguments")):
-        table.add_column(column)
+    table = _table("recipes", show_lines=True)
     for recipe in found:
         table.add_row(recipe.id, escape(recipe.title()), escape(" ".join(recipe.args)))
     console.print(table)
@@ -563,9 +587,7 @@ def status() -> None:
         console.print(f"⏰ {_('wake-up alarm')}: {local(wake['at'])} ({relative(wake['at'])})")
     active, upcoming, watching = pending["active"], pending["next"], pending["watching"]
     if active:
-        table = Table(title=_("Running"), title_justify="left", header_style="bold")
-        for column in (_("Rule"), _("State"), _("Detail"), _("Run")):
-            table.add_column(column)
+        table = _table("running", title=_("Running"), title_justify="left")
         for run in active:
             detail = (
                 _("acts {when}").format(when=relative(run["deadline"]))
@@ -575,16 +597,12 @@ def status() -> None:
             table.add_row(escape(run["rule_name"]), _styled(run["state"]), detail, run["id"])
         console.print(table)
     if upcoming:
-        table = Table(title=_("Next"), title_justify="left", header_style="bold")
-        for column in (_("When"), _("In"), _("Rule"), _("Id")):
-            table.add_column(column)
+        table = _table("next", title=_("Next"), title_justify="left")
         for item in upcoming:
             table.add_row(local(item["at"]), relative(item["at"]), item["name"], item["rule_id"])
         console.print(table)
     if watching:
-        table = Table(title=_("Watching"), title_justify="left", header_style="bold")
-        for column in (_("Rule"), _("Now"), _("Id")):
-            table.add_column(column)
+        table = _table("watching", title=_("Watching"), title_justify="left")
         for item in watching:
             table.add_row(item["name"], watch_detail(item), item["rule_id"])
         console.print(table)
@@ -636,9 +654,7 @@ def history(
     if not data["runs"]:
         console.print(_("No runs yet."))
         return
-    table = Table(header_style="bold")
-    for column in (_("Finished"), _("Rule"), _("State"), _("Reason")):
-        table.add_column(column)
+    table = _table("history")
     for run in data["runs"]:
         table.add_row(
             local(run["finished_at"]),
@@ -679,9 +695,7 @@ def rules_list() -> None:
     if not rules:
         console.print(_("No rules yet: powerclock rules add FILE.json (see examples/)."))
         return
-    table = Table(header_style="bold")
-    for column in (_("Id"), _("Name"), _("When"), _("Enabled"), _("Next")):
-        table.add_column(column)
+    table = _table("rules")
     for rule in rules:
         when, watch = upcoming.get(rule["id"]), watched.get(rule["id"])
         if when:
@@ -691,7 +705,7 @@ def rules_list() -> None:
         table.add_row(
             rule["id"],
             rule["name"],
-            trigger(rule),
+            describe_trigger(rule["trigger"]),
             "[green]✔[/]" if rule["enabled"] else "[dim]✘[/]",
             next_,
         )
@@ -1154,11 +1168,13 @@ def doctor(
             _("[yellow]Test mode:[/] nothing really turns off or on; actions are only noted down.")
         )
     table = Table(show_lines=False, header_style="bold")
-    table.add_column("", width=1)
-    table.add_column(_("Capability"), no_wrap=True)
-    table.add_column(_("Detail"))
-    table.add_column(_("How to fix"))
+    table.add_column("", width=1)  # the tick, the cross or the question mark
+    for column in COLUMNS["doctor"]:
+        table.add_column(_(column), no_wrap=column == "Capability")
+
     for capability in capabilities:
         mark = _MARKS[capability.supported]
-        table.add_row(mark, capability.id, capability.detail, capability.fix_hint or "")
+        label = capability_label(capability.id)
+        name = label if label == capability.id else f"{label} [dim]({capability.id})[/]"
+        table.add_row(mark, name, capability.detail, capability.fix_hint or "")
     console.print(table)

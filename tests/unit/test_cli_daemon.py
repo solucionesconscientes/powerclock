@@ -113,7 +113,7 @@ def test_rules_commands(daemon: Daemon, tmp_path: Path, monkeypatch: pytest.Monk
     )
     listing = powerclock("rules", "list")
     assert "backup-nocturno" in listing
-    assert "cron 0 3 * * *" in listing
+    assert "every day at 03:00" in listing  # the trigger in words, as the GUI says it
     assert json.loads(powerclock("rules", "show", "backup-nocturno"))["name"] == "Backup nocturno"
 
     assert "Disabled" in powerclock("rules", "disable", "backup-nocturno")
