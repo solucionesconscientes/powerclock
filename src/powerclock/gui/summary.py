@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from powerclock.cli.format import moment, relative, watch_detail
+from powerclock.format import moment, relative, watch_detail
 from powerclock.gui.icons import TrayState
 from powerclock.i18n import _, can_cancel_text
 from powerclock.labels import reason_label

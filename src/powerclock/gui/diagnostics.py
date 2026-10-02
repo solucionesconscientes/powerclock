@@ -27,9 +27,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from powerclock.cli.format import local, relative, span
 from powerclock.config import Paths
 from powerclock.doctor import WakeTest, run_wake_test, verdict_message
+from powerclock.format import local, relative, span
 from powerclock.gui import style
 from powerclock.gui.client import DaemonLink
 from powerclock.gui.energy import EnergyBox

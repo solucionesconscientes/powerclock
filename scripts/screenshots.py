@@ -101,32 +101,59 @@ RULES: dict[str, list[dict[str, Any]]] = {
 
 
 def capabilities() -> list[Any]:
-    """What `powerclock doctor` reports on a KDE laptop (the fake backend only says "simulated")."""
+    """What `powerclock doctor` reports on a KDE laptop (the fake backend only says
+    "simulated"). The texts go through the catalogue, so the Spanish screenshots are in
+    Spanish, as the real report is."""
+    from powerclock.i18n import _
     from powerclock.platform.base import Capability
 
+    available, unavailable = _("available"), _("not available on this system")
     rows = [
         ("session", True, "KDE · wayland", None),
-        ("power.shutdown", True, "CanPowerOff: available", None),
-        ("power.suspend", True, "CanSuspend: available", None),
+        ("power.shutdown", True, f"CanPowerOff: {available}", None),
+        ("power.suspend", True, f"CanSuspend: {available}", None),
         (
             "power.hibernate",
             False,
-            "CanHibernate: not available · swap 0.5 GiB, RAM 16 GiB",
-            "needs swap at least as large as RAM and the resume= kernel parameter",
+            f"CanHibernate: {unavailable} · "
+            + _("swap {swap:.1f} GiB, RAM {ram:.1f} GiB, resume= {resume}").format(
+                swap=0.5, ram=16.0, resume=_("not set")
+            ),
+            _("needs swap at least as large as RAM and the resume= kernel parameter"),
         ),
-        ("power.graceful", True, "KDE (org.kde.Shutdown): applications can ask to save", None),
-        ("idle", True, "Wayland ext-idle-notify-v1 · keyboard and mouse only", None),
-        ("notify", True, "Plasma 6 (KDE) · with buttons", None),
-        ("wake.rtc", True, "rtc_cmos 00:00 · clock in UTC", None),
-        ("wake.helper", True, "installed and up to date", None),
-        ("wake.authorized", True, "this process may program the alarm without a password", None),
+        (
+            "power.graceful",
+            True,
+            _("{method}: applications can ask to save").format(method="KDE (org.kde.Shutdown)"),
+            None,
+        ),
+        ("idle", True, "Wayland ext-idle-notify-v1 · " + _("keyboard and mouse only"), None),
+        ("notify", True, _("{server} · with buttons").format(server="Plasma 6 (KDE)"), None),
+        (
+            "wake.rtc",
+            True,
+            _("{name} · clock in {clock}").format(name="rtc_cmos 00:00", clock="UTC"),
+            None,
+        ),
+        ("wake.helper", True, _("installed and up to date"), None),
+        (
+            "wake.authorized",
+            True,
+            _("this process may program the alarm without a password"),
+            None,
+        ),
         (
             "hardware",
             True,
             "Dell Inc. Latitude 5480",
-            "Power on from off: BIOS → Power Management → Auto On Time (usually needs AC)",
+            _("Power on from off: BIOS → Power Management → Auto On Time (usually needs AC)"),
         ),
-        ("power_source", True, "on AC · battery 100 %", None),
+        (
+            "power_source",
+            True,
+            _("{source} · battery {percent} %").format(source=_("on AC"), percent=100),
+            None,
+        ),
     ]
     return [Capability(id=i, supported=s, detail=d, fix_hint=f) for i, s, d, f in rows]
 

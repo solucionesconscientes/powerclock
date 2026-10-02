@@ -488,7 +488,7 @@ class Executor:
             return "ok", None
         target = step.level / 100
         if step.fade > timedelta(0):
-            start, _ = await self._backend.volume()
+            start, _muted = await self._backend.volume()
             if start is not None:
                 if mute is False:  # unmute first, or the fade would not be heard
                     await self._backend.set_volume(mute=False)

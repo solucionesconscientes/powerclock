@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from powerclock.cli.format import relative, watch_detail
+from powerclock.format import relative, watch_detail
 from powerclock.gui import style
 from powerclock.gui.client import DaemonLink
 from powerclock.gui.editor import RuleEditor

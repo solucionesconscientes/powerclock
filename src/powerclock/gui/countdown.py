@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from powerclock.cli.format import moment
+from powerclock.format import moment
 from powerclock.gui import style
 from powerclock.gui.cards import Ring
 from powerclock.gui.client import DaemonLink

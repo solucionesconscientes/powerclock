@@ -27,10 +27,10 @@ from rich.table import Table
 
 from powerclock import __version__, recipes
 from powerclock.cli import client as api
-from powerclock.cli.format import local, relative, span, watch_detail
 from powerclock.config import Paths, read_secrets, write_secret
 from powerclock.doctor import WakeTest, collect, run_wake_test, verdict_message
 from powerclock.engine import wol
+from powerclock.format import local, relative, span, watch_detail
 from powerclock.i18n import N_, _
 from powerclock.install.helper import helper_module
 from powerclock.install.program import commands as program_commands

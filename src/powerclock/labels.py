@@ -7,7 +7,7 @@ import re
 from collections.abc import Callable
 from typing import Any
 
-from powerclock.cli.format import local
+from powerclock.format import local
 from powerclock.i18n import _, power_action_label
 from powerclock.platform.base import PowerAction
 

@@ -111,7 +111,7 @@ class LinuxPlatform(PlatformBackend):
             case PowerAction.SHUTDOWN | PowerAction.REBOOT:
                 answer = await self.logind.can(action)
                 if answer not in ALLOWED:  # checked before asking the desktop too
-                    query, _ = METHODS[action]
+                    query, _method = METHODS[action]
                     raise NotSupported(f"power.{action}", f"logind answers {answer!r} to {query}")
                 if not (graceful and await self.desktop.graceful(action)):
                     await self.logind.power(action)

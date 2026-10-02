@@ -1,4 +1,5 @@
-"""How the CLI shows times, durations and rules."""
+"""How times, durations and what a rule is waiting for are shown: shared by the CLI and
+the GUI, which say the same things in the same words."""
 
 from datetime import UTC, datetime
 from typing import Any

@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from powerclock.cli.format import local
+from powerclock.format import local
 from powerclock.gui import style
 from powerclock.gui.client import DaemonLink
 from powerclock.gui.energy import SavingsLabel
