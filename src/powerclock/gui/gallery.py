@@ -33,7 +33,9 @@ class TemplateCard(QFrame):
         style.use_scale(title, 1, bold=True)
         text = QLabel(template.description)
         text.setWordWrap(True)
-        self.button = style.primary(QPushButton(_("Use this")))
+        # Every card offers the same thing: one highlighted button per screen, not one
+        # per card, or none of them stands out.
+        self.button = QPushButton(_("Use this"))
         self.button.clicked.connect(lambda: use.choose(template))
         row = QHBoxLayout()
         row.addStretch(1)
