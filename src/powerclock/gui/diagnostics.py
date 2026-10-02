@@ -333,6 +333,7 @@ class HelperDialog(QDialog):
         )
         intro.setWordWrap(True)
         self.unattended = QCheckBox(_("Also work when you are logged out"))
+        self.unattended.setChecked(True)  # a rule that fires with nobody logged in is the point
         self.unattended.setToolTip(
             _("PowerClock can turn the computer on and off even when nobody is logged in.")
         )

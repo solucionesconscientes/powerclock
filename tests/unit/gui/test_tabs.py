@@ -238,8 +238,13 @@ async def test_helper_dialog_shows_and_runs_the_commands(link: DaemonLink, tmp_p
     text = dialog.commands.toPlainText()
     assert "sudo install" in text
     assert "/usr/local/libexec/powerclock-helper" in text
+    # Working with nobody logged in is offered from the start: a shutdown that fails because
+    # the session is closed is exactly what PowerClock is for.
+    assert dialog.unattended.isChecked()
+    assert "50-powerclock-unattended.rules" in text
+    dialog.unattended.setChecked(False)
+    assert "50-powerclock-unattended.rules" not in dialog.commands.toPlainText()
     dialog.unattended.setChecked(True)
-    assert "50-powerclock-unattended.rules" in dialog.commands.toPlainText()
     dialog.install()
     await pump()
     [command] = ran

@@ -97,7 +97,7 @@ class SetupWindow(QDialog):
         self.menu = QCheckBox(_("Show PowerClock in the applications menu"))
         self.helper = QCheckBox(_("Turn the computer on at a time (asks for your password once)"))
         self.unattended = QCheckBox(_("Also work when you are logged out"))
-        for box in (self.login, self.menu, self.helper):
+        for box in (self.login, self.menu, self.helper, self.unattended):
             box.setChecked(True)
         if self.setup.helper is None:
             self.helper.setChecked(False)

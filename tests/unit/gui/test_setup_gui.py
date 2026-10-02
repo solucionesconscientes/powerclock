@@ -60,8 +60,7 @@ async def test_install_from_the_window(qapp: object, setup: Setup) -> None:
     assert window.options().menu
     assert window.options().login
     assert window.options().helper
-    assert not window.unattended.isChecked()
-    window.unattended.setChecked(True)
+    assert window.unattended.isChecked()  # a rule must fire with nobody logged in
     window.install()
     await settle_thread(lambda: window.report is not None)
     assert window.report is not None

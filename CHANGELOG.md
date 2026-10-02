@@ -31,6 +31,10 @@ All notable changes to PowerClock are listed here. The format follows
 - PowerClock's home page, <https://solucionesconscientes.es/powerclock>, is now in
   `powerclock --version`, in Diagnostics and in both READMEs.
 - The README says which processors are supported, and CI now runs the whole suite on ARM too.
+- Installing the permission to turn the computer on now offers *also work when you are logged
+  out* from the start: a rule that cannot shut the computer down because nobody is logged in
+  is the one case PowerClock exists for. It is still one checkbox away from off, and
+  `powerclock helper install` still needs `--unattended` spelled out.
 
 ### Fixed
 
