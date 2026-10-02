@@ -6,7 +6,7 @@
 
 [English](README.md) · **Español**  ·  [solucionesconscientes.es/powerclock](https://solucionesconscientes.es/powerclock)
 
-> **Estado:** 0.1.1, publicada en PyPI. Hoy funciona en Linux (Intel/AMD y ARM); Windows y macOS están
+> **Estado:** 1.0, publicada en PyPI. Hoy funciona en Linux (Intel/AMD y ARM); Windows y macOS están
 > previstos. Su pestaña Rápido se inspiró en [KShutdown](https://kshutdown.sourceforge.io/); es un
 > programa distinto, escrito desde cero y sin relación con él.
 
@@ -786,9 +786,8 @@ omiten por defecto.
   abrir aplicaciones con recetas, reproductores, volumen y ajustes del escritorio, avisos al
   móvil, amanecer y anochecer, calendario, festivos, ficheros y dispositivos, Wake-on-LAN, el
   ahorro estimado y el diseño nuevo.
-- **0.2**: lo que salga de las pruebas en equipos reales.
-- **0.3 — Windows** y **0.4 — macOS**.
-- **1.0**: control remoto (bot de Telegram, interfaz web), varios equipos, MQTT/Home Assistant,
+- **1.1 — Windows** y **1.2 — macOS**.
+- **2.0**: control remoto (bot de Telegram, interfaz web), varios equipos, MQTT/Home Assistant,
   KDE Connect y describir reglas en lenguaje natural.
 
 ## Licencia

@@ -4,7 +4,11 @@ All notable changes to PowerClock are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.0.0] — 2026-10-03
+
+PowerClock is finished for Linux and says so: phase 1 has no open boxes, the installer was
+tried from the published release, and the whole suite runs on Intel/AMD and on ARM. Windows
+and macOS are next, as 1.1 and 1.2.
 
 ### Removed
 

@@ -8,7 +8,7 @@ license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 keywords = ["shutdown", "suspend", "hibernate", "wake", "wake-up", "power-on", "rtcwake", "scheduler", "timer", "automation", "power-management", "kde", "linux"]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Environment :: X11 Applications :: Qt",
     "Intended Audience :: End Users/Desktop",

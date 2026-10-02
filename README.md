@@ -6,7 +6,7 @@
 
 **English** · [Español](README.es.md)  ·  [solucionesconscientes.es/powerclock](https://solucionesconscientes.es/powerclock)
 
-> **Status:** 0.1.1, on PyPI. Linux is supported today (Intel/AMD and ARM); Windows and macOS are
+> **Status:** 1.0, on PyPI. Linux is supported today (Intel/AMD and ARM); Windows and macOS are
 > planned. Its Quick tab was inspired by [KShutdown](https://kshutdown.sourceforge.io/); it is a
 > separate program, written from scratch and not affiliated with it.
 
@@ -758,9 +758,8 @@ that read the real system are marked `real` and skipped by default.
   locked), opening applications with recipes, media players, volume and desktop settings, phone
   notifications, sunrise and sunset, calendars, holidays, files and devices, Wake-on-LAN,
   estimated savings and the new design.
-- **0.2**: what the tests on real computers bring up.
-- **0.3 — Windows** and **0.4 — macOS**.
-- **1.0**: remote control (Telegram bot, web interface), several computers, MQTT/Home Assistant,
+- **1.1 — Windows** and **1.2 — macOS**.
+- **2.0**: remote control (Telegram bot, web interface), several computers, MQTT/Home Assistant,
   KDE Connect, and describing rules in plain language.
 
 ## License

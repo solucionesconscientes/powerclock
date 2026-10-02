@@ -120,11 +120,11 @@ Orden decidido el 25-09-2026: lo que desbloquea más casos de uso, primero.
 - **M18 — Varios equipos** (✅ hecho el 25-09-2026: paso `wake_lan` y `powerclock wake-lan`; `powerclock stats`, resumen en Historial y caja Electricidad en Diagnóstico): Wake-on-LAN; estadísticas de uso y ahorro (horas apagado, kWh y € estimados).
 Pendiente de decidir más adelante: navegador automatizado (Playwright, dependencia nueva), accesibilidad AT-SPI, teclado y ratón virtuales, sesión fantasma.
 
-## Fase 3 — Windows (v0.3)
+## Fase 3 — Windows (v1.1)
 Backend Windows (shutdown.exe, SetSuspendState, LockWorkStation, GetLastInputInfo, toasts); wake con Task Scheduler `WakeToRun`; `doctor` con Modern Standby y temporizadores de reactivación; servicio al iniciar sesión; CI Windows.
 
-## Fase 4 — macOS experimental (v0.4)
+## Fase 4 — macOS experimental (v1.2)
 pmset, osascript, idle vía IOKit, LaunchAgent + helper LaunchDaemon, CI macOS, DMG con firma ad-hoc.
 
-## Fase 5 — Remoto e IA (v1.0)
+## Fase 5 — Remoto e IA (v2.0)
 Bot de Telegram (control y disparador), web UI, multi-equipo (portátil + VPS), MQTT/Home Assistant, KDE Connect, asistente en lenguaje natural → regla JSON validada contra `/schema/rule`.
