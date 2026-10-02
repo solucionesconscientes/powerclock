@@ -18,12 +18,28 @@ All notable changes to PowerClock are listed here. The format follows
 - Quick's button for running something is now *Command*.
 - The history shows the arguments an application was opened with, and when a browser already
   open took the order.
+- **The CLI speaks like the window does**: `history` and `status` say *cancelled* or *done* in
+  your language, `rules list` describes a rule's trigger in words ("Repeats: every day at
+  03:00") instead of its cron line, and `doctor` names each capability for people, with its
+  id beside it. Commands, options and `--help` stay in English on purpose.
+- The history of a run says which action a step took ("Restart") instead of the kind of step
+  it was ("Shut down, restart, suspend…").
+- Diagnostics: the list of what works grows with its rows instead of scrolling inside the
+  page, so nothing is cut off and there is only one scroll bar.
+- The gallery highlights no card over the others, and a condition's lone *not* box now reads
+  *the opposite*.
 
 ### Fixed
 
 - "A web page in a new full-screen window" is full screen also when the browser is already
   open (browsers ignore `--start-fullscreen` then: KWin puts the window in full screen), and
   Quick applies the chosen recipe's window placement.
+- `doctor` no longer advises installing a program that is already installed, and shows "?"
+  for what it cannot check instead of a green tick.
+- The *enabled* column of `rules list` read like the *when* column in Spanish.
+- Starting PowerClock when it is already running says so, instead of printing the web
+  server's "address already in use".
+- The Spanish screenshots of the README showed the diagnostics report in English.
 
 ## [0.1.0] — 2026-09-25
 
