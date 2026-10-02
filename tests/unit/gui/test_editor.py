@@ -96,9 +96,7 @@ async def test_starting_values_are_valid(
     qapp: object,
     editor_class: type[Any],
     models: list[type[BaseModel]],
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setitem(forms.SETTINGS, "tariff", "es-2.0td")  # offers tariff_period
     for model in models:
         editor = editor_class()
         editor.kind.setCurrentIndex(editor.kind.findData(type_of(model)))
@@ -126,17 +124,6 @@ async def test_starting_triggers_are_valid(qapp: object) -> None:
             if isinstance(field, TextField) and not field.get():  # a Wi-Fi, a device…
                 field.set("x")
         editor.validate()
-
-
-async def test_tariff_period_is_offered_only_with_a_tariff(
-    qapp: object, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    assert PredicateEditor().kind.findData("tariff_period") < 0
-    kept = PredicateEditor()  # a saved one is not lost: it is shown as JSON
-    kept.set({"type": "tariff_period", "period": "valley"})
-    assert kept.get() == {"type": "tariff_period", "period": "valley"}
-    monkeypatch.setitem(forms.SETTINGS, "tariff", "es-2.0td")
-    assert PredicateEditor().kind.findData("tariff_period") >= 0
 
 
 async def test_holiday_days_are_typed_on_one_line(qapp: object) -> None:
@@ -331,13 +318,11 @@ async def test_a_rule_from_the_gallery(
     from powerclock.gui.rules import RulesTab
 
     dialog = GalleryDialog()
-    assert "cheap-hours" not in [t.id for t in dialog.templates]  # no tariff chosen
+    assert "cheap-hours" in [t.id for t in dialog.templates]
     assert [card.template.group for card in dialog.cards] == ["energy"] * len(dialog.cards)
     dialog.groups.setCurrentRow(2)
     assert {card.template.group for card in dialog.cards} == {"screens"}
     dialog.close()
-    monkeypatch.setitem(forms.SETTINGS, "tariff", "es-2.0td")
-    assert "cheap-hours" in [t.id for t in GalleryDialog().templates]
 
     tab = RulesTab(link)
     tab.from_gallery()

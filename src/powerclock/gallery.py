@@ -21,7 +21,6 @@ class Template:
     title: str
     description: str
     rule: Rule
-    needs: str | None = None  # a setting it only makes sense with ("tariff")
 
 
 def groups() -> list[tuple[str, str]]:
@@ -104,14 +103,13 @@ def templates(now: Callable[[], datetime] = datetime.now) -> list[Template]:
             "cheap-hours",
             "energy",
             _("Heavy tasks in the cheap hours"),
-            _("Only with a time-of-use tariff: runs your task when electricity is cheapest."),
+            _("At 01:00, and only between midnight and 08:00: change the hours to yours."),
             {
                 "name": _("Heavy tasks in the cheap hours"),
                 "trigger": {"type": "cron", "expr": "0 1 * * *"},
-                "conditions": {"type": "tariff_period", "period": "valley"},
+                "conditions": {"type": "time_window", "start": "00:00", "end": "08:00"},
                 "actions": [{"type": "run", "cmd": ["~/bin/task.sh"], "timeout": "3h"}],
             },
-            needs="tariff",
         ),
         # ── Mornings ──
         Template(

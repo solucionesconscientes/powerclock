@@ -174,7 +174,6 @@ class Daemon:
             request_wake=self._request_wake,  # the set_wake action
             variables={"home": str(Path.home()), "data": str(paths.data)},
             secrets=lambda: read_secrets(paths),
-            tariff=lambda: self.settings.tariff,
         )
         self.started_at = self.engine.clock.now()
         self._tasks: list[asyncio.Task[None]] = []
@@ -572,12 +571,7 @@ class Daemon:
             "rules": len(self.engine.rules),
             "rules_errors": self.store.errors,
             "clients": self.hub.subscribers,
-            "tariff": self.settings.tariff,
         }
-
-    def set_tariff(self, tariff: str | None) -> dict[str, Any]:
-        """Choose the electricity tariff (None: none)."""
-        return {"tariff": self.update_settings({"tariff": tariff})["tariff"]}
 
     def update_settings(self, changes: dict[str, Any]) -> dict[str, Any]:
         """Change the settings clients may change (USER_SETTINGS); saved in daemon.json."""

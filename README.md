@@ -302,8 +302,7 @@ it), everything `powerclock doctor` checks, by name, with how to fix what does n
 wake-up alarm, **Allow turning the computer on…** (shows the exact commands and runs them asking
 for your password in a desktop window), **Test a wake-up in 2 minutes…** and two checkboxes: *Show PowerClock in the
 applications menu* and *Start the tray icon when the session starts*, and **Electricity**: the
-tariff (only with time-of-use prices), the computer's consumption and the price of a kWh to
-estimate the savings.
+the computer's consumption and the price of a kWh to estimate the savings.
 
 **Warning window.** Appears on top of the others when a power action is about to happen: a ring
 that empties with the seconds in large type, what will happen ("The computer will shut down in
@@ -351,7 +350,6 @@ as `30s`, `5m`, `2h`, `1d` or combined (`1h30m`).
 | `powerclock recipes [APP]` | Ready-made arguments for common applications. |
 | `powerclock wake-lan MAC [--broadcast IP] [--port 9]` | Turns on another computer on the network now (Wake-on-LAN). |
 | `powerclock stats [--days 30] [--watts W\|auto] [--price P\|auto]` | Hours on and off and what PowerClock saved (estimated; see below). |
-| `powerclock tariff [es-2.0td\|none]` | The electricity tariff for the tariff period condition (only with time-of-use prices). |
 | `powerclock secrets set NAME` · `list` · `rm NAME` | Tokens that steps use by name (`telegram_token`), kept out of `rules.json` in `secrets.json` (0600). |
 | `powerclock status` | What is running, what comes next, what is being watched, and the next wake-up alarm. |
 | `powerclock cancel [RUN_ID]` | Cancel the countdown in progress; otherwise the quick action running, the next timed one, or the last one waiting for a condition. |
@@ -452,7 +450,6 @@ Both use the same **predicates**:
 | `wifi_ssid` | `ssid` | Connected to that Wi-Fi network. |
 | `desktop_session` | — | A desktop session is up. |
 | `holiday` | `country` (`ES`), `extra` (dates) | Today is a national holiday (Spain, Good Friday computed) or one of `extra`: regional and local holidays, your days off. |
-| `tariff_period` | `period` (`valley`, `flat`, `peak`) | The electricity tariff is in that period. **Only if you chose a tariff** (see below); unknown without one. |
 | `active`, `used_today`, `file`, `device`, `temperature` | as above | The same as the triggers of that name, right now. |
 
 Combine them with `{"all": [ … ]}`, `{"any": [ … ]}` and `{"not": … }`, nested as you like.
@@ -593,12 +590,10 @@ PowerClock only reads the sensors your rules use: with no rule watching the CPU,
   10.
 - `powerclock status` and the window show what each watching rule sees right now.
 
-**The electricity tariff (optional).** It only matters if your contract has different prices by
-hour (Spain's PVPC or three periods); with a flat price it makes no difference. It is off: choose
-it in Diagnostics or with `powerclock tariff es-2.0td` (Spain 2.0TD: valley 0–8 h and weekends and
-national holidays; peak 10–14 and 18–22; flat the rest) and the "Electricity tariff period"
-condition appears, e.g. to leave backups and downloads for the valley. `powerclock tariff none`
-turns it off.
+**The cheap hours of electricity.** PowerClock ships no country's tariff tables: set your own
+hours with the **"Time window"** condition (00:00 to 08:00, say, and it may cross midnight) and,
+if your contract is also cheaper at weekends, add **"Day of the week"** or **"Today is a
+holiday"**. That works for any contract in any country.
 
 **Savings (estimated).** PowerClock notes every minute the computer is on; a gap is time off or
 asleep, and if PowerClock shut it down or suspended it just before the gap, that time counts as
@@ -646,7 +641,7 @@ virtual machines.
 | File | What it is |
 |---|---|
 | `~/.config/powerclock/rules.json` | Your rules (`{"version": 1, "rules": [ … ]}`). You can edit it by hand: the daemon reloads it within 2 seconds. If it has an error, the daemon keeps the last good rules, shows the error in `powerclock status` and does not write the file until you fix it, so your edit is never lost. |
-| `~/.config/powerclock/daemon.json` | Daemon settings: `port` (default `47831`), `dry_run` (`false`), `log_level` (`info`), `tariff` (`null` or `"es-2.0td"`), `watts` and `price_kwh` (for the savings; `null`: typical values), `currency` (`€`). |
+| `~/.config/powerclock/daemon.json` | Daemon settings: `port` (default `47831`), `dry_run` (`false`), `log_level` (`info`), `watts` and `price_kwh` (for the savings; `null`: typical values), `currency` (`€`). |
 | `~/.config/powerclock/api.token` | The API's secret token (readable only by you). |
 | `~/.local/share/powerclock/history.sqlite` | The history of runs. |
 | `~/.config/systemd/user/powerclock.service` | The user service (`powerclock service install`). |
@@ -678,7 +673,7 @@ curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
 | POST | `/rules/{id}/enable` · `/disable` · `/run` · `/cancel` · `/postpone` | Act on one rule. |
 | GET | `/apps` · `/recipes` | The installed applications (with their recipes) · the recipes. |
 | GET | `/stats?days=30` | Hours on, off and off thanks to PowerClock, actions and estimated savings. |
-| GET · PATCH | `/settings` | The settings that change while running: `tariff`, `watts`, `price_kwh`, `currency`. |
+| GET · PATCH | `/settings` | The settings that change while running: `watts`, `price_kwh`, `currency`. |
 | POST | `/quick` | A quick action: `action`, `command` or `app` (+ `args`), and `in`, `at`, `when_idle`, `when_exits`, `when_cpu_below`, `when_net_below` (+ `for`), `warning`, `mode`, `wake`, `wake_at`, `dry_run`. |
 | POST | `/wake` | `{"at": "07:30"}`: turn the computer on at that time. |
 | GET | `/pending` | What comes next, what is running, what is watched, the wake-up alarm. |
@@ -761,10 +756,9 @@ that read the real system are marked `real` and skipped by default.
 - **0.1 — Linux** (now): everything above: shutting down, suspending and turning on at a time or
   on conditions, logging in when it turns the computer on (only that boot, with the screen
   locked), opening applications with recipes, media players, volume and desktop settings, phone
-  notifications, sunrise and sunset, calendars, holidays, files and devices, the electricity
-  tariff as an option, Wake-on-LAN, estimated savings and the new design.
-- **0.2**: what the tests on real computers bring up, and custom electricity tariff periods (other
-  countries).
+  notifications, sunrise and sunset, calendars, holidays, files and devices, Wake-on-LAN,
+  estimated savings and the new design.
+- **0.2**: what the tests on real computers bring up.
 - **0.3 — Windows** and **0.4 — macOS**.
 - **1.0**: remote control (Telegram bot, web interface), several computers, MQTT/Home Assistant,
   KDE Connect, and describing rules in plain language.

@@ -80,7 +80,6 @@ from powerclock.models import (
     SshSession,
     StartupTrigger,
     SunTrigger,
-    TariffPeriod,
     Temperature,
     TimeWindow,
     UsedToday,
@@ -129,16 +128,12 @@ PREDICATES: list[type[BaseModel]] = [
     WifiSsid,
     DesktopSession,
     Holiday,
-    TariffPeriod,
     Active,
     UsedToday,
     FileExists,
     Device,
     Temperature,
 ]
-# The tariff_period condition only makes sense with a time-of-use tariff chosen in the
-# settings (set by the rule editor from /health).
-SETTINGS: dict[str, Any] = {"tariff": None}
 ACTIONS: list[type[BaseModel]] = [
     PowerStep,
     RunStep,
@@ -1082,11 +1077,6 @@ class PredicateEditor(KindEditor):
     """A condition: one of the simple ones (optionally negated) or any tree as JSON."""
 
     models: ClassVar[list[type[BaseModel]]] = PREDICATES
-
-    def available(self) -> list[type[BaseModel]]:
-        if SETTINGS.get("tariff"):
-            return self.models
-        return [model for model in self.models if model is not TariffPeriod]
 
     def __init__(self, *, removable: bool = True, parent: QWidget | None = None) -> None:
         super().__init__(removable=removable, allow_json=True, parent=parent)

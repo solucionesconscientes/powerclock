@@ -58,7 +58,6 @@ PREDICATES: dict[str, dict[str, Any]] = {
     "wifi_ssid": {"type": "wifi_ssid", "ssid": "Casa"},
     "desktop_session": {"type": "desktop_session"},
     "holiday": {"type": "holiday", "extra": ["2026-05-15"]},
-    "tariff_period": {"type": "tariff_period", "period": "valley"},
     "active": {"type": "active", "for": "50m", "pause": "5m"},
     "used_today": {"type": "used_today", "for": "2h"},
     "file": {"type": "file", "path": "/tmp/flag"},

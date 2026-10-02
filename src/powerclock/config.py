@@ -70,7 +70,6 @@ class Settings(BaseModel):
     port: int = Field(default=DEFAULT_PORT, ge=1024, le=65535)
     dry_run: bool = False
     log_level: Literal["debug", "info", "warning", "error"] = "info"
-    tariff: Literal["es-2.0td"] | None = None  # time-of-use electricity prices, if any
     # For the savings estimate: the computer's average consumption when on and the price of
     # electricity (None: a typical value is used).
     watts: float | None = Field(default=None, gt=0, le=5000)
@@ -79,7 +78,7 @@ class Settings(BaseModel):
 
 
 # What clients may change (PATCH /settings); the rest needs a restart of the daemon.
-USER_SETTINGS = frozenset({"tariff", "watts", "price_kwh", "currency"})
+USER_SETTINGS = frozenset({"watts", "price_kwh", "currency"})
 
 
 class SettingsError(Exception):

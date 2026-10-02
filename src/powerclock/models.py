@@ -439,14 +439,6 @@ class Holiday(_Tagged):
     extra: list[date] = Field(default_factory=list)
 
 
-class TariffPeriod(_Tagged):
-    """The electricity tariff chosen in the settings is in this period now (unknown when
-    no tariff is set: only for contracts with time-of-use prices)."""
-
-    type: Literal["tariff_period"] = "tariff_period"
-    period: Literal["valley", "flat", "peak"] = "valley"
-
-
 class AllOf(_Model):
     """True when every predicate is true."""
 
@@ -497,7 +489,6 @@ Predicate = Annotated[
     | Annotated[WifiSsid, Tag("wifi_ssid")]
     | Annotated[DesktopSession, Tag("desktop_session")]
     | Annotated[Holiday, Tag("holiday")]
-    | Annotated[TariffPeriod, Tag("tariff_period")]
     | Annotated[Active, Tag("active")]
     | Annotated[UsedToday, Tag("used_today")]
     | Annotated[FileExists, Tag("file")]

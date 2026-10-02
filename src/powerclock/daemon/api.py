@@ -159,10 +159,6 @@ def create_app(daemon: "Daemon") -> FastAPI:
     async def list_recipes() -> list[dict[str, Any]]:
         return daemon.list_recipes()
 
-    @api.put("/settings/tariff")
-    async def put_tariff(body: JsonBody) -> dict[str, Any]:
-        return daemon.set_tariff(body.get("tariff"))
-
     @api.get("/settings")
     async def get_settings() -> dict[str, Any]:
         return daemon.update_settings({})

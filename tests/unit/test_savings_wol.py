@@ -169,7 +169,6 @@ async def test_stats_api_after_powerclock_suspends(
             assert (await http.get("/settings")).json() == {
                 "currency": "€",
                 "price_kwh": 0.2,
-                "tariff": None,
                 "watts": 101.0,
             }
     finally:

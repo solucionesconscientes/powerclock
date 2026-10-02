@@ -11,7 +11,7 @@ import httpx
 import pytest
 from pydantic import TypeAdapter
 
-from powerclock.engine import Engine, calendar, holidays, sun, tariff
+from powerclock.engine import Engine, calendar, holidays, sun
 from powerclock.engine.clock import FakeClock
 from powerclock.engine.evaluator import Evaluator
 from powerclock.engine.scheduler import next_fire
@@ -79,7 +79,7 @@ def test_sun_trigger_needs_both_coordinates() -> None:
         SunTrigger(latitude=40.0)
 
 
-# ── Holidays and tariff periods ───────────────────────────────────────────────
+# ── Holidays and time windows ─────────────────────────────────────────────────
 
 
 def test_easter_and_spanish_holidays() -> None:
@@ -94,37 +94,18 @@ def test_easter_and_spanish_holidays() -> None:
     assert holidays.is_holiday(date(2026, 9, 11), extra=(date(2026, 9, 11),))  # a local one
 
 
-@pytest.mark.parametrize(
-    ("moment", "expected"),
-    [
-        (local(2026, 9, 24, 7, 59), "valley"),  # Thursday
-        (local(2026, 9, 24, 8, 0), "flat"),
-        (local(2026, 9, 24, 10, 0), "peak"),
-        (local(2026, 9, 24, 14, 30), "flat"),
-        (local(2026, 9, 24, 21, 59), "peak"),
-        (local(2026, 9, 24, 22, 0), "flat"),
-        (local(2026, 9, 26, 12, 0), "valley"),  # Saturday
-        (local(2026, 12, 8, 12, 0), "valley"),  # a national holiday on a Tuesday
-    ],
-)
-def test_spanish_2_0td_periods(moment: datetime, expected: str) -> None:
-    assert tariff.period("es-2.0td", moment) == expected
-
-
-async def test_holiday_and_tariff_conditions() -> None:
+async def test_holiday_and_cheap_hours_conditions() -> None:
+    """Cheap hours are a time window the user picks; PowerClock ships no tariff tables."""
     clock = FakeClock(datetime(2026, 12, 8, 11, 0, tzinfo=UTC))  # a holiday, 12:00 in Madrid
-    chosen: list[Any] = [None]
-    evaluator = Evaluator(FakeSensors(), clock, lambda: chosen[0])
+    evaluator = Evaluator(FakeSensors(), clock)
     assert await evaluator.evaluate(p(type="holiday"), MADRID) is True
-    valley = p(type="tariff_period", period="valley")
-    assert await evaluator.evaluate(valley, MADRID) is None  # no tariff chosen: unknown
-    chosen[0] = "es-2.0td"
-    assert await evaluator.evaluate(valley, MADRID) is True
-    await clock.advance(86400)  # Wednesday 9, 12:00: peak
+    night = p(type="time_window", start="00:00", end="08:00")
+    assert await evaluator.evaluate(night, MADRID) is False  # midday
+    await clock.advance(86400)  # Wednesday 9, 12:00
     assert await evaluator.evaluate(p(type="holiday"), MADRID) is False
     assert await evaluator.evaluate(p(type="holiday", extra=["2026-12-09"]), MADRID) is True
-    assert await evaluator.evaluate(valley, MADRID) is False
-    assert await evaluator.evaluate(p(type="tariff_period", period="peak"), MADRID) is True
+    await clock.advance(16 * 3600)  # 04:00 in Madrid: inside the window
+    assert await evaluator.evaluate(night, MADRID) is True
 
 
 # ── Calendars ─────────────────────────────────────────────────────────────────

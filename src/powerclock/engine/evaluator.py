@@ -5,10 +5,9 @@ logic. Each caller decides what unknown means: conditions do not run, guards do 
 block, wait_until keeps waiting.
 """
 
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from datetime import tzinfo
 
-from powerclock.engine import tariff
 from powerclock.engine.clock import Clock
 from powerclock.engine.holidays import is_holiday
 from powerclock.models import (
@@ -17,7 +16,6 @@ from powerclock.models import (
     Holiday,
     NotOf,
     Predicate,
-    TariffPeriod,
     TimeWindow,
     Weekday,
 )
@@ -31,11 +29,9 @@ class Evaluator:
         self,
         sensors: SensorReader,
         clock: Clock,
-        tariff_of: Callable[[], tariff.Tariff | None] | None = None,
     ) -> None:
         self._sensors = sensors
         self._clock = clock
-        self._tariff = tariff_of or (lambda: None)  # the one chosen in the settings
 
     async def evaluate(self, predicate: Predicate, tz: tzinfo) -> bool | None:
         match predicate:
@@ -68,12 +64,6 @@ class Evaluator:
             case Holiday(country=country, extra=extra):
                 today = self._clock.now().astimezone(tz).date()
                 return is_holiday(today, country, tuple(extra))
-            case TariffPeriod(period=period):
-                chosen = self._tariff()
-                if chosen is None:
-                    return None  # no time-of-use tariff: unknown, never a guess
-                local = self._clock.now().astimezone(tz).replace(tzinfo=None)
-                return tariff.period(chosen, local) == period
             case _:
                 return await self._sensors.check(predicate)
 

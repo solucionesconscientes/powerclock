@@ -6,6 +6,16 @@ All notable changes to PowerClock are listed here. The format follows
 
 ## [Unreleased]
 
+### Removed
+
+- **The electricity tariff is gone**, and with it the *Electricity tariff period* condition,
+  the tariff setting, `powerclock tariff` and `PUT /settings/tariff`. PowerClock shipped one
+  country's table (Spain 2.0TD) and would have had to grow one per country. Cheap hours are
+  now said with the **time window** condition, which already crossed midnight, plus *day of
+  the week* or *today is a holiday* when the contract needs them: that works anywhere, with
+  no table to maintain. A rule that still uses `tariff_period` is reported in Diagnostics and
+  skipped; the other rules keep running.
+
 ### Added
 
 - **PowerClock says when a new version is out.** It asks pypi.org once a day, in the

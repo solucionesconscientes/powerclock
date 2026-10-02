@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from powerclock import gallery
-from powerclock.gui import forms, style
+from powerclock.gui import style
 from powerclock.gui.cards import scrollable
 from powerclock.gui.icons import app_icon
 from powerclock.i18n import _
@@ -55,8 +55,7 @@ class GalleryDialog(QDialog):
         self.setWindowTitle(_("Gallery of rules"))
         self.setWindowIcon(app_icon())
         self.chosen: gallery.Template | None = None
-        tariff = bool(forms.SETTINGS.get("tariff"))
-        self.templates = [t for t in gallery.templates() if t.needs != "tariff" or tariff]
+        self.templates = list(gallery.templates())
         self.groups = QListWidget()
         for key, name in gallery.groups():
             item = QListWidgetItem(name)

@@ -246,13 +246,6 @@ def test_log_in_after_turning_on(daemon: Daemon) -> None:
     assert modes == ["locked", "locked"]
 
 
-def test_tariff(daemon: Daemon) -> None:
-    assert "No tariff" in powerclock("tariff")
-    assert "es-2.0td" in powerclock("tariff", "es-2.0td")
-    assert daemon.settings.tariff == "es-2.0td"
-    assert "No tariff" in powerclock("tariff", "none")
-
-
 def test_wake_lan(monkeypatch: pytest.MonkeyPatch) -> None:
     sent: list[tuple[str, str, int]] = []
 

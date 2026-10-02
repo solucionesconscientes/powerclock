@@ -1,10 +1,9 @@
-"""Electricity: the tariff (for the tariff_period condition) and the consumption and price
-used to estimate what PowerClock saves (the summary at the top of the History tab)."""
+"""Electricity: the consumption and price used to estimate what PowerClock saves (the
+summary at the top of the History tab)."""
 
 from typing import Any
 
 from PySide6.QtWidgets import (
-    QComboBox,
     QDoubleSpinBox,
     QFormLayout,
     QGroupBox,
@@ -23,13 +22,6 @@ class EnergyBox(QGroupBox):
         super().__init__(_("Electricity"), parent)
         self._link = link
         self._loading = False
-        self.tariff = QComboBox()
-        self.tariff.addItem(_("No time-of-use prices"), None)
-        self.tariff.addItem(_("Spain 2.0TD (peak, flat, valley)"), "es-2.0td")
-        self.tariff.setToolTip(
-            _("Only for contracts with a different price by hour (PVPC or three periods).")
-        )
-        self.tariff.activated.connect(lambda _index: self._save())
         self.watts = _spin(0, 5000, 0, " W")
         self.watts.setToolTip(_("What the computer uses when it is on (typical: 15 W a laptop)."))
         self.price = _spin(0, 10, 3, "")
@@ -37,7 +29,6 @@ class EnergyBox(QGroupBox):
         for spin in (self.watts, self.price):
             spin.editingFinished.connect(self._save)
         layout = QFormLayout(self)
-        layout.addRow(_("Tariff:"), self.tariff)
         layout.addRow(_("Consumption when on:"), self.watts)
         layout.addRow(_("Price of a kWh:"), self.price)
 
@@ -50,7 +41,6 @@ class EnergyBox(QGroupBox):
     def show_settings(self, settings: dict[str, Any]) -> None:
         self._loading = True
         try:
-            self.tariff.setCurrentIndex(max(0, self.tariff.findData(settings.get("tariff"))))
             self.watts.setValue(settings.get("watts") or 0)
             self.price.setValue(settings.get("price_kwh") or 0)
             self.price.setSuffix(f" {settings.get('currency', '€')}")
@@ -59,7 +49,6 @@ class EnergyBox(QGroupBox):
 
     def values(self) -> dict[str, Any]:
         return {
-            "tariff": self.tariff.currentData(),
             "watts": self.watts.value() or None,  # 0: the typical value
             "price_kwh": self.price.value() or None,
         }

@@ -37,7 +37,6 @@ def kind_label(kind: str) -> str:
         "device": _("A device is connected"),
         "temperature": _("Temperature above"),
         "holiday": _("Today is a holiday"),
-        "tariff_period": _("Electricity tariff period"),
         # predicates
         "process_running": _("A program is running"),
         "media_playing": _("Something is playing"),
@@ -243,8 +242,6 @@ def describe_trigger(trigger: dict[str, Any]) -> str:
             detail = trigger.get("name", "")
         case "temperature":
             detail = f"{trigger.get('above')} °C"
-        case "tariff_period":
-            detail = value_label("period", trigger.get("period", "valley"))
         case "weekday":
             detail = ", ".join(value_label("days", day) for day in trigger.get("days", []))
         case "time_window":

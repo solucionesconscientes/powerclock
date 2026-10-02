@@ -64,4 +64,3 @@ def test_every_template_is_a_valid_rule() -> None:
         assert template.description
         Rule.model_validate({"id": "from-the-gallery", **template.rule})
     assert {t.group for t in found} == keys  # no empty group
-    assert [t.id for t in found if t.needs == "tariff"] == ["cheap-hours"]

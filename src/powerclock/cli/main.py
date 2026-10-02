@@ -454,23 +454,6 @@ def recipes_command(
     console.print(table)
 
 
-@app.command("tariff")
-def tariff_command(
-    tariff: Annotated[
-        str | None,
-        typer.Argument(help="es-2.0td (Spain, time-of-use prices) or none. Without it: show."),
-    ] = None,
-) -> None:
-    """The electricity tariff for the tariff_period condition (only with time-of-use prices)."""
-    with _daemon() as client:
-        if tariff is None:
-            current = client.get("/health").get("tariff")
-        else:
-            chosen = None if tariff.lower() == "none" else tariff
-            current = client.put("/settings/tariff", json={"tariff": chosen})["tariff"]
-    console.print(current or _("No tariff: the tariff_period condition stays unknown."))
-
-
 @app.command("wake-lan")
 def wake_lan_command(
     mac: Annotated[str, typer.Argument(help="The other computer's MAC address.")],

@@ -177,23 +177,17 @@ async def test_electricity_settings(link: DaemonLink, daemon: Daemon) -> None:
     tab.reload()
     await pump()
     energy = tab.energy
-    assert energy.values() == {"tariff": None, "watts": None, "price_kwh": None}
+    assert energy.values() == {"watts": None, "price_kwh": None}
     assert energy.watts.text() == "Typical"
-    energy.tariff.setCurrentIndex(energy.tariff.findData("es-2.0td"))
-    energy.tariff.activated.emit(1)
     energy.watts.setValue(45)
     energy.price.setValue(0.18)
     energy.price.editingFinished.emit()
     await pump()
-    assert (daemon.settings.tariff, daemon.settings.watts, daemon.settings.price_kwh) == (
-        "es-2.0td",
-        45,
-        0.18,
-    )
+    assert (daemon.settings.watts, daemon.settings.price_kwh) == (45, 0.18)
     shown = diagnostics(link)
     shown.reload()
     await pump()
-    assert shown.energy.values() == {"tariff": "es-2.0td", "watts": 45, "price_kwh": 0.18}
+    assert shown.energy.values() == {"watts": 45, "price_kwh": 0.18}
 
 
 async def test_desktop_checkboxes(link: DaemonLink) -> None:

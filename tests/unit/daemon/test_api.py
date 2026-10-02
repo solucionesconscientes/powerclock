@@ -454,15 +454,3 @@ async def test_quick_opens_an_app(http: httpx.AsyncClient, fake: FakePlatform) -
 
 
 # ── Settings ──────────────────────────────────────────────────────────────────
-
-
-async def test_choose_the_electricity_tariff(
-    http: httpx.AsyncClient, daemon: Daemon, paths: Paths
-) -> None:
-    assert (await http.get("/health")).json()["tariff"] is None
-    reply = await http.put("/settings/tariff", json={"tariff": "es-2.0td"})
-    assert reply.json() == {"tariff": "es-2.0td"}
-    assert json.loads(paths.settings.read_text())["tariff"] == "es-2.0td"
-    assert (await http.get("/health")).json()["tariff"] == "es-2.0td"
-    assert (await http.put("/settings/tariff", json={"tariff": "cheap"})).status_code == 422
-    assert (await http.put("/settings/tariff", json={"tariff": None})).json()["tariff"] is None

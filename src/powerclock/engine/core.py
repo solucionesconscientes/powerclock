@@ -16,7 +16,6 @@ from powerclock.engine.executor import Executor, RequestWake
 from powerclock.engine.processes import ProcessManager
 from powerclock.engine.runs import Event, EventSink, Run, RunCause
 from powerclock.engine.scheduler import Scheduler
-from powerclock.engine.tariff import Tariff
 from powerclock.engine.wake import WakeNeed, WakePlanner
 from powerclock.engine.watcher import STATE_TRIGGERS, Watcher, WatchStatus, sensor_predicates
 from powerclock.engine.wol import Sender
@@ -50,7 +49,6 @@ class Engine:
         request_wake: RequestWake | None = None,
         variables: Mapping[str, str] | None = None,
         secrets: Callable[[], Mapping[str, str]] | None = None,
-        tariff: Callable[[], Tariff | None] | None = None,
         wake_lan: Sender | None = None,
     ) -> None:
         self.clock = clock or SystemClock()
@@ -58,7 +56,7 @@ class Engine:
         self._tz = tz  # for rules without their own `timezone`
         self._sink = emit
         self.sensors = SensorHub(readings or NoReadings(), self.clock, tz=tz)
-        self.evaluator = Evaluator(self.sensors, self.clock, tariff)
+        self.evaluator = Evaluator(self.sensors, self.clock)
         self.calendars = calendar.Calendars(tz, on_change=self._calendars_changed)
         self._calendar_poke = asyncio.Event()
         self.executor = Executor(

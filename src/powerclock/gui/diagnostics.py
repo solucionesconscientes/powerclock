@@ -163,7 +163,7 @@ class DiagnosticsTab(QWidget):
         self.menu_box.toggled.connect(lambda on: self._set_desktop("set_menu", on))
         self.login_box.toggled.connect(lambda on: self._set_desktop("set_login", on))
 
-        self.energy = EnergyBox(link)  # tariff, consumption and price
+        self.energy = EnergyBox(link)  # consumption and price, for the savings estimate
 
         setup = Setup(service=self._service, helper=self._helper, desktop=self._desktop)
         self.maintenance = maintenance or MaintenanceBox(setup)

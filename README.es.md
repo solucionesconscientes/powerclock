@@ -318,8 +318,7 @@ iniciarlo), todo lo que comprueba `powerclock doctor`, con nombres claros y cóm
 funciona, la próxima alarma de encendido, **Permitir encender el equipo…** (muestra las órdenes
 exactas y las ejecuta pidiendo tu contraseña en una ventana del escritorio), **Probar un despertar dentro de 2 minutos…** y dos
 casillas: *Mostrar PowerClock en el menú de aplicaciones* e *Iniciar el icono de la bandeja al iniciar la
-sesión*, y **Electricidad**: la tarifa (solo con discriminación horaria), el consumo del equipo y
-el precio del kWh para calcular el ahorro.
+sesión*, y **Electricidad**: el consumo del equipo y el precio del kWh para calcular el ahorro.
 
 **Ventana de aviso.** Aparece por encima de las demás cuando una acción de energía está a punto de
 ocurrir: un anillo que se vacía con los segundos en grande, qué va a pasar («El equipo se apagará
@@ -368,7 +367,6 @@ escriben `30s`, `5m`, `2h`, `1d` o combinadas (`1h30m`).
 | `powerclock recipes [APP]` | Argumentos ya preparados para aplicaciones habituales. |
 | `powerclock wake-lan MAC [--broadcast IP] [--port 9]` | Enciende ya otro equipo de la red (Wake-on-LAN). |
 | `powerclock stats [--days 30] [--watts W\|auto] [--price P\|auto]` | Horas encendido y apagado y lo que ha ahorrado PowerClock (estimado; ver abajo). |
-| `powerclock tariff [es-2.0td\|none]` | La tarifa de la luz para la condición de tramo (solo con discriminación horaria). |
 | `powerclock secrets set NOMBRE` · `list` · `rm NOMBRE` | Tokens que los pasos usan por su nombre (`telegram_token`), fuera de `rules.json`, en `secrets.json` (0600). |
 | `powerclock status` | Qué está en marcha, qué viene, qué se vigila y la próxima alarma de encendido. |
 | `powerclock cancel [RUN_ID]` | Cancela la cuenta atrás en curso; si no hay, la acción rápida en marcha, la próxima con hora o la última que espera una condición. |
@@ -470,7 +468,6 @@ Las dos usan los mismos **predicados**:
 | `wifi_ssid` | `ssid` | Conectado a esa red Wi-Fi. |
 | `desktop_session` | — | Hay una sesión del escritorio abierta. |
 | `holiday` | `country` (`ES`), `extra` (fechas) | Hoy es festivo nacional (España, con Viernes Santo calculado) o uno de `extra`: los autonómicos, locales o tus días libres. |
-| `tariff_period` | `period` (`valley`, `flat`, `peak`) | La tarifa de la luz está en ese tramo. **Solo si has elegido una tarifa** (ver abajo); sin ella es desconocido. |
 | `active`, `used_today`, `file`, `device`, `temperature` | como arriba | Lo mismo que los disparadores del mismo nombre, en este momento. |
 
 Combínalos con `{"all": [ … ]}` (todas), `{"any": [ … ]}` (alguna) y `{"not": … }` (no), anidados
@@ -618,12 +615,10 @@ PowerClock solo lee los sensores que usan tus reglas: si ninguna regla vigila la
   **la temperatura** cada 10.
 - `powerclock status` y la ventana muestran lo que ve en ese momento cada regla que vigila.
 
-**La tarifa de la luz (opcional).** Solo tiene sentido si tu contrato tiene precios distintos
-según la hora (PVPC o tres periodos); con precio fijo da igual. Está desactivada: elígela en
-Diagnóstico o con `powerclock tariff es-2.0td` (España 2.0TD: valle de 0 a 8 y fines de semana y
-festivos nacionales; punta de 10 a 14 y de 18 a 22; llano el resto) y aparecerá la condición
-«Tramo de la tarifa de la luz» para, por ejemplo, dejar las copias y descargas para el valle.
-`powerclock tariff none` la quita.
+**Las horas baratas de la luz.** PowerClock no trae las tarifas de ningún país: pon tus horas
+con la condición **«Franja horaria»** (por ejemplo, de 00:00 a 08:00, que puede cruzar
+medianoche) y, si tu tarifa abarata también los fines de semana, añade **«Día de la semana»**
+o **«Hoy es festivo»**. Así vale para cualquier contrato y cualquier país.
 
 **El ahorro (estimado).** PowerClock anota cada minuto que el equipo está encendido; un hueco es
 tiempo apagado o en reposo, y si antes del hueco lo apagó o suspendió PowerClock, ese tiempo cuenta
@@ -672,7 +667,7 @@ Encender desde apagado no suele estar disponible en máquinas virtuales.
 | Archivo | Qué es |
 |---|---|
 | `~/.config/powerclock/rules.json` | Tus reglas (`{"version": 1, "rules": [ … ]}`). Puedes editarlo a mano: PowerClock lo vuelve a cargar en menos de 2 segundos. Si tiene un error, PowerClock mantiene las últimas reglas buenas, muestra el error en `powerclock status` y no escribe el archivo hasta que lo arregles, así nunca se pierde tu edición. |
-| `~/.config/powerclock/daemon.json` | Ajustes del servicio: `port` (por defecto `47831`), `dry_run` (`false`), `log_level` (`info`), `tariff` (`null` o `"es-2.0td"`), `watts` y `price_kwh` (para el ahorro; `null`: valores típicos), `currency` (`€`). |
+| `~/.config/powerclock/daemon.json` | Ajustes del servicio: `port` (por defecto `47831`), `dry_run` (`false`), `log_level` (`info`), `watts` y `price_kwh` (para el ahorro; `null`: valores típicos), `currency` (`€`). |
 | `~/.config/powerclock/api.token` | El token secreto del API (solo lo puedes leer tú). |
 | `~/.local/share/powerclock/history.sqlite` | El historial de ejecuciones. |
 | `~/.config/systemd/user/powerclock.service` | El servicio de usuario (`powerclock service install`). |
@@ -704,7 +699,7 @@ curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
 | POST | `/rules/{id}/enable` · `/disable` · `/run` · `/cancel` · `/postpone` | Actuar sobre una regla. |
 | GET | `/apps` · `/recipes` | Las aplicaciones instaladas (con sus recetas) · las recetas. |
 | GET | `/stats?days=30` | Horas encendido, apagado y apagado gracias a PowerClock, acciones y ahorro estimado. |
-| GET · PATCH | `/settings` | Los ajustes que se cambian en marcha: `tariff`, `watts`, `price_kwh`, `currency`. |
+| GET · PATCH | `/settings` | Los ajustes que se cambian en marcha: `watts`, `price_kwh`, `currency`. |
 | POST | `/quick` | Una acción rápida: `action`, `command` o `app` (+ `args`), y `in`, `at`, `when_idle`, `when_exits`, `when_cpu_below`, `when_net_below` (+ `for`), `warning`, `mode`, `wake`, `wake_at`, `dry_run`. |
 | POST | `/wake` | `{"at": "07:30"}`: encender el equipo a esa hora. |
 | GET | `/pending` | Lo próximo, lo que está en marcha, lo que se vigila y la alarma de encendido. |
@@ -789,10 +784,9 @@ omiten por defecto.
 - **0.1 — Linux** (ahora): todo lo anterior: apagar, suspender y encender a una hora o por
   condiciones, entrar en la sesión al encender (solo ese arranque, con la pantalla bloqueada),
   abrir aplicaciones con recetas, reproductores, volumen y ajustes del escritorio, avisos al
-  móvil, amanecer y anochecer, calendario, festivos, ficheros y dispositivos, la tarifa de la luz
-  como opción, Wake-on-LAN, el ahorro estimado y el diseño nuevo.
-- **0.2**: lo que salga de las pruebas en equipos reales y franjas propias en la tarifa de la luz
-  (otros países).
+  móvil, amanecer y anochecer, calendario, festivos, ficheros y dispositivos, Wake-on-LAN, el
+  ahorro estimado y el diseño nuevo.
+- **0.2**: lo que salga de las pruebas en equipos reales.
 - **0.3 — Windows** y **0.4 — macOS**.
 - **1.0**: control remoto (bot de Telegram, interfaz web), varios equipos, MQTT/Home Assistant,
   KDE Connect y describir reglas en lenguaje natural.
