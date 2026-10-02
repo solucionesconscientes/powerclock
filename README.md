@@ -6,7 +6,7 @@
 
 **English** · [Español](README.es.md)  ·  [solucionesconscientes.es/powerclock](https://solucionesconscientes.es/powerclock)
 
-> **Status:** pre-release (0.1.0 in preparation). Linux is supported today; Windows and macOS are
+> **Status:** 0.1.1, on PyPI. Linux is supported today (Intel/AMD and ARM); Windows and macOS are
 > planned. Its Quick tab was inspired by [KShutdown](https://kshutdown.sourceforge.io/); it is a
 > separate program, written from scratch and not affiliated with it.
 

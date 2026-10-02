@@ -6,7 +6,7 @@
 
 [English](README.md) · **Español**  ·  [solucionesconscientes.es/powerclock](https://solucionesconscientes.es/powerclock)
 
-> **Estado:** versión previa (se prepara la 0.1.0). Hoy funciona en Linux; Windows y macOS están
+> **Estado:** 0.1.1, publicada en PyPI. Hoy funciona en Linux (Intel/AMD y ARM); Windows y macOS están
 > previstos. Su pestaña Rápido se inspiró en [KShutdown](https://kshutdown.sourceforge.io/); es un
 > programa distinto, escrito desde cero y sin relación con él.
 

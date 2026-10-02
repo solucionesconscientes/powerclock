@@ -100,7 +100,7 @@ Decidido el 25-09-2026 a partir de 32 casos de uso (lo piden 13). Diseño en ARC
 - [x] README (es/en) con capturas; `examples/` documentados (`README.md`, `README.es.md`; capturas con `scripts/screenshots.py`. Al publicar en PyPI, las imágenes necesitan URL absolutas)
 - [x] Comprobar el nombre en PyPI; `pipx install powerclock` y `pipx install "powerclock[gui]"` limpios desde PyPI en Kubuntu (25-09-2026, en una carpeta aislada). Falta el VPS (sin GUI).
 - [x] GitHub Actions: lint + tests (Linux), build sdist/wheel (`ci.yml` con Python 3.11–3.14, en verde; `release.yml` publica en PyPI con Trusted Publishing al etiquetar `vX.Y.Z`). Repositorio público: https://github.com/solucionesconscientes/powerclock · **0.1.0 publicada el 25-09-2026** en https://pypi.org/project/powerclock/ con el instalador en https://github.com/solucionesconscientes/powerclock/releases/tag/v0.1.0
-- [ ] Prueba real del instalador (`install-powerclock.sh` de la release) en el Latitude
+- [x] Prueba real del instalador (`install-powerclock.sh` de la release) en el Latitude ✅ (02-10-2026, por el usuario: sin problemas)
 - [x] CHANGELOG; licencia definitiva (GPL-3.0-or-later, `LICENSE`)
 
 ## Empaquetado (opcional, cuando se decida)
