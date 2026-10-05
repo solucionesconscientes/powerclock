@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PowerClock</title>
+<meta name="description" content="Programa el apagado, el encendido y tus tareas: a una hora exacta o cuando se cumplan las condiciones que elijas. Software libre para Linux.">
+<link rel="icon" href="powerclock.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column that runs from night to dawn. The hero is the app's own «Próximo»
+   band, because that band is what PowerClock is: it always says what will happen and when.
+   Tokens below are the program's own design system (ARCHITECTURE §10): the state tones
+   («noche y alba»), text that grows by √φ per step, and Fibonacci spacing. */
+:root {
+  --crepusculo: #2F5FD0;  /* programado */
+  --alba:       #E8A33D;  /* se encenderá */
+  --lavanda:    #6A4FC7;  /* vigilando */
+  --brasa:      #B33A0A;  /* cuenta atrás */
+
+  --tono-programado: #2F5FD0;
+  --tono-encender:   #8A4F00;
+  --tono-vigilando:  #6A4FC7;
+  --tono-cuenta:     #B33A0A;
+  --tono-hecho:      #177245;
+
+  --fondo:      #F6F8FC;
+  --superficie: #FFFFFF;
+  --tinta:      #141B2B;
+  --apagado:    #586379;
+  --linea:      #DCE2EE;
+  --noche:      #141B2B;   /* la banda y el pie, siempre oscuros */
+  --sobre-noche:#EEF2FA;
+
+  --display: Spectral, "Iowan Old Style", Palatino, Georgia, serif;
+  --texto: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --codigo: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* √φ por paso */
+  --t--1: .795rem;  --t-0: 1rem;    --t-1: 1.272rem; --t-2: 1.618rem;
+  --t-3:  2.058rem; --t-4: 2.618rem; --t-5: 3.33rem;
+
+  /* Fibonacci */
+  --e-1: 5px;  --e-2: 8px;  --e-3: 13px; --e-4: 21px;
+  --e-5: 34px; --e-6: 55px; --e-7: 89px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --tono-programado: #8EAEF5;
+    --tono-encender:   #F2B55C;
+    --tono-vigilando:  #B3A1F0;
+    --tono-cuenta:     #F5926A;
+    --tono-hecho:      #5CCB8F;
+    --fondo:      #11141B;
+    --superficie: #181C25;
+    --tinta:      #E7ECF6;
+    --apagado:    #A7B0C2;
+    --linea:      #262C39;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --tono-programado: #8EAEF5;
+  --tono-encender:   #F2B55C;
+  --tono-vigilando:  #B3A1F0;
+  --tono-cuenta:     #F5926A;
+  --tono-hecho:      #5CCB8F;
+  --fondo:      #11141B;
+  --superficie: #181C25;
+  --tinta:      #E7ECF6;
+  --apagado:    #A7B0C2;
+  --linea:      #262C39;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--tinta);
+  font: 400 var(--t-0)/1.65 var(--texto);
+  -webkit-font-smoothing: antialiased;
+}
+.envoltorio { width: 100%; max-width: 940px; margin-inline: auto; padding-inline: var(--e-4); }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.15; text-wrap: balance; margin: 0; }
+p { margin: 0; }
+a { color: var(--tono-programado); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--tono-programado); outline-offset: 3px; border-radius: 3px; }
+img { max-width: 100%; height: auto; display: block; }
+code, kbd { font-family: var(--codigo); font-size: .92em; }
+
+/* ── Cabecera ──────────────────────────────────────────────────────────── */
+.cabecera { border-bottom: 1px solid var(--linea); background: var(--superficie); }
+.cabecera .envoltorio { display: flex; align-items: center; gap: var(--e-3); padding-block: var(--e-3); flex-wrap: wrap; }
+.marca { display: flex; align-items: center; gap: var(--e-2); font-family: var(--display); font-size: var(--t-1); font-weight: 600; }
+.marca img { width: 30px; height: 30px; }
+.version {
+  font: 500 var(--t--1)/1 var(--codigo); letter-spacing: .02em;
+  padding: var(--e-1) var(--e-2); border-radius: 999px;
+  background: color-mix(in srgb, var(--tono-hecho) 14%, transparent);
+  color: var(--tono-hecho); white-space: nowrap;
+}
+.cabecera nav { margin-left: auto; display: flex; gap: var(--e-4); font-size: var(--t--1); letter-spacing: .04em; text-transform: uppercase; }
+.cabecera nav a { color: var(--apagado); text-decoration: none; }
+.cabecera nav a:hover { color: var(--tinta); }
+
+/* ── Portada ───────────────────────────────────────────────────────────── */
+.portada .envoltorio { padding-block: var(--e-6) var(--e-5); display: grid; gap: var(--e-4); }
+.portada h1 { font-size: clamp(2.058rem, 6.2vw, 3.33rem); max-width: 17ch; }
+.entradilla { font-size: var(--t-1); color: var(--apagado); max-width: 56ch; }
+.acciones { display: flex; flex-wrap: wrap; gap: var(--e-3); align-items: center; margin-top: var(--e-1); }
+.boton {
+  display: inline-flex; align-items: center; gap: var(--e-2);
+  padding: var(--e-3) var(--e-5); border-radius: var(--e-2); border: 0;
+  background: var(--crepusculo); color: #fff; text-decoration: none;
+  font: 600 var(--t-0)/1 var(--texto); cursor: pointer;
+}
+.boton:hover { background: #27509F; }
+.boton.secundario { background: transparent; color: var(--tinta); border: 1px solid var(--linea); }
+.boton.secundario:hover { border-color: var(--apagado); background: var(--superficie); }
+.bajo-boton { font-size: var(--t--1); color: var(--apagado); }
+
+/* ── La banda «Próximo» ────────────────────────────────────────────────── */
+.banda {
+  background: var(--noche); border-radius: var(--e-3); color: var(--sobre-noche);
+  padding: var(--e-4) var(--e-5); display: flex; gap: var(--e-4); align-items: center;
+  flex-wrap: wrap; position: relative; overflow: hidden;
+  box-shadow: 0 1px 2px rgba(20,27,43,.16), 0 12px 32px -18px rgba(20,27,43,.5);
+}
+.banda::before {
+  content: ""; position: absolute; inset: 0 auto 0 0; width: var(--e-1);
+  background: var(--banda-tono, var(--crepusculo)); transition: background .5s ease;
+}
+.banda .simbolo { font-size: var(--t-4); line-height: 1; color: var(--banda-tono, var(--crepusculo)); transition: color .5s ease; }
+.banda .textos { flex: 1 1 15rem; min-width: 0; display: grid; gap: var(--e-1); }
+.banda .rotulo { font: 600 var(--t--1)/1 var(--texto); letter-spacing: .14em; text-transform: uppercase; color: var(--banda-tono, var(--crepusculo)); transition: color .5s ease; }
+.banda .titulo { font: 600 var(--t-2)/1.2 var(--display); }
+.banda .detalle { font-family: var(--codigo); font-size: var(--t--1); color: #AEB9CF; font-variant-numeric: tabular-nums; }
+.banda .botones { display: flex; gap: var(--e-2); }
+.banda .botones span {
+  border: 1px solid #4A5468; border-radius: var(--e-2); padding: var(--e-1) var(--e-3);
+  font-size: var(--t--1); color: var(--sobre-noche); white-space: nowrap;
+}
+.pie-banda { font-size: var(--t--1); color: var(--apagado); display: flex; gap: var(--e-2); align-items: baseline; flex-wrap: wrap; }
+.pie-banda b { font-weight: 500; color: var(--tinta); }
+
+/* ── Secciones ─────────────────────────────────────────────────────────── */
+section { padding-block: var(--e-6); }
+section + section { border-top: 1px solid var(--linea); }
+.titulo-seccion { font-size: var(--t-3); max-width: 20ch; }
+.sub-seccion { color: var(--apagado); max-width: 60ch; margin-top: var(--e-3); }
+
+.tres { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: var(--e-5); margin-top: var(--e-5); }
+.tres h3 { font-size: var(--t-1); display: flex; align-items: baseline; gap: var(--e-2); }
+.tres .glifo { font-size: var(--t-2); line-height: 1; }
+.tres p { color: var(--apagado); margin-top: var(--e-2); }
+.tres li { color: var(--apagado); }
+.tres ul { margin: var(--e-2) 0 0; padding-left: 1.1em; }
+
+/* ── Reglas como frases ────────────────────────────────────────────────── */
+.reglas { display: grid; gap: var(--e-3); margin-top: var(--e-5); }
+.regla { background: var(--superficie); border: 1px solid var(--linea); border-left: var(--e-1) solid var(--marca-tono, var(--crepusculo)); border-radius: var(--e-2); padding: var(--e-4) var(--e-4) var(--e-4) var(--e-5); }
+.regla > h3 { font-size: var(--t-1); margin-bottom: var(--e-3); }
+.regla dl { display: grid; grid-template-columns: minmax(7.5rem, max-content) 1fr; gap: var(--e-2) var(--e-4); margin: 0; }
+.regla dt { font: 600 var(--t--1)/1.6 var(--texto); letter-spacing: .06em; text-transform: uppercase; color: var(--apagado); }
+.regla dd { margin: 0; min-width: 0; }
+@media (max-width: 34rem) { .regla dl { grid-template-columns: 1fr; gap: 0 } .regla dd { margin-bottom: var(--e-3) } }
+
+/* ── Capturas ──────────────────────────────────────────────────────────── */
+.capturas { display: grid; gap: var(--e-5); margin-top: var(--e-5); }
+.captura { display: grid; gap: var(--e-2); }
+.captura img { border: 1px solid var(--linea); border-radius: var(--e-2); background: var(--superficie); }
+.captura figcaption { font-size: var(--t--1); color: var(--apagado); }
+@media (min-width: 46rem) { .capturas { grid-template-columns: 1fr 1fr } }
+
+/* ── Instalación ───────────────────────────────────────────────────────── */
+.vias { display: grid; gap: var(--e-5); margin-top: var(--e-5); }
+@media (min-width: 46rem) { .vias { grid-template-columns: 61.8fr 38.2fr } }  /* φ, como la ventana */
+.via { background: var(--superficie); border: 1px solid var(--linea); border-radius: var(--e-3); padding: var(--e-5); min-width: 0; }
+.via h3 { font-size: var(--t-2); }
+.via ol { margin: var(--e-3) 0 0; padding-left: 1.2em; color: var(--apagado); display: grid; gap: var(--e-2); }
+.via p { color: var(--apagado); margin-top: var(--e-3); }
+.orden { position: relative; margin-top: var(--e-3); }
+.orden pre {
+  margin: 0; overflow-x: auto; background: var(--noche); color: var(--sobre-noche);
+  border-radius: var(--e-2); padding: var(--e-3) var(--e-4); font: 400 var(--t--1)/1.8 var(--codigo);
+}
+.orden pre .c { color: #8C97AD; }
+.copiar {
+  position: absolute; top: var(--e-2); right: var(--e-2);
+  background: #2A3144; color: var(--sobre-noche); border: 1px solid #434C61;
+  border-radius: var(--e-1); padding: 3px var(--e-2); font: 500 var(--t--1)/1.5 var(--texto); cursor: pointer;
+}
+.copiar:hover { background: #363E54; }
+
+/* ── Honestidad ────────────────────────────────────────────────────────── */
+.estados { list-style: none; margin: var(--e-5) 0 0; padding: 0; display: grid; gap: var(--e-3); max-width: 60ch; }
+.estados li { display: grid; grid-template-columns: 1.6em 1fr; gap: var(--e-2); align-items: baseline; }
+.estados .si { color: var(--tono-hecho); font-weight: 600; }
+.estados .pronto { color: var(--tono-encender); font-weight: 600; }
+.estados small { display: block; color: var(--apagado); }
+
+/* ── Pie ───────────────────────────────────────────────────────────────── */
+footer { background: var(--noche); color: #B9C3D6; padding-block: var(--e-6); margin-top: var(--e-6); }
+footer .envoltorio { display: flex; flex-wrap: wrap; gap: var(--e-4) var(--e-6); align-items: flex-start; }
+footer a { color: #A9C2F5; }
+footer .lema { font-family: var(--display); font-size: var(--t-1); color: var(--sobre-noche); max-width: 24ch; flex: 1 1 14rem; }
+footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--e-2); font-size: var(--t--1); }
+footer .legal { font-size: var(--t--1); color: #8C97AD; flex-basis: 100%; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important } }
+</style>
+</head>
+<body>
+
+<header class="cabecera">
+  <div class="envoltorio">
+    <span class="marca"><img src="powerclock.svg" alt="" width="30" height="30">PowerClock</span>
+    <span class="version">1.0</span>
+    <nav>
+      <a href="#instalar">Instalar</a>
+      <a href="https://github.com/solucionesconscientes/powerclock">Código</a>
+      <a href="https://pypi.org/project/powerclock/">PyPI</a>
+    </nav>
+  </div>
+</header>
+
+<div class="portada">
+  <div class="envoltorio">
+    <h1>Tu ordenador se apaga solo. Y se enciende solo.</h1>
+    <p class="entradilla">Programa el apagado, el encendido y tus tareas: a una hora exacta o cuando
+      se cumplan las condiciones que elijas.</p>
+
+    <div class="banda" id="banda" style="--banda-tono: var(--crepusculo)">
+      <span class="simbolo" id="banda-simbolo">◷</span>
+      <div class="textos">
+        <span class="rotulo">Próximo</span>
+        <span class="titulo" id="banda-titulo">Apagar: hoy 23:30</span>
+        <span class="detalle" id="banda-detalle">dentro de 3h 12m · se volverá a encender mañana 07:30</span>
+      </div>
+      <div class="botones"><span>Posponer 10 min</span><span>Cancelar</span></div>
+    </div>
+    <p class="pie-banda"><b>Esta franja es la del programa.</b> PowerClock siempre dice qué va a pasar
+      y cuándo, y puedes cancelarlo hasta el último segundo.</p>
+
+    <div class="acciones">
+      <a class="boton" href="https://github.com/solucionesconscientes/powerclock/releases/latest/download/install-powerclock.sh">Descargar el instalador</a>
+      <a class="boton secundario" href="#reglas">Ver qué puede hacer</a>
+      <span class="bajo-boton">Linux · Intel/AMD y ARM · software libre (GPL-3.0)</span>
+    </div>
+  </div>
+</div>
+
+<section id="hace">
+  <div class="envoltorio">
+    <h2 class="titulo-seccion">Tres cosas, y ninguna te deja a ciegas</h2>
+    <div class="tres">
+      <div>
+        <h3><span class="glifo" style="color: var(--tono-cuenta)">◴</span> Apagar</h3>
+        <p>Apagar, reiniciar, suspender, hibernar, bloquear o cerrar la sesión.</p>
+        <ul>
+          <li>A una hora, dentro de un rato o cada día</li>
+          <li>Cuando dejes de usarlo, termine la descarga o acabe un programa</li>
+          <li>Con aviso y cuenta atrás que puedes cancelar o posponer</li>
+        </ul>
+      </div>
+      <div>
+        <h3><span class="glifo" style="color: var(--tono-encender)">☀</span> Encender</h3>
+        <p>La alarma del reloj del propio equipo lo despierta, o lo enciende desde apagado.</p>
+        <ul>
+          <li>Despierta de la suspensión a la hora que digas</li>
+          <li>Entra en la sesión solo en ese arranque, con la pantalla bloqueada</li>
+          <li>Enciende otros equipos de la red (Wake-on-LAN)</li>
+        </ul>
+      </div>
+      <div>
+        <h3><span class="glifo" style="color: var(--tono-vigilando)">◉</span> Hacer cosas</h3>
+        <p>Entre medias ejecuta lo que necesites, aunque no estés delante.</p>
+        <ul>
+          <li>Programas y scripts, en una terminal si piden contraseña</li>
+          <li>Abrir aplicaciones colocadas donde quieras</li>
+          <li>Avisarte al móvil y esperar tu respuesta</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="reglas">
+  <div class="envoltorio">
+    <h2 class="titulo-seccion">Una regla se lee como una frase</h2>
+    <p class="sub-seccion">No hay que aprender ninguna sintaxis. Cada regla responde a cuatro
+      preguntas, y el editor te las hace en ese orden.</p>
+
+    <div class="reglas">
+      <article class="regla" style="--marca-tono: var(--crepusculo)">
+        <h3>Copia de seguridad por la noche, y apagar</h3>
+        <dl>
+          <dt>Cuándo</dt><dd>Se repite: todos los días a las 03:00 · encendiendo el equipo</dd>
+          <dt>Solo si…</dt><dd>Está enchufado a la corriente</dd>
+          <dt>Esperar mientras…</dt><dd>Haya un render en marcha o se esté reproduciendo algo</dd>
+          <dt>Qué hará</dt><dd>ejecutar <code>backup.sh</code> → avisar: «Copia terminada» → Apagar</dd>
+        </dl>
+      </article>
+
+      <article class="regla" style="--marca-tono: var(--lavanda)">
+        <h3>Apagar cuando termine la descarga</h3>
+        <dl>
+          <dt>Cuándo</dt><dd>La red lleve 5 minutos por debajo de 50 kbit/s</dd>
+          <dt>Solo si…</dt><dd>Siempre</dd>
+          <dt>Esperar mientras…</dt><dd>Nunca espera</dd>
+          <dt>Qué hará</dt><dd>Apagar, avisando 2 minutos antes</dd>
+        </dl>
+      </article>
+
+      <article class="regla" style="--marca-tono: var(--alba)">
+        <h3>Encenderlo los laborables y abrir la agenda</h3>
+        <dl>
+          <dt>Cuándo</dt><dd>Se repite: de lunes a viernes a las 07:30 · encendiendo el equipo</dd>
+          <dt>Solo si…</dt><dd>Hoy no es festivo</dd>
+          <dt>Esperar mientras…</dt><dd>Nunca espera</dd>
+          <dt>Qué hará</dt><dd>abrir el calendario a pantalla completa</dd>
+        </dl>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="aspecto">
+  <div class="envoltorio">
+    <h2 class="titulo-seccion">Así se ve</h2>
+    <p class="sub-seccion">Una ventana con cuatro pestañas y un icono en la bandeja. También hay
+      línea de comandos completa, para servidores sin escritorio.</p>
+    <div class="capturas">
+      <figure class="captura">
+        <img src="images/quick.png" alt="La pestaña Rápido: botones para apagar, reiniciar o suspender, cuándo hacerlo y las acciones ya programadas." width="987" height="610" loading="lazy">
+        <figcaption>Rápido: elige qué y cuándo, y ya está programado.</figcaption>
+      </figure>
+      <figure class="captura">
+        <img src="images/rules.png" alt="La pestaña Reglas: una tabla con el nombre de cada regla, cuándo se dispara y qué viene a continuación." width="987" height="610" loading="lazy">
+        <figcaption>Reglas: todas tus automatizaciones y qué toca después.</figcaption>
+      </figure>
+      <figure class="captura">
+        <img src="images/editor-when.png" alt="El editor de reglas con la regla escrita como una frase en la parte superior." width="740" height="665" loading="lazy">
+        <figcaption>El editor, con la regla escrita en palabras arriba.</figcaption>
+      </figure>
+      <figure class="captura">
+        <img src="images/diagnostics.png" alt="La pestaña Diagnóstico: una tabla de qué funciona en este equipo y cómo arreglar lo que no." width="987" height="610" loading="lazy">
+        <figcaption>Diagnóstico: qué funciona en tu equipo y cómo arreglar lo que no.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section id="instalar">
+  <div class="envoltorio">
+    <h2 class="titulo-seccion">Instalar</h2>
+    <p class="sub-seccion">Dos caminos. El primero no pide saber nada de terminales.</p>
+    <div class="vias">
+      <div class="via">
+        <h3>Con el instalador</h3>
+        <ol>
+          <li>Descarga <code>install-powerclock.sh</code> (pesa unos KB).</li>
+          <li>Clic derecho → <em>Propiedades</em> → <em>Permisos</em> → <em>Permitir ejecutar el
+            archivo como un programa</em>.</li>
+          <li>Haz doble clic. Se descarga PowerClock con su propio Python y Qt, así no depende de
+            lo que tenga tu sistema.</li>
+          <li>Pulsa <em>Instalar</em> y escribe tu contraseña una sola vez, para que pueda encender
+            el equipo.</li>
+        </ol>
+        <p>Queda en la bandeja, en el menú de aplicaciones y con su servicio en marcha. Actualizar
+          ya no pide contraseña nunca.</p>
+        <div class="acciones">
+          <a class="boton" href="https://github.com/solucionesconscientes/powerclock/releases/latest/download/install-powerclock.sh">Descargar el instalador</a>
+        </div>
+      </div>
+      <div class="via">
+        <h3>Con pipx</h3>
+        <p style="margin-top: 0">Para quien ya se maneja, y para servidores sin escritorio.</p>
+        <div class="orden">
+          <button class="copiar" type="button" data-copiar="orden-pipx">Copiar</button>
+          <pre id="orden-pipx">pipx install "powerclock[gui]"
+powerclock setup
+powerclock doctor</pre>
+        </div>
+        <p>En un servidor, sin ventana: <code>pipx install powerclock</code>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="honesto">
+  <div class="envoltorio">
+    <h2 class="titulo-seccion">Lo que funciona, y lo que todavía no</h2>
+    <p class="sub-seccion">PowerClock no promete lo que tu equipo no puede hacer. El apartado
+      Diagnóstico comprueba cada cosa en tu máquina y, cuando algo falla, dice cómo arreglarlo.</p>
+    <ul class="estados">
+      <li><span class="si">✔</span> <div><b>Linux</b>, con Intel/AMD o ARM. Probado en KDE Plasma sobre
+        Wayland; también GNOME y X11.</div></li>
+      <li><span class="si">✔</span> <div><b>Servidores sin escritorio.</b> El servicio y la línea de
+        comandos funcionan solos, hasta en una Raspberry Pi.</div></li>
+      <li><span class="pronto">☀</span> <div><b>Windows</b>, en la 1.1.
+        <small>El despertar usará el Programador de tareas; hay que probarlo en equipos reales.</small></div></li>
+      <li><span class="pronto">☀</span> <div><b>macOS</b>, en la 1.2.</div></li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div class="envoltorio">
+    <p class="lema">PowerClock siempre dice qué va a pasar, cuándo, y cómo pararlo.</p>
+    <ul>
+      <li><a href="https://github.com/solucionesconscientes/powerclock">Código en GitHub</a></li>
+      <li><a href="https://pypi.org/project/powerclock/">Paquete en PyPI</a></li>
+      <li><a href="https://github.com/solucionesconscientes/powerclock/blob/main/CHANGELOG.md">Novedades</a></li>
+      <li><a href="https://github.com/solucionesconscientes/powerclock/issues">Avisar de un fallo</a></li>
+    </ul>
+    <p class="legal">Versión 1.0 · Software libre con licencia GPL-3.0-or-later ·
+      Hecho por <a href="https://solucionesconscientes.es">Soluciones Conscientes</a></p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  // The band cycles through the states the program really has, with their own tones and symbols.
+  var estados = [
+    { tono: "var(--crepusculo)", simbolo: "◷", titulo: "Apagar: hoy 23:30",
+      detalle: "dentro de 3h 12m · se volverá a encender mañana 07:30" },
+    { tono: "var(--alba)", simbolo: "☀", titulo: "Encender el equipo",
+      detalle: "mañana 07:30 · dentro de 11h 42m" },
+    { tono: "var(--lavanda)", simbolo: "◉", titulo: "Apagar cuando termine la descarga",
+      detalle: "28 kbit/s · midiendo: 1m 33s de 5m" },
+    { tono: "var(--brasa)", simbolo: "◴", titulo: "El equipo se apagará en 42 s",
+      detalle: "puedes cancelarlo hasta el último segundo" }
+  ];
+
+  var banda = document.getElementById("banda");
+  var simbolo = document.getElementById("banda-simbolo");
+  var titulo = document.getElementById("banda-titulo");
+  var detalle = document.getElementById("banda-detalle");
+  var quieto = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  if (banda && !quieto.matches) {
+    var i = 0;
+    setInterval(function () {
+      i = (i + 1) % estados.length;
+      var e = estados[i];
+      banda.style.setProperty("--banda-tono", e.tono);
+      simbolo.textContent = e.simbolo;
+      titulo.textContent = e.titulo;
+      detalle.textContent = e.detalle;
+    }, 3800);
+  }
+
+  // Copy the commands; if the browser refuses, select them so the reader can copy by hand.
+  Array.prototype.forEach.call(document.querySelectorAll("[data-copiar]"), function (boton) {
+    boton.addEventListener("click", function () {
+      var bloque = document.getElementById(boton.getAttribute("data-copiar"));
+      if (!bloque) { return; }
+      var decir = function (texto) {
+        boton.textContent = texto;
+        setTimeout(function () { boton.textContent = "Copiar"; }, 2000);
+      };
+      var seleccionar = function () {
+        var rango = document.createRange();
+        rango.selectNodeContents(bloque);
+        var seleccion = window.getSelection();
+        seleccion.removeAllRanges();
+        seleccion.addRange(rango);
+        decir("Selecciónalo y cópialo");
+      };
+      try {
+        navigator.clipboard.writeText(bloque.textContent.trim())
+          .then(function () { decir("Copiado"); })
+          .catch(seleccionar);
+      } catch (error) {
+        seleccionar();
+      }
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
