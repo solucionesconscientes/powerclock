@@ -2,661 +2,687 @@
 
 # PowerClock
 
-**Shutdown, wake-up and task scheduler**
+**Programador de apagado, encendido y tareas**
 
-**English** · [Español](README.es.md)  ·  [solucionesconscientes.es/powerclock](https://solucionesconscientes.es/powerclock)
+**Español** · [English](README.en.md)  ·  [solucionesconscientes.es/powerclock](https://solucionesconscientes.es/powerclock)
 
-> **Status:** 1.0, on PyPI. Linux is supported today (Intel/AMD and ARM); Windows and macOS are
-> planned. Its Quick tab was inspired by [KShutdown](https://kshutdown.sourceforge.io/); it is a
-> separate program, written from scratch and not affiliated with it.
+> **Estado:** 1.0, publicada en PyPI. Hoy funciona en Linux (Intel/AMD y ARM); Windows y macOS están
+> previstos. Su pestaña Rápido se inspiró en [KShutdown](https://kshutdown.sourceforge.io/); es un
+> programa distinto, escrito desde cero y sin relación con él.
 
-**Schedule shutdown, wake-up and your tasks, at an exact time or when the conditions you choose
-are met.** PowerClock shuts down, restarts, suspends, hibernates, locks, logs out and **turns your
-computer on** by itself, and runs your programs and scripts **at a time, on a schedule or when a
-condition is met**: you stop using the computer, a render or a download finishes, the battery runs
-low, the laptop is unplugged…
+**Programa el apagado, el encendido y tus tareas: a una hora exacta o cuando se cumplan las
+condiciones que elijas.** PowerClock apaga, reinicia, suspende, hiberna, bloquea, cierra la sesión
+y **enciende tu equipo** por sí solo, y ejecuta tus programas y scripts **a una hora, de forma
+periódica o cuando se cumple una condición**: dejas de usar el equipo, termina un render o una
+descarga, queda poca batería, se desenchufa el portátil…
 
-It does this with **persistent rules** that PowerClock keeps in the background (a small service,
-the *daemon*). Rules keep working with the window closed, after a restart, and even with the
-session closed. You can
-drive it from a **tray icon and a window** (in the spirit of KShutdown), from the **command
-line**, or from any program through a **local API**.
+Lo hace con **reglas persistentes** que PowerClock guarda en segundo plano (un pequeño servicio,
+el *daemon*). Las reglas siguen funcionando con la ventana cerrada, después de reiniciar e incluso
+con la sesión cerrada. Puedes manejarlo desde un **icono en la bandeja y una ventana**
+(al estilo de KShutdown), desde la **línea de comandos** o desde cualquier programa a través de un
+**API local**.
 
-![The Quick tab](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/quick.png)
-
----
-
-## Contents
-
-- [What it can do](#what-it-can-do)
-- [Screenshots](#screenshots)
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Getting started in five minutes](#getting-started-in-five-minutes)
-- [How it works: the main ideas](#how-it-works-the-main-ideas)
-- [The graphical interface](#the-graphical-interface)
-- [The command line](#the-command-line)
-- [Rules in detail](#rules-in-detail)
-- [Turning the computer on and waking it up](#turning-the-computer-on-and-waking-it-up)
-- [Conditions and sensors](#conditions-and-sensors)
-- [Safety](#safety)
-- [Using it on a server](#using-it-on-a-server)
-- [Files and settings](#files-and-settings)
-- [The local API](#the-local-api)
-- [Troubleshooting](#troubleshooting)
-- [Uninstalling](#uninstalling)
-- [Development](#development)
-- [Roadmap](#roadmap)
-- [License](#license)
+![La pestaña Rápido](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/quick.png)
 
 ---
 
-## What it can do
+## Contenido
 
-**Power actions**
+- [Qué puede hacer](#qué-puede-hacer)
+- [Capturas](#capturas)
+- [Requisitos](#requisitos)
+- [Instalación](#instalación)
+- [Empezar en cinco minutos](#empezar-en-cinco-minutos)
+- [Cómo funciona: las ideas principales](#cómo-funciona-las-ideas-principales)
+- [La interfaz gráfica](#la-interfaz-gráfica)
+- [La línea de comandos](#la-línea-de-comandos)
+- [Las reglas en detalle](#las-reglas-en-detalle)
+- [Encender y despertar el equipo](#encender-y-despertar-el-equipo)
+- [Condiciones y sensores](#condiciones-y-sensores)
+- [Seguridad](#seguridad)
+- [Uso en un servidor](#uso-en-un-servidor)
+- [Archivos y ajustes](#archivos-y-ajustes)
+- [El API local](#el-api-local)
+- [Solución de problemas](#solución-de-problemas)
+- [Desinstalar](#desinstalar)
+- [Desarrollo](#desarrollo)
+- [Hoja de ruta](#hoja-de-ruta)
+- [Licencia](#licencia)
 
-| Action | What happens |
+---
+
+## Qué puede hacer
+
+**Acciones de energía**
+
+| Acción | Qué ocurre |
 |---|---|
-| Shut down | Turns the computer off. By default *gracefully*: your desktop asks open applications to save first (KDE and GNOME). |
-| Restart | Reboots, also gracefully by default. |
-| Suspend | Sleep to RAM (S3). Resumes in seconds. |
-| Hibernate | Saves memory to disk and powers off (needs a swap as large as RAM and `resume=` configured). |
-| Hybrid sleep | Suspend + hibernate: resumes fast, and survives a power cut. |
-| Lock the screen | Locks your session. |
-| Log out | Closes your session (gracefully by default). |
-| Turn off the screen | Turns the display off (KDE, GNOME or X11). |
-| **Turn on / wake up** | Programs the computer's hardware clock (RTC) so it **wakes from suspend or even powers on from off** at a given time. |
+| Apagar | Apaga el equipo. Por defecto de forma *ordenada*: el escritorio pide antes a las aplicaciones abiertas que guarden (KDE y GNOME). |
+| Reiniciar | Reinicia, también de forma ordenada por defecto. |
+| Suspender | Suspensión en RAM (S3). Se reanuda en segundos. |
+| Hibernar | Guarda la memoria en disco y apaga (necesita una swap tan grande como la RAM y `resume=` configurado). |
+| Suspensión híbrida | Suspender + hibernar: se reanuda rápido y aguanta un corte de luz. |
+| Bloquear la pantalla | Bloquea tu sesión. |
+| Cerrar sesión | Cierra tu sesión (de forma ordenada por defecto). |
+| Apagar la pantalla | Apaga el monitor (KDE, GNOME o X11). |
+| **Encender / despertar** | Programa el reloj del hardware (RTC) para que el equipo **despierte de la suspensión o incluso se encienda estando apagado** a una hora. |
 
-**Other actions** (steps of a rule, run in order): **open an installed application** (picked from
-the menu's list, Flatpak and Snap ones too) with ready-made **recipes** (a web page as a kiosk,
-a playlist on a loop, a PDF as a presentation…), placing its window on a screen or full screen
-and keeping it open if it closes · **control a media player** (play, pause, next, open a radio
-station) · **set the volume**, little by little if you like · **play a sound or say a text
-aloud** · **change the desktop** (light or dark theme, wallpaper, brightness, power profile) ·
-**connect a VPN** or turn Wi-Fi on or off · **keep the screen on and silence notifications** for a
-while · **take a screenshot** for the history · **send a message to your phone** (ntfy, Telegram) or to
-any webhook (Home Assistant…) · **ask with buttons** and wait for the answer (again every few
-minutes, like a medication reminder) · run a program or a shell command (with a time
-limit, its output kept in the history) · open a file or web page · close a program (asking it nicely, then forcing
-it) · show a desktop notification · wait a while · wait until a condition is met · program the
-next wake-up. File names and texts can carry the date: `radio-{date}.mp3`.
+**Otras acciones** (pasos de una regla, que se ejecutan en orden): **abrir una aplicación
+instalada** (elegida de la lista del menú, también Flatpak y Snap) con **recetas** ya preparadas
+(una web en modo quiosco, una lista en bucle, un PDF como presentación…), colocando su ventana en
+una pantalla o a pantalla completa y manteniéndola abierta si se cierra · **controlar un
+reproductor** (reproducir, pausar, siguiente, poner una emisora) · **ajustar el volumen**, poco a
+poco si quieres · **reproducir un sonido o decir un texto en voz alta** · **cambiar el escritorio**
+(tema claro u oscuro, fondo, brillo, perfil de energía) · **conectar una VPN** o encender y apagar
+el Wi-Fi · **mantener la pantalla encendida y silenciar los avisos** un rato · **hacer una captura
+de pantalla** para el historial · **mandar un mensaje al móvil** (ntfy, Telegram) o a cualquier
+webhook (Home Assistant…) · **preguntar con botones** y esperar la respuesta (repitiéndolo cada
+pocos minutos, como un recordatorio de medicación) · ejecutar un programa o una orden del shell (con tiempo máximo y su salida guardada en el historial) · abrir un archivo o
+una web · cerrar un programa (primero pidiéndoselo y luego forzándolo) · mostrar una
+notificación · esperar un rato · esperar a que se cumpla una condición · programar el siguiente
+encendido. Los nombres de archivo y los textos pueden llevar la fecha: `radio-{date}.mp3`.
 
-**When** (the *trigger*):
+**Cuándo** (el *trigger*):
 
-- **At a time**: once at a date and time, after a delay (a countdown), or repeating with a cron
-  expression (every night at 03:00, weekdays at 07:30…), in your time zone or another one.
-- **When a condition is met**: the computer has not been used for a while · a program ends
-  (render, compression, copy…) · the computer goes quiet (low CPU for a while) · a download
-  finishes (low network traffic for a while) · the battery goes below/above a level · the laptop is unplugged or
-  plugged in · the desktop session starts (after logging in) · PowerClock starts or the computer
-  resumes from sleep.
-- **By hand**: from the window, the tray, the command line or the API.
+- **A una hora**: una vez en una fecha y hora, tras un tiempo (una cuenta atrás) o de forma
+  periódica con una expresión cron (cada noche a las 03:00, los laborables a las 07:30…), en tu
+  zona horaria o en otra.
+- **Cuando se cumple una condición**: no se usa el equipo desde hace un rato · termina un
+  programa (un render, una compresión, una copia…) · el equipo queda en reposo (CPU baja un
+  tiempo) · termina una descarga (red baja un tiempo) · la batería baja o sube de un nivel · se
+  desenchufa o se enchufa el portátil · se abre la sesión del escritorio (al entrar) · arranca
+  PowerClock o el equipo vuelve de la suspensión.
+- **Manual**: desde la ventana, la bandeja, la línea de comandos o el API.
 
-**Only if / wait while**:
+**Solo si / esperar mientras**:
 
-- **Only if…** (*conditions*) decides whether a rule runs at its moment ("only if plugged in",
-  "only on weekdays", "only between 22:00 and 07:00", "only on my home Wi-Fi"…).
-- **Wait while…** (*guards*) makes it *wait* and check again ("while a video is playing", "while
-  someone is connected by SSH", "while ffmpeg is running") up to a limit.
+- **Solo si…** (las *conditions*) decide si una regla se ejecuta en su momento ("solo si está
+  enchufado", "solo los laborables", "solo entre las 22:00 y las 07:00", "solo en la Wi-Fi de
+  casa"…).
+- **Esperar mientras…** (las *guards*) la hace *esperar* y volver a mirar ("mientras se reproduce
+  un vídeo", "mientras alguien está conectado por SSH", "mientras ffmpeg está en marcha"), hasta un
+  límite.
 
-**Around it**: a **warning** before any power action that you can cancel until the last second
-(with *Cancel* and *Postpone 10 minutes* in a notification and a dialog) · a **test mode**
-(`--dry-run`) to try everything without turning anything off · a **history** of every run with its result and reason · `powerclock doctor`, which
-checks what works on your computer and says how to fix what does not · a **tray icon** · an
-interface in **English and Spanish**.
+**Además**: un **aviso** antes de cualquier acción de energía que puedes cancelar hasta el último
+segundo (con *Cancelar* y *Posponer 10 minutos* en una notificación y en una ventana) · un **modo
+prueba** (`--dry-run`) para probarlo todo sin apagar nada · un **historial** de cada ejecución con su resultado y su
+motivo · `powerclock doctor`, que comprueba qué funciona en tu equipo y dice cómo arreglar lo que no ·
+un **icono en la bandeja** · la interfaz en **español e inglés**.
 
-## Screenshots
+## Capturas
 
 | | |
 |---|---|
-| ![Quick tab](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/quick.png) **Quick**: the «Next» band on top; an action, when, and a button that says what it will do. On the right, what is scheduled. | ![Rules tab](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/rules.png) **Rules**: every rule and what comes next. |
-| ![Rule editor: the rule as a sentence](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/editor-when.png) **Rule editor**: the rule read as a sentence and the schedule without cron. | ![Rule editor: steps](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/editor-steps.png) **Rule editor**: the steps, in order. |
-| ![History](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/history.png) **History**: result and reason of every run. | ![Diagnostics](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/diagnostics.png) **Diagnostics**: what works here and how to fix the rest. |
-| ![Countdown](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/countdown.png) The **countdown** before a power action. | ![Gallery of rules](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/en/gallery.png) The **gallery**: ready-made rules by use case. |
+| ![Pestaña Rápido](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/quick.png) **Rápido**: arriba, la franja «Próximo»; una acción, cuándo y un botón que dice lo que hará. A la derecha, lo programado. | ![Pestaña Reglas](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/rules.png) **Reglas**: todas las reglas y lo próximo. |
+| ![Editor: la regla como frase](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/editor-when.png) **Editor de reglas**: la regla leída como una frase y el horario sin cron. | ![Editor: pasos](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/editor-steps.png) **Editor de reglas**: los pasos, en orden. |
+| ![Historial](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/history.png) **Historial**: resultado y motivo de cada ejecución. | ![Diagnóstico](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/diagnostics.png) **Diagnóstico**: qué funciona aquí y cómo arreglar el resto. |
+| ![Aviso antes de actuar](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/countdown.png) El **aviso** antes de una acción de energía. | ![Galería de reglas](https://raw.githubusercontent.com/solucionesconscientes/powerclock/main/docs/images/es/gallery.png) La **galería**: reglas ya preparadas por caso de uso. |
 
-## Requirements
+## Requisitos
 
-- **Linux with systemd** (logind). Tested on Kubuntu 26.04 with KDE Plasma 6 on Wayland; it also
-  supports GNOME and X11, and any desktop for the basics (power actions go through logind).
-- **Python 3.11 or newer** (every current distribution has it) and **pipx** to install it.
-- For the window and the tray: a graphical session. On GNOME, the tray icon needs the
-  *AppIndicator* extension (Ubuntu enables it by default); without it PowerClock works from its window.
-- To **turn the computer on** at a time: an RTC wake alarm (almost every PC) and, to power on from
-  *off*, a BIOS/UEFI that allows it (usually only on AC power for laptops). `powerclock doctor` tells you.
-- A server without a desktop (a VPS) can run PowerClock in the background and its command line alone.
-- **Intel/AMD (x86-64) or ARM (aarch64)**: PowerClock is pure Python and every dependency ships
-  builds for both. On ARM with a desktop you need glibc 2.39 or newer (Ubuntu 24.04 onwards),
-  which is what Qt asks for; headless it runs on any ARM, a Raspberry Pi included.
+- **Linux con systemd** (logind). Probado en Kubuntu 26.04 con KDE Plasma 6 en Wayland; también
+  es compatible con GNOME y X11, y con cualquier escritorio para lo básico (las acciones de energía
+  pasan por logind).
+- **Python 3.11 o posterior** (lo traen todas las distribuciones actuales) y **pipx** para
+  instalarlo.
+- Para la ventana y la bandeja: una sesión gráfica. En GNOME, el icono de la bandeja necesita la
+  extensión *AppIndicator* (Ubuntu la trae activada); sin ella, PowerClock funciona desde su ventana.
+- Para **encender el equipo** a una hora: una alarma de encendido en el RTC (casi cualquier PC) y,
+  para encender desde *apagado*, una BIOS/UEFI que lo permita (en portátiles, normalmente solo
+  enchufado a la corriente). `powerclock doctor` te lo dice.
+- Un servidor sin escritorio (un VPS) puede usar solo PowerClock en segundo plano y la línea de comandos.
+- **Procesador Intel/AMD (x86-64) o ARM (aarch64)**: PowerClock es Python puro y todas sus
+  dependencias publican versiones para ambos. En ARM con escritorio hace falta glibc 2.39 o
+  posterior (Ubuntu 24.04 en adelante), que es lo que pide Qt; sin escritorio funciona en
+  cualquier ARM, una Raspberry Pi incluida.
 
-## Installation
+## Instalación
 
-### The easy way (Linux)
+### La forma fácil (Linux)
 
-1. **Download the installer**: [`install-powerclock.sh`](https://github.com/solucionesconscientes/powerclock/releases/latest/download/install-powerclock.sh) (a few KB).
-2. **Allow it to run**: right click → *Properties* → *Permissions* → *Allow executing file as
-   program* (or, in a terminal, `chmod +x install-powerclock.sh`).
-3. **Double-click it.** A terminal shows the download: PowerClock with its own Python and Qt,
-   about 130 MB to download and 400 MB on disk, so it does not depend on what your system has.
-   Then PowerClock's installation window opens.
-4. **Press Install** and type your password when asked (once, so that PowerClock can turn the
-   computer on).
+1. **Descarga el instalador**: [`install-powerclock.sh`](https://github.com/solucionesconscientes/powerclock/releases/latest/download/install-powerclock.sh) (unos KB).
+2. **Permite que se ejecute**: clic derecho → *Propiedades* → *Permisos* → *Permitir ejecutar el
+   archivo como un programa* (o, en una terminal, `chmod +x install-powerclock.sh`).
+3. **Haz doble clic.** Una terminal muestra la descarga: PowerClock con su propio Python y Qt,
+   unos 130 MB de descarga y 400 MB en disco, así no depende de lo que tenga tu sistema. Después se abre la
+   ventana de instalación de PowerClock.
+4. **Pulsa Instalar** y escribe tu contraseña cuando te la pida (una vez, para que PowerClock
+   pueda encender el equipo).
 
-That is all: PowerClock is in the tray and in the applications menu, and its service is running.
-Everything lives in your home folder except a small program that can only program the wake-up
-alarm, so updating never asks for the password. To update: *Diagnostics → Check for updates* (or `powerclock update`). To uninstall:
-*Diagnostics → Uninstall PowerClock…* (or `powerclock uninstall`).
+Ya está: PowerClock queda en la bandeja y en el menú de aplicaciones, y su servicio en marcha. Todo
+vive en tu carpeta personal salvo un pequeño programa que solo puede programar la alarma de
+encendido, así que actualizar nunca pide contraseña.
+Para actualizar: *Diagnóstico → Buscar actualizaciones* (o `powerclock update`). Para desinstalar:
+*Diagnóstico → Desinstalar PowerClock…* (o `powerclock uninstall`).
 
-Windows and macOS installers will work the same way when those versions arrive.
+Los instaladores de Windows y macOS funcionarán igual cuando lleguen esas versiones.
 
-### With pipx (technical users and servers)
+### Con pipx (usuarios técnicos y servidores)
 
 ```bash
-sudo apt install pipx && pipx ensurepath   # once (Debian/Ubuntu shown); then open a new terminal
-pipx install "powerclock[gui]"             # on a server, without the window: pipx install powerclock
-powerclock setup                           # service, menu, login start and wake-up helper (sudo once)
-powerclock doctor                          # what works on this computer
+sudo apt install pipx && pipx ensurepath   # una vez (aquí Debian/Ubuntu); después abre otra terminal
+pipx install "powerclock[gui]"             # en un servidor, sin la ventana: pipx install powerclock
+powerclock setup                           # servicio, menú, inicio con la sesión y permiso de encendido (sudo una vez)
+powerclock doctor                          # qué funciona en este equipo
 ```
 
-`powerclock setup --no-helper`, `--no-menu`, `--no-login` and `--unattended` choose what to set up;
-`powerclock service install` and `powerclock helper install` do it step by step. See
-[Using it on a server](#using-it-on-a-server).
+`powerclock setup --no-helper`, `--no-menu`, `--no-login` y `--unattended` eligen qué preparar;
+`powerclock service install` y `powerclock helper install` lo hacen paso a paso. Mira
+[Uso en un servidor](#uso-en-un-servidor).
 
-## Getting started in five minutes
+## Empezar en cinco minutos
 
-Everything below can be tried safely first in **test mode**: add `--dry-run` to a quick command,
-or install the service with `powerclock service install --dry-run`. Power actions are then only
-noted down, never done.
+Todo lo que sigue se puede probar antes en **modo prueba**: añade `--dry-run` a una acción rápida,
+o instala el servicio con `powerclock service install --dry-run`. Las acciones de energía solo se
+anotan, nunca se hacen.
 
-**From the window** (`powerclock gui`), *Quick* tab: pick an *Action* (e.g. *Shut down*), pick *When*
-(e.g. *After a delay* → `30m`) and press the button, which says what it will do (*Schedule
-shutdown*). It appears under *Scheduled* with its time, and the tray icon turns blue. Cancel or
-postpone it from there, from the tray menu or from the warning window that appears one minute
-before acting.
+**Desde la ventana** (`powerclock gui`), pestaña *Rápido*: elige una *Acción* (p. ej. *Apagar*), elige
+*Cuándo* (p. ej. *Dentro de un tiempo* → `30m`) y pulsa el botón, que dice lo que hará
+(*Programar apagado*). Aparece en *Programado* con su hora y el icono de la bandeja se pone azul.
+Puedes cancelarla o posponerla desde ahí, desde el menú de la bandeja o desde la ventana de aviso
+que aparece un minuto antes de actuar.
 
-**From the command line**:
+**Desde la línea de comandos**:
 
 ```bash
-powerclock shutdown --in 30m                   # shut down in 30 minutes
-powerclock suspend --at 23:30 --wake 07:30     # suspend at 23:30 and wake up at 07:30
-powerclock shutdown --when-exits ffmpeg        # shut down when the render ends
-powerclock suspend --when-idle 20m             # suspend after 20 minutes without use
-powerclock shutdown --when-net-below 50 --for 5m   # shut down when the download is over
-powerclock reboot --when-cpu-below 10 --for 5m # restart when the CPU calms down
-powerclock run --at 03:00 --wake -- /home/me/bin/backup.sh   # turn on at 03:00 to run a backup
-powerclock wake --at "2026-10-01 07:30"        # just turn the computer on at that time
+powerclock shutdown --in 30m                   # apagar dentro de 30 minutos
+powerclock suspend --at 23:30 --wake 07:30     # suspender a las 23:30 y despertar a las 07:30
+powerclock shutdown --when-exits ffmpeg        # apagar cuando termine el render
+powerclock suspend --when-idle 20m             # suspender tras 20 minutos sin usarlo
+powerclock shutdown --when-net-below 50 --for 5m   # apagar cuando termine la descarga
+powerclock reboot --when-cpu-below 10 --for 5m # reiniciar cuando la CPU se calme
+powerclock run --at 03:00 --wake -- /home/yo/bin/backup.sh   # encender a las 03:00 para una copia
+powerclock wake --at "2026-10-01 07:30"        # solo encender el equipo a esa hora
 
-powerclock status      # what is scheduled, running and being watched
-powerclock cancel      # cancel the countdown in progress or the next quick action
+powerclock status      # qué hay programado, en marcha y vigilando
+powerclock cancel      # cancelar el aviso en curso o la próxima acción rápida
 powerclock postpone 10m
-powerclock history     # what ran and why
+powerclock history     # qué se ejecutó y por qué
 ```
 
-**With a rule** (for anything that repeats): put this in `nightly.json` and add it with
-`powerclock rules add nightly.json` (or create it in the *Rules* tab):
+**Con una regla** (para lo que se repite): pon esto en `nocturno.json` y añádelo con
+`powerclock rules add nocturno.json` (o créala en la pestaña *Reglas*):
 
 ```json
 {
-  "id": "nightly-backup",
-  "name": "Nightly backup, then shut down",
+  "id": "backup-nocturno",
+  "name": "Copia nocturna y apagar",
   "trigger": {"type": "cron", "expr": "0 3 * * *"},
   "wake": true,
   "conditions": {"type": "power_source", "is": "ac"},
   "guards": {"any": [{"type": "media_playing"}, {"type": "ssh_session"}], "retry": "5m", "max_wait": "2h"},
   "actions": [
-    {"type": "run", "cmd": ["/home/me/bin/backup.sh"], "timeout": "2h"},
-    {"type": "notify", "title": "PowerClock", "body": "Backup done"},
+    {"type": "run", "cmd": ["/home/yo/bin/backup.sh"], "timeout": "2h"},
+    {"type": "notify", "title": "PowerClock", "body": "Copia terminada"},
     {"type": "power", "action": "shutdown"}
   ]
 }
 ```
 
-Every night the computer turns itself on at 02:58, and at 03:00 it runs the backup if it is on
-AC. While a video plays or someone is connected by SSH it waits (up to two hours). Then it
-notifies you and shuts down after a one-minute countdown you can cancel.
+Cada noche el equipo se enciende solo a las 02:58 y a las 03:00 ejecuta la copia si está
+enchufado. Mientras se reproduce un vídeo o alguien está conectado por SSH, espera (hasta dos
+horas). Después te avisa y se apaga tras un aviso de un minuto que puedes cancelar.
 
-## How it works: the main ideas
+## Cómo funciona: las ideas principales
 
-- **PowerClock in the background** (`powerclock-daemon`, the *daemon*) does everything: it keeps the rules, watches the time and the
-  sensors, runs the actions and records the history. It runs as **your user** (never as root), as
-  a systemd user service installed by `powerclock service install`. The window, the tray and the command
-  line are only clients: closing them changes nothing.
-- **A rule** is: **when** (the *trigger*) + optional **only if…** (*conditions*) + optional **wait
-  while…** (*guards*) + **what it does** (the *steps*, in order) + options (warning, only once, turn
-  the computer on…).
-- **A quick action** is a rule made for you by the Quick tab, the tray or commands such as
-  `powerclock shutdown --in 30m`. It runs once and then disappears (its run stays in the history).
-- **The warning**: before any power action PowerClock warns you with a countdown you can cancel
-  until the last second (60 seconds by default, configurable per rule, `0s` to skip it). During it you get a notification and a window
-  with **Cancel** and **Postpone 10 minutes**, and `powerclock cancel` / `powerclock postpone` work too.
-- **The history** records every run: when, where it came from (*Schedule*, *Condition* or
-  *Manual*), how it ended (*done*, *failed*, *cancelled*, *skipped*) and why, with each step's result
-  and the last lines of each command's output.
-- **Missed runs**: if a scheduled moment passes while the computer is off or asleep, the rule is
-  *skipped* by default; with `"on_missed": "run_once"` it runs once as soon as possible.
-- **Time zones**: times follow your computer's time zone; a rule can set its own
-  (`"timezone": "Europe/Madrid"`). Summer/winter time changes are handled (a 02:30 job moves to
-  03:30 on the spring change, and runs once on the autumn one).
+- **PowerClock en segundo plano** (`powerclock-daemon`, el *daemon*) lo hace todo: guarda las reglas, vigila la hora y los sensores,
+  ejecuta las acciones y anota el historial. Funciona **con tu usuario** (nunca como root), como
+  servicio de usuario de systemd instalado con `powerclock service install`. La ventana, la bandeja y la
+  línea de comandos son solo clientes: cerrarlos no cambia nada.
+- **Una regla** es: **cuándo** (el *trigger*) + **solo si…** opcional (las *conditions*) +
+  **esperar mientras…** opcional (las *guards*) + **qué hará** (los *pasos*, en orden) + opciones
+  (aviso, solo una vez, encender el equipo…).
+- **Una acción rápida** es una regla que te crean la pestaña Rápido, la bandeja o órdenes como
+  `powerclock shutdown --in 30m`. Se ejecuta una vez y luego desaparece (su ejecución queda en el
+  historial).
+- **El aviso**: antes de cualquier acción de energía PowerClock te avisa con una cuenta atrás
+  que puedes cancelar hasta el último segundo (60 segundos por defecto, ajustable por regla; `0s`
+  para quitarlo). Durante ella
+  aparecen una notificación y una ventana con **Cancelar** y **Posponer 10 minutos**, y también
+  funcionan `powerclock cancel` y `powerclock postpone`.
+- **El historial** guarda cada ejecución: cuándo, su origen (*Horario*, *Condición* o *Manual*),
+  cómo terminó (*hecha*, *falló*, *cancelada*, *omitida*) y por qué, con el resultado de
+  cada paso y las últimas líneas de la salida de cada orden.
+- **Momentos perdidos**: si una hora programada pasa con el equipo apagado o suspendido, la regla
+  se *omite* por defecto; con `"on_missed": "run_once"` se ejecuta una vez en cuanto se pueda.
+- **Zonas horarias**: las horas siguen la zona horaria de tu equipo; una regla puede fijar la suya
+  (`"timezone": "Europe/Madrid"`). Los cambios de hora de verano e invierno están contemplados (una
+  tarea de las 02:30 pasa a las 03:30 el día del cambio de primavera y se ejecuta una sola vez el
+  de otoño).
 
-## The graphical interface
+## La interfaz gráfica
 
-Open it with `powerclock gui` or from the applications menu. Only **one** copy runs: opening it again
-brings up the window that is already running. Closing the window leaves the tray icon; *Hide the
-icon (PowerClock keeps working)* in its menu quits the interface (your rules keep running in the
-background).
+Ábrela con `powerclock gui` o desde el menú de aplicaciones. Solo se ejecuta **una** copia: abrirla otra
+vez muestra la ventana que ya está en marcha. Cerrar la ventana deja el icono en la bandeja;
+*Ocultar el icono (PowerClock sigue funcionando)*, en su menú, cierra la interfaz (tus reglas
+siguen funcionando en segundo plano).
 
-**Colours and states.** PowerClock's own colours only mark states; everything else follows your
-desktop's theme (light or dark) and font. Every state also has a symbol and a word: ◷
-**Scheduled** (dusk blue), ☀ **Will turn on** (amber), ◉ **Watching** a condition (lavender), ◴
-**Countdown** (ember), ✔ **Done** (green), ✘ **Failed** (crimson) and ⊘ **Skipped or cancelled**
-(slate).
+**Colores y estados.** Los colores propios solo marcan estados; el resto sigue el tema de tu
+escritorio (claro u oscuro) y su fuente. Cada estado lleva además símbolo y texto: ◷ **Programado**
+(azul crepúsculo), ☀ **Encenderá** (ámbar), ◉ **Vigilando** una condición (lavanda), ◴ **Cuenta
+atrás** (brasa), ✔ **Hecho** (verde), ✘ **Falló** (grana) y ⊘ **Omitido o cancelado** (pizarra).
 
-**The «Next» band.** At the top of the window: what PowerClock will do next and when ("Shut down ·
-today 23:30 · in 5 h 12 min · turns the computer back on tomorrow 07:30"), in its state's colour,
-with **Postpone 10 min** and **Cancel**; if PowerClock is not running, it says so and offers
-**Start PowerClock**.
+**Franja «Próximo».** Arriba de la ventana: qué hará PowerClock después y cuándo («Apagar · hoy
+23:30 · dentro de 5 h 12 min · se volverá a encender mañana 07:30»), en el color de su estado, con
+**Posponer 10 min** y **Cancelar**; si PowerClock no está funcionando, lo dice y ofrece
+**Iniciar PowerClock**.
 
-**Tray icon.** In the same colours: grey (nothing scheduled), blue with a clock (something
-scheduled), lavender with an eye (watching a condition), amber with a sun (it will turn the
-computer on), ember (a countdown is running) and grey crossed out (PowerClock is not running in
-the background). Hover it to see what comes next. Its menu has: what comes next,
-**Cancel**, **Postpone 10 minutes**, **Now ▸** (shut down, restart, suspend, hibernate, lock, log
-out, turn off the screen; the first ones with their countdown, locking and screen off at once),
-**Schedule…**, **Open PowerClock** and **Hide the icon**. A left click opens the window.
+**Icono de la bandeja.** Con los mismos colores: gris (nada programado), azul con un reloj (algo
+programado), lavanda con un ojo (vigilando una condición), ámbar con un sol (va a encender el
+equipo), brasa (hay un aviso en curso) y gris tachado (PowerClock no está funcionando en segundo
+plano). Pasa el ratón por encima para ver lo próximo. Su menú tiene: lo próximo, **Cancelar**,
+**Posponer 10 minutos**, **Ahora ▸** (apagar, reiniciar, suspender, hibernar, bloquear, cerrar
+sesión, apagar la pantalla; las primeras con su cuenta atrás, y bloquear y apagar la pantalla al
+momento), **Programar…**, **Abrir PowerClock** y **Ocultar el icono**. Un clic izquierdo abre la
+ventana.
 
-**Quick tab** (like KShutdown): **What to do** is a set of buttons with icons (shut down,
-restart, suspend, hibernate, hybrid, lock, log out, screen off, a command (a program or a script with its options) or an application);
-**When** is one of *Now*, *At a time*, *In a while* and *When…*, which opens the conditions: after a
-period without use, when a program ends — pick it from the running ones or type its name or PID —,
-when the computer goes quiet (CPU below…) or when the download finishes (network below…), with how
-long it must last. Then **Warn me first**, whether to **force** (without waiting for applications
-to save) and **Turn it back on at** a time. The one highlighted button says what it will do (*Shut
-down now*, *Schedule shutdown*…). On the right, **Scheduled** shows the quick actions not done yet
-as cards, with their state, **Cancel** and, if they have a time, **Postpone 10 min**. For the ones waiting for a condition it shows what the sensor
-sees now ("ffmpeg is running", "idle for 5m 12s", "CPU 35 % · measuring: 2m of 5m").
+**Pestaña Rápido** (como KShutdown): **Qué hacer** son botones con icono (apagar, reiniciar,
+suspender, hibernar, híbrida, bloquear, cerrar sesión, pantalla, un comando (un programa o un script con sus opciones) o una aplicación);
+**Cuándo** se elige entre *Ahora*, *A las*, *Dentro de* y *Cuando…*, que abre las condiciones: tras
+un tiempo sin usar el equipo, cuando termine un programa — elígelo entre los que están en marcha o
+escribe su nombre o su PID —, cuando el equipo quede en reposo (CPU por debajo de…) o cuando termine
+la descarga (red por debajo de…), con cuánto tiempo debe durar. Después, **Avisar antes**, si
+**forzar** (sin esperar a que las aplicaciones guarden) y **Volver a encenderlo a las** una hora.
+El único botón destacado dice lo que hará (*Apagar ahora*, *Programar apagado*…). A la derecha,
+**Programado** muestra en tarjetas las acciones rápidas que aún no han actuado, con su estado,
+**Cancelar** y, si tiene hora, **Posponer 10 min**. En las que esperan una condición se ve lo que mide el
+sensor en ese momento ("ffmpeg está en marcha", "inactivo desde hace 5m 12s", "CPU 35 % · midiendo:
+2m de 5m").
 
-**Rules tab.** Every rule with a checkbox to enable or disable it, when it fires (in words: "on
-weekdays at 07:30") and what comes next with its state (hover the name to see its id).
-**Gallery…** opens ready-made rules by use case (save energy, mornings, kiosks and presentations,
-breaks, meetings and the day's light, backups and other computers): pick one and the editor opens
-with it to adjust. **New…**, **Edit…** (or double click), **Run now**, **Delete**, **Import…** and
-**Export…** (JSON files).
+**Pestaña Reglas.** Todas las reglas, con una casilla para activarlas o desactivarlas, cuándo
+actúan (en palabras: «los laborables a las 07:30») y lo próximo con su estado (el id sale al pasar
+el ratón por el nombre). **Galería…** abre reglas ya preparadas por caso de uso (ahorrar energía,
+por la mañana, quioscos y presentaciones, descansos, citas y luz del día, copias y otros equipos):
+elige una y se abre el editor con ella para ajustarla. **Nueva…**, **Editar…** (o doble clic), **Ejecutar ahora**,
+**Borrar**, **Importar…** y **Exportar…** (archivos JSON).
 
-**Rule editor.** On top, the rule **read as a sentence** ("When: every day at 03:00 · turning
-the computer on · Only if…: plugged in · Wait while…: ffmpeg is running · What it does: run
-backup.sh → shut down"); click a piece to go where it is edited. Below, the tabs *When* (name,
-enabled, and when it acts; schedules are chosen without cron: every day, on weekdays, on weekends,
-on these days, once a month, every few hours or minutes, and the cron expression only under
-*Advanced*), *Only if…* (the conditions that must all hold), *Wait while…* (the reasons to wait,
-with how often to check again and when to give up), *What it does* (the steps in order, with ↑ ↓
-to reorder), *Options* and *Advanced (JSON)*. The JSON tab shows the same rule as text and stays in step with the forms when you switch tabs, so you can edit in either. Conditions
-more complex than a list (an *any*, nested groups) are kept and can be edited as JSON inside the
-form. Mistakes are explained before saving (for example, that shutting down must be the last
-step).
+**Editor de reglas.** Arriba, la regla **leída como una frase** («Cuándo: todos los días a las
+03:00 · encendiendo el equipo · Solo si…: enchufado · Esperar mientras…: ffmpeg está en marcha ·
+Qué hará: ejecutar backup.sh → apagar»); cada pieza se toca para ir a donde se edita. Debajo, las
+pestañas *Cuándo* (nombre, activada y cuándo actúa; los horarios se eligen sin cron: todos los días,
+los laborables, los fines de semana, estos días, una vez al mes, cada pocas horas o minutos, y la
+expresión cron solo en *Avanzado*), *Solo si…* (las condiciones que deben cumplirse todas),
+*Esperar mientras…* (los motivos para esperar, con cada cuánto volver a mirar y cuándo desistir),
+*Qué hará* (los pasos en orden, con ↑ ↓ para reordenarlos), *Opciones* y *Avanzado (JSON)*. La
+pestaña JSON muestra la misma regla como texto y se sincroniza con los formularios al cambiar de
+pestaña, así que puedes editar en cualquiera de las dos. Las condiciones más complejas que una
+lista (un *any*, grupos anidados) se conservan y se editan como JSON dentro del formulario. Los
+errores se explican antes de guardar (por ejemplo, que apagar debe ser el último paso).
 
-**History tab.** At the top, the last 30 days in brief (hours on and off and what was saved).
-Below, every run with when it finished, the rule, the result (✔ ✘ ⊘), its source and the reason;
-select one to see its steps and their output.
+**Pestaña Historial.** Arriba, el resumen de los últimos 30 días (horas encendido y apagado y lo
+ahorrado). Debajo, todas las ejecuciones con cuándo terminaron, la regla, el resultado (✔ ✘ ⊘), su
+origen y el motivo; elige una para ver sus pasos y su salida.
 
-**Diagnostics tab.** Whether PowerClock is running in the background (and a button to start
-it), everything `powerclock doctor` checks, by name, with how to fix what does not work, the next
-wake-up alarm, **Allow turning the computer on…** (shows the exact commands and runs them asking
-for your password in a desktop window), **Test a wake-up in 2 minutes…** and two checkboxes: *Show PowerClock in the
-applications menu* and *Start the tray icon when the session starts*, and **Electricity**: the
-the computer's consumption and the price of a kWh to estimate the savings.
+**Pestaña Diagnóstico.** Si PowerClock está funcionando en segundo plano (y un botón para
+iniciarlo), todo lo que comprueba `powerclock doctor`, con nombres claros y cómo arreglar lo que no
+funciona, la próxima alarma de encendido, **Permitir encender el equipo…** (muestra las órdenes
+exactas y las ejecuta pidiendo tu contraseña en una ventana del escritorio), **Probar un despertar dentro de 2 minutos…** y dos
+casillas: *Mostrar PowerClock en el menú de aplicaciones* e *Iniciar el icono de la bandeja al iniciar la
+sesión*, y **Electricidad**: el consumo del equipo y el precio del kWh para calcular el ahorro.
 
-**Warning window.** Appears on top of the others when a power action is about to happen: a ring
-that empties with the seconds in large type, what will happen ("The computer will shut down in
-42 s") and that you can cancel it until the last second. **Cancel** (or Esc) is the highlighted
-button, because it is the safe choice; next to it, **Postpone 10 minutes**.
+**Ventana de aviso.** Aparece por encima de las demás cuando una acción de energía está a punto de
+ocurrir: un anillo que se vacía con los segundos en grande, qué va a pasar («El equipo se apagará
+en 42 s») y que puedes cancelarlo hasta el último segundo. **Cancelar** (o Esc) es el botón
+destacado, porque es lo seguro; al lado, **Posponer 10 minutos**.
 
-The interface follows your desktop's colours, icons, font and light or dark mode. Installed with pipx,
-Qt draws the controls in its own *Fusion* style; see
-[native look on KDE](#native-look-on-kde) to get Breeze exactly.
+La interfaz sigue los colores, los iconos, la fuente y el modo claro u oscuro de tu escritorio. Instalada con
+pipx, Qt dibuja los controles con su propio estilo *Fusion*; mira
+[aspecto nativo en KDE](#aspecto-nativo-en-kde) para tener Breeze exacto.
 
-## The command line
+## La línea de comandos
 
-`powerclock --help` and `powerclock COMMAND --help` explain every option. Times accept `23:30` (its next
-occurrence), `"2026-10-01 07:30"` (local time) or ISO 8601 with a time zone. Durations are written
-as `30s`, `5m`, `2h`, `1d` or combined (`1h30m`).
+`powerclock --help` y `powerclock ORDEN --help` explican cada opción. Las horas admiten `23:30` (su próxima
+aparición), `"2026-10-01 07:30"` (hora local) o ISO 8601 con zona horaria. Las duraciones se
+escriben `30s`, `5m`, `2h`, `1d` o combinadas (`1h30m`).
 
-**Quick actions** — one command per action: `shutdown`, `reboot`, `suspend`, `hibernate`,
-`hybrid-sleep`, `lock`, `logout`, `screen-off`, `run -- PROGRAM ARGS…` and
-`launch APP [--recipe ID] -- ARGS…` (open an installed application).
+**Acciones rápidas** — una orden por acción: `shutdown` (apagar), `reboot` (reiniciar), `suspend`
+(suspender), `hibernate` (hibernar), `hybrid-sleep` (suspensión híbrida), `lock` (bloquear),
+`logout` (cerrar sesión), `screen-off` (apagar la pantalla), `run -- PROGRAMA ARGUMENTOS…` y
+`launch APP [--recipe ID] -- ARGUMENTOS…` (abrir una aplicación instalada).
 
-| Option | Meaning |
+| Opción | Significado |
 |---|---|
-| *(none)* | Now (after the countdown). |
-| `--in 30m` | After a delay. |
-| `--at 23:30` | At a time. |
-| `--when-idle 20m` | When nobody has used the computer for that long. |
-| `--when-exits NAME\|PID` | When that program ends. If it is not running yet, PowerClock waits for it to start: a mistyped name never shuts the computer down. |
-| `--when-cpu-below 10` | When the average CPU usage stays below 10 % … |
-| `--when-net-below 50` | … or the network traffic below 50 kbit/s … |
-| `--for 5m` | … for this long (default `5m`). |
-| `--warning 2m` | Warn this long before acting (default `60s`; `0s` for none). |
-| `--force` | Do not let applications ask to save. |
-| `--wake 07:30` | (power actions) Also turn the computer on at that time — e.g. suspend now, wake up in the morning. |
-| `--wake` | (`run`, `launch`) Turn the computer on to run or open it (with `--in`/`--at`). |
-| `--log-in` | With `--wake` (or `powerclock wake`): log in by itself when that turns the computer on, screen locked. |
-| `--recipe ID` | (`launch`) Take the arguments from a recipe; what it asks for (`<url>`, `<file>`…) goes after `--`, in order. |
-| `--dry-run` | Global option (`powerclock --dry-run shutdown …`): test mode, the power action is only noted down. |
+| *(ninguna)* | Ahora (tras la cuenta atrás). |
+| `--in 30m` | Dentro de un tiempo. |
+| `--at 23:30` | A una hora. |
+| `--when-idle 20m` | Cuando nadie haya usado el equipo durante ese tiempo. |
+| `--when-exits NOMBRE\|PID` | Cuando termine ese programa. Si aún no está en marcha, PowerClock espera a que arranque: un nombre mal escrito nunca apaga el equipo. |
+| `--when-cpu-below 10` | Cuando el uso medio de CPU se mantenga por debajo del 10 %… |
+| `--when-net-below 50` | …o el tráfico de red por debajo de 50 kbit/s… |
+| `--for 5m` | …durante ese tiempo (por defecto `5m`). |
+| `--warning 2m` | Cuenta atrás antes de actuar (por defecto `60s`; `0s` para ninguna). |
+| `--force` | No dejar que las aplicaciones pidan guardar. |
+| `--wake 07:30` | (acciones de energía) Encender también el equipo a esa hora; p. ej. suspender ahora y despertar por la mañana. |
+| `--wake` | (`run`, `launch`) Encender el equipo para ejecutarlo o abrirla (con `--in`/`--at`). |
+| `--log-in` | Con `--wake` (o `powerclock wake`): entrar solo en la sesión cuando eso encienda el equipo, con la pantalla bloqueada. |
+| `--recipe ID` | (`launch`) Tomar los argumentos de una receta; lo que pide (`<url>`, `<file>`…) va después de `--`, en orden. |
+| `--dry-run` | Opción global (`powerclock --dry-run shutdown …`): solo anotar la acción de energía. |
 
-**Other commands**
+**Otras órdenes**
 
-| Command | What it does |
+| Orden | Qué hace |
 |---|---|
-| `powerclock wake --at TIME` | Turn the computer on at that time (from suspend, or from off if the BIOS allows it). |
-| `powerclock apps [TEXT]` | The installed applications (`launch` opens them by id), with their recipes. |
-| `powerclock recipes [APP]` | Ready-made arguments for common applications. |
-| `powerclock wake-lan MAC [--broadcast IP] [--port 9]` | Turns on another computer on the network now (Wake-on-LAN). |
-| `powerclock stats [--days 30] [--watts W\|auto] [--price P\|auto]` | Hours on and off and what PowerClock saved (estimated; see below). |
-| `powerclock secrets set NAME` · `list` · `rm NAME` | Tokens that steps use by name (`telegram_token`), kept out of `rules.json` in `secrets.json` (0600). |
-| `powerclock status` | What is running, what comes next, what is being watched, and the next wake-up alarm. |
-| `powerclock cancel [RUN_ID]` | Cancel the countdown in progress; otherwise the quick action running, the next timed one, or the last one waiting for a condition. |
-| `powerclock postpone [10m] [--run RUN_ID]` | Postpone the countdown in progress or the next timed quick action. |
-| `powerclock history [-n 20] [--rule ID]` | Past runs, their result and why. |
-| `powerclock rules list` | Every rule and when it fires next (or what it is watching). |
-| `powerclock rules show ID` | A rule as JSON. |
-| `powerclock rules add FILE.json` | Add the rules in a file (one rule or a list). |
-| `powerclock rules edit ID` | Edit a rule in your `$EDITOR`. |
-| `powerclock rules enable\|disable ID` | Turn a rule on or off (it stays saved). |
-| `powerclock rules run ID` | Run a rule now (its conditions, guards and countdown still apply). |
-| `powerclock rules rm ID` | Delete a rule. |
-| `powerclock rules export [FILE]` / `powerclock rules import FILE [--replace]` | Back up and restore rules. |
-| `powerclock doctor [--json]` | What works on this computer and how to fix what does not. |
-| `powerclock doctor --test-wake 120` | Program a wake-up in N seconds (60–3600) and **suspend now**, then say whether it woke up by itself and what woke it. Asks first and gives 10 seconds to take your hands off. |
-| `powerclock service install [--linger] [--dry-run]` · `uninstall` · `status` | The daemon as a systemd user service. `--linger` keeps it running without a login. |
-| `powerclock helper install [--unattended] [--print]` · `uninstall` | The small root helper that programs the wake alarm (shows the `sudo` commands and asks before running them). |
-| `powerclock gui [--tray]` | Open the window (or only the tray icon). |
-| `powerclock setup [--no-menu] [--no-login] [--no-helper] [--unattended]` | Set PowerClock up in this session: service, menu entry, login start and wake-up helper (what the installer's window does). |
-| `powerclock update` | Install the newest version and restart the service. |
-| `powerclock uninstall [--purge]` | Remove everything (with `--purge`, also rules and history). |
+| `powerclock wake --at HORA` | Encender el equipo a esa hora (desde suspensión, o desde apagado si la BIOS lo permite). |
+| `powerclock apps [TEXTO]` | Las aplicaciones instaladas (`launch` las abre por su id), con sus recetas. |
+| `powerclock recipes [APP]` | Argumentos ya preparados para aplicaciones habituales. |
+| `powerclock wake-lan MAC [--broadcast IP] [--port 9]` | Enciende ya otro equipo de la red (Wake-on-LAN). |
+| `powerclock stats [--days 30] [--watts W\|auto] [--price P\|auto]` | Horas encendido y apagado y lo que ha ahorrado PowerClock (estimado; ver abajo). |
+| `powerclock secrets set NOMBRE` · `list` · `rm NOMBRE` | Tokens que los pasos usan por su nombre (`telegram_token`), fuera de `rules.json`, en `secrets.json` (0600). |
+| `powerclock status` | Qué está en marcha, qué viene, qué se vigila y la próxima alarma de encendido. |
+| `powerclock cancel [RUN_ID]` | Cancela la cuenta atrás en curso; si no hay, la acción rápida en marcha, la próxima con hora o la última que espera una condición. |
+| `powerclock postpone [10m] [--run RUN_ID]` | Pospone la cuenta atrás en curso o la próxima acción rápida con hora. |
+| `powerclock history [-n 20] [--rule ID]` | Ejecuciones pasadas, su resultado y por qué. |
+| `powerclock rules list` | Todas las reglas y cuándo se disparan (o qué vigilan). |
+| `powerclock rules show ID` | Una regla en JSON. |
+| `powerclock rules add ARCHIVO.json` | Añade las reglas de un archivo (una regla o una lista). |
+| `powerclock rules edit ID` | Edita una regla con tu `$EDITOR`. |
+| `powerclock rules enable\|disable ID` | Activa o desactiva una regla (sigue guardada). |
+| `powerclock rules run ID` | Ejecuta una regla ahora (sus condiciones, sus motivos para esperar y el aviso siguen valiendo). |
+| `powerclock rules rm ID` | Borra una regla. |
+| `powerclock rules export [ARCHIVO]` / `powerclock rules import ARCHIVO [--replace]` | Copia de seguridad y restauración de reglas. |
+| `powerclock doctor [--json]` | Qué funciona en este equipo y cómo arreglar lo que no. |
+| `powerclock doctor --test-wake 120` | Programa un despertar dentro de N segundos (60–3600) y **suspende ahora**; después dice si despertó solo y qué lo despertó. Pregunta antes y da 10 segundos para apartar las manos. |
+| `powerclock service install [--linger] [--dry-run]` · `uninstall` · `status` | PowerClock en segundo plano, como servicio de usuario de systemd. `--linger` lo mantiene funcionando sin iniciar sesión. |
+| `powerclock helper install [--unattended] [--print]` · `uninstall` | El permiso para encender el equipo: un pequeño programa de root (el *helper*) que solo programa la alarma de encendido (muestra los comandos `sudo` y pregunta antes de ejecutarlos). |
+| `powerclock gui [--tray]` | Abre la ventana (o solo el icono de la bandeja). |
+| `powerclock setup [--no-menu] [--no-login] [--no-helper] [--unattended]` | Prepara PowerClock en esta sesión: servicio, entrada del menú, inicio con la sesión y permiso para encender el equipo (lo mismo que la ventana del instalador). |
+| `powerclock update` | Instala la versión más reciente y reinicia el servicio. |
+| `powerclock uninstall [--purge]` | Lo quita todo (con `--purge`, también reglas e historial). |
 
-## Rules in detail
+## Las reglas en detalle
 
-Rules are JSON. The editor writes it for you, but it is short enough to write by hand, and the
-daemon validates every rule: a typo in a field name is reported, never silently ignored. The full
-JSON Schema is served at `/schema/rule` by the local API; [`examples/`](examples/) has ready-made
-rules.
+Las reglas son JSON. El editor lo escribe por ti, pero es lo bastante corto para escribirlo a
+mano, y PowerClock valida cada regla: una errata en el nombre de un campo se señala, nunca se
+ignora en silencio. El JSON Schema completo lo sirve el API local en `/schema/rule`, y en
+[`examples/`](examples/) hay reglas listas para usar.
 
 ```json
 {
-  "id": "nightly-backup",              // letters, digits, - and _ (optional when creating)
-  "name": "Nightly backup",
+  "id": "backup-nocturno",             // letras, números, - y _ (opcional al crearla)
+  "name": "Copia nocturna",
   "enabled": true,
-  "trigger": { … },                     // when
-  "conditions": { … },                  // only if (optional)
-  "guards": { "any": [ … ], "retry": "5m", "max_wait": "2h" },   // wait while (optional)
-  "actions": [ { … }, { … } ],          // what to do, in order
-  "warning": "60s",                     // countdown before power actions
-  "wake": false,                        // turn the computer on for it (time triggers only)
-  "on_missed": "skip",                  // or "run_once"
-  "on_error": "stop",                   // or "continue"
-  "one_shot": false,                    // disable it after it fires once
-  "dry_run": false,                     // only log its power actions
-  "timezone": "Europe/Madrid"           // optional; default: the computer's
+  "trigger": { … },                     // cuándo
+  "conditions": { … },                  // solo si (opcional)
+  "guards": { "any": [ … ], "retry": "5m", "max_wait": "2h" },   // esperar mientras (opcional)
+  "actions": [ { … }, { … } ],          // qué hacer, en orden
+  "warning": "60s",                     // aviso antes de las acciones de energía
+  "wake": false,                        // encender el equipo para ella (solo con `at`, `countdown` o `cron`)
+  "on_missed": "skip",                  // o "run_once"
+  "on_error": "stop",                   // o "continue"
+  "one_shot": false,                    // desactivarla tras dispararse una vez
+  "dry_run": false,                     // solo anotar sus acciones de energía
+  "timezone": "Europe/Madrid"           // opcional; por defecto, la del equipo
 }
 ```
 
-(JSON has no comments: they are only explanations here.)
+(JSON no admite comentarios: aquí solo son explicaciones.)
 
-### Triggers
+### Cuándo (`trigger`)
 
-| `type` | Fields | Fires |
+| `type` | Campos | Actúa |
 |---|---|---|
-| `at` | `when` (ISO 8601 with time zone) | Once at that moment. |
-| `countdown` | `duration` | That long after the rule is enabled. Survives restarts. |
-| `cron` | `expr` (5 fields or `@daily`, `@hourly`…) | On that schedule, in the rule's time zone. |
-| `idle` | `for` | When nobody has used the keyboard or mouse for that long. |
-| `process_exit` | `name` or `pid` | When the program ends. With a name, when none of that name is left. It must have been seen running first. A PID reused by another process counts as ended. |
-| `cpu_below` | `percent`, `for` | When the **average** CPU usage over the last `for` is below `percent`. |
-| `net_below` | `kbps`, `for`, `direction` (`down`, `up`, `both`), `interface` (optional) | When the **average** network traffic over the last `for` is below `kbps` kilobits per second. |
-| `battery` | `below` or `above` (%), `for` (optional) | When the battery level crosses that threshold (held for `for`). |
-| `power_source` | `is` (`ac` or `battery`), `for` (optional) | When the computer is on that power source (held for `for`). |
-| `desktop_session` | — | When a desktop session starts (someone logs in), so applications can be opened. |
-| `sun` | `event` (`sunrise`, `sunset`), `offset_minutes`, `latitude`/`longitude` (optional) | At sunrise or sunset (plus or minus those minutes). Without coordinates it uses your time zone's city (Europe/Madrid → Madrid); computed on the computer, no internet. |
-| `calendar` | `source` (`.ics`/`webcal://` address or file), `match` (optional), `before` | Before each calendar event whose title contains `match`: Google, Nextcloud, Outlook… export that address. Read every 15 minutes; offline, the last copy is used. |
-| `wifi_ssid` | `ssid` | When connecting to that Wi-Fi network. |
-| `active` | `for`, `pause` (`5m`) | After `for` of use without a `pause` break: time to stop for a while. |
-| `used_today` | `for` | When today's use reaches that total. |
-| `file` | `path`, `pattern` (optional, `*.pdf`) | When that file appears, or a file like that in that folder. |
-| `device` | `name` (or part of it) | When a device is plugged in: a USB stick or disk (its name or label), Bluetooth headphones… |
-| `temperature` | `above` (°C), `sensor` (optional) | When the hottest sensor (or that one) goes above that temperature. |
-| `startup` | `on` (`daemon_start`, `resume`), `delay` | When PowerClock starts (e.g. at boot) and/or after resuming from sleep, after `delay`. |
-| `manual` | — | Only when run by hand. |
+| `at` | `when` (ISO 8601 con zona horaria) | Una vez, en ese momento. |
+| `countdown` | `duration` | Ese tiempo después de activar la regla. Sobrevive a los reinicios. |
+| `cron` | `expr` (5 campos o `@daily`, `@hourly`…) | Según ese calendario, en la zona horaria de la regla. |
+| `idle` | `for` | Cuando nadie ha usado el teclado ni el ratón durante ese tiempo. |
+| `process_exit` | `name` o `pid` | Cuando termina el programa. Con nombre, cuando no queda ninguno con ese nombre. Antes tiene que haberse visto en marcha. Un PID reutilizado por otro proceso cuenta como terminado. |
+| `cpu_below` | `percent`, `for` | Cuando el uso **medio** de CPU de los últimos `for` está por debajo de `percent`. |
+| `net_below` | `kbps`, `for`, `direction` (`down`, `up`, `both`), `interface` (opcional) | Cuando el tráfico de red **medio** de los últimos `for` está por debajo de `kbps` kilobits por segundo. |
+| `battery` | `below` o `above` (%), `for` (opcional) | Cuando el nivel de batería cruza ese umbral (mantenido durante `for`). |
+| `power_source` | `is` (`ac` o `battery`), `for` (opcional) | Cuando el equipo está con esa alimentación (mantenida durante `for`). |
+| `desktop_session` | — | Cuando se abre una sesión del escritorio (alguien entra), así se pueden abrir aplicaciones. |
+| `sun` | `event` (`sunrise`, `sunset`), `offset_minutes`, `latitude`/`longitude` (opcionales) | Al amanecer o al anochecer (más o menos esos minutos). Sin coordenadas usa la ciudad de tu zona horaria (Europe/Madrid → Madrid); se calcula en el equipo, sin internet. |
+| `calendar` | `source` (dirección `.ics`/`webcal://` o archivo), `match` (opcional), `before` | Antes de cada cita del calendario cuyo título contenga `match`: Google, Nextcloud, Outlook… exportan esa dirección. Se lee cada 15 minutos; sin internet usa la última copia. |
+| `wifi_ssid` | `ssid` | Al conectarse a esa red Wi-Fi. |
+| `active` | `for`, `pause` (`5m`) | Tras `for` de uso sin un descanso de `pause`: hora de parar un rato. |
+| `used_today` | `for` | Cuando el uso de hoy llega a ese total. |
+| `file` | `path`, `pattern` (opcional, `*.pdf`) | Cuando aparece ese archivo, o un archivo así en esa carpeta. |
+| `device` | `name` (o parte) | Al conectar un dispositivo: un USB o disco (su nombre o su etiqueta), unos auriculares Bluetooth… |
+| `temperature` | `above` (°C), `sensor` (opcional) | Cuando el sensor más caliente (o ese) pasa de esa temperatura. |
+| `startup` | `on` (`daemon_start`, `resume`), `delay` | Al arrancar PowerClock (p. ej. al encender) y/o al volver de la suspensión, pasado `delay`. |
+| `manual` | — | Solo cuando se ejecuta a mano. |
 
-**Triggers that watch a state** (`idle`, `process_exit`, `cpu_below`, `net_below`, `battery`,
-`power_source`, `desktop_session`, `wifi_ssid`, `active`, `used_today`, `file`, `device`,
-`temperature`) fire **once** when the state becomes true, and fire again only after it has been
-false. Staying idle does not suspend the computer again and again; using it re-arms the rule. If
-the state already holds when you enable the rule (the battery is already low), it fires.
+**Los que vigilan un estado** (`idle`, `process_exit`, `cpu_below`, `net_below`,
+`battery`, `power_source`, `desktop_session`, `wifi_ssid`, `active`, `used_today`, `file`, `device`,
+`temperature`) se disparan **una vez** cuando el estado pasa a cumplirse, y solo
+vuelven a dispararse después de que haya dejado de cumplirse. Seguir inactivo no suspende el equipo
+una y otra vez; volver a usarlo rearma la regla. Si el estado ya se cumple al activar la regla (la
+batería ya está baja), se dispara.
 
-### Conditions and guards
+### Solo si… (`conditions`) y esperar mientras… (`guards`)
 
-Both use the same **predicates**:
+Las dos usan los mismos **predicados**:
 
-| `type` | Fields | True when |
+| `type` | Campos | Se cumple cuando |
 |---|---|---|
-| `process_running` | `name` | A program with that name is running. |
-| `media_playing` | — | A media player is playing (MPRIS). |
-| `ssh_session` | — | Someone is logged in over SSH. |
-| `idle` | `for` | Nobody has used the computer for that long. |
-| `cpu_below` | `percent`, `for` | Average CPU usage over `for` is below `percent`. |
-| `net_below` | `kbps`, `for`, `direction`, `interface` | Average network traffic over `for` is below `kbps`. |
-| `battery` | `below` or `above`, `for` | Battery level below/above that. |
-| `power_source` | `is`, `for` | On AC or on battery. |
-| `time_window` | `start`, `end` (`"22:00"`) | The time of day is in that window (it can cross midnight: 22:00 → 07:00). |
-| `weekday` | `days` (`mon` … `sun`) | Today is one of those days. |
-| `wifi_ssid` | `ssid` | Connected to that Wi-Fi network. |
-| `desktop_session` | — | A desktop session is up. |
-| `holiday` | `country` (`ES`), `extra` (dates) | Today is a national holiday (Spain, Good Friday computed) or one of `extra`: regional and local holidays, your days off. |
-| `active`, `used_today`, `file`, `device`, `temperature` | as above | The same as the triggers of that name, right now. |
+| `process_running` | `name` | Hay un programa con ese nombre en marcha. |
+| `media_playing` | — | Un reproductor está reproduciendo (MPRIS). |
+| `ssh_session` | — | Alguien ha iniciado sesión por SSH. |
+| `idle` | `for` | Nadie ha usado el equipo durante ese tiempo. |
+| `cpu_below` | `percent`, `for` | El uso medio de CPU de los últimos `for` está por debajo de `percent`. |
+| `net_below` | `kbps`, `for`, `direction`, `interface` | El tráfico medio de red de los últimos `for` está por debajo de `kbps`. |
+| `battery` | `below` o `above`, `for` | Nivel de batería por debajo/encima de eso. |
+| `power_source` | `is`, `for` | Enchufado a la corriente o con batería. |
+| `time_window` | `start`, `end` (`"22:00"`) | La hora del día está en esa franja (puede cruzar la medianoche: 22:00 → 07:00). |
+| `weekday` | `days` (`mon` … `sun`) | Hoy es uno de esos días. |
+| `wifi_ssid` | `ssid` | Conectado a esa red Wi-Fi. |
+| `desktop_session` | — | Hay una sesión del escritorio abierta. |
+| `holiday` | `country` (`ES`), `extra` (fechas) | Hoy es festivo nacional (España, con Viernes Santo calculado) o uno de `extra`: los autonómicos, locales o tus días libres. |
+| `active`, `used_today`, `file`, `device`, `temperature` | como arriba | Lo mismo que los disparadores del mismo nombre, en este momento. |
 
-Combine them with `{"all": [ … ]}`, `{"any": [ … ]}` and `{"not": … }`, nested as you like.
+Combínalos con `{"all": [ … ]}` (todas), `{"any": [ … ]}` (alguna) y `{"not": … }` (no), anidados
+como quieras.
 
-- **Conditions** are checked when the rule fires: if they do not hold, the run is *skipped* (and
-  recorded as such).
-- **Guards** (`"guards": {"any": [ … ]}`) are checked just before acting: while any of them holds,
-  the run waits and checks again every `retry` (default `5m`), up to `max_wait` (default `2h`);
-  after that it is skipped.
-- A sensor that cannot be read makes its predicate **unknown**, never a guess. Unknown conditions
-  do not let the rule run; unknown guards do not block it; `wait_until` keeps waiting.
+- **Solo si…** (las condiciones) se comprueba en el momento de actuar: si no se cumplen, la ejecución se
+  *omite* (y queda anotada).
+- **Esperar mientras…** (`"guards": {"any": [ … ]}`) se comprueba justo antes de actuar: mientras se
+  cumpla alguna, la ejecución espera y vuelve a mirar cada `retry` (por defecto `5m`), hasta
+  `max_wait` (por defecto `2h`); después se omite.
+- Un sensor que no se puede leer deja su predicado como **desconocido**, nunca se inventa un
+  valor. Las condiciones desconocidas no dejan ejecutar la regla; los motivos para esperar desconocidos no la
+  bloquean; `wait_until` sigue esperando.
 
-### Steps
+### Pasos
 
-| `type` | Fields | Does |
+| `type` | Campos | Hace |
 |---|---|---|
-| `power` | `action` (`shutdown`, `reboot`, `suspend`, `hibernate`, `hybrid_sleep`, `lock`, `logout`, `screen_off`), `mode` (`graceful` or `force`) | A power action, after the countdown. Shut down, restart and log out must be the last step. |
-| `run` | `cmd` (list: program and arguments), `cwd`, `env`, `shell`, `timeout`, `wait`, `terminal` | Runs a command or a script. With `"shell": true`, `cmd` is one command line. With `wait` (default) it waits for it and fails if it returns an error; its output is kept in the history. On cancel or timeout it is asked to stop, then killed 5 s later. It runs **without a terminal**: a script that asks for the password (`sudo`) or asks questions (`dialog`, `read`) fails; with `"terminal": true` it opens in a terminal window of the desktop (Konsole on Plasma), where you can answer, the window stays open at the end and the history keeps its exit code. |
-| `launch` | `app` (its id, see `powerclock apps`), `args`, `recipe`, `window` (`screen`, `desktop`, `state`: `normal`/`maximized`/`fullscreen`/`minimized`, `above`), `keep_open`, `stop_signal` (`TERM`, `INT`, `HUP`), `wait_desktop` (default `2m`) | Opens an installed application in your desktop session, waiting up to `wait_desktop` for one. It runs as a unit of its own (`app-powerclock-….service`), so it sees your screen even if PowerClock started before you logged in. `window` places it (KDE Plasma); `keep_open` opens it again if it closes (at most 3 times an hour). |
-| `media` | `command` (`play`, `pause`, `toggle`, `stop`, `next`, `previous`, `open`), `player` (part of its name), `uri` (with `open`) | Controls a media player (MPRIS: VLC, Spotify, Elisa, browsers…): the one named, else the one playing, else the first one open. |
-| `volume` | `level` (0–150 %), `mute` (`on`/`off`), `fade` | Sets the output volume (PipeWire or PulseAudio), little by little over `fade` (a wake-up alarm that gets louder). |
-| `sound` | `file` (a path or a sound of the theme, e.g. `alarm-clock-elapsed`) or `say`, `language` | Plays a sound, or says a text aloud (speech-dispatcher or espeak-ng) and waits until it is said. |
-| `desktop` | `theme` (`light`, `dark` or a colour scheme), `wallpaper`, `brightness` (%), `power_profile` (`power-saver`, `balanced`, `performance`) | Desktop settings (KDE Plasma and GNOME). |
-| `network` | `connect`, `disconnect` (a saved connection: a VPN…), `wifi` (`on`/`off`) | NetworkManager connections. |
-| `inhibit` | `screen_on`, `do_not_disturb`, `no_sleep`, `duration` | For `duration`, keeps the screen on, holds the notifications and/or keeps the computer awake; the next steps go on at once. |
-| `screenshot` | `file` (default `{data}/screenshots/{rule}-{datetime}.png`) | Saves a picture of the screen; the history shows where. |
-| `push` | `service` (`ntfy`, `telegram`, `webhook`), `url` (ntfy topic or webhook), `chat` (Telegram), `title`, `message`, `priority` | Sends a message out: to your phone with [ntfy](https://ntfy.sh) (no account: subscribe to your topic in its app) or a Telegram bot (its token goes in `powerclock secrets set telegram_token`, never in the rules), or as JSON to any webhook. |
-| `ask` | `title`, `body`, `buttons` (1–3), `go_on`, `repeat`, `timeout` (default `1h`), `if_no_answer` (`stop` or `continue`) | A notification with buttons that waits for an answer; the rule goes on with `go_on` and stops with any other answer. Without an answer it is shown again every `repeat`. |
-| `open` | `target` | Opens a file or URL with your default application. |
-| `close_app` | `name` and `signal` (`TERM`, `INT` or `HUP`), or `app`; `timeout` (default `30s`) | Asks your programs with that name to quit, or closes the instances of `app` that PowerClock opened; kills them after `timeout`. |
-| `notify` | `title`, `body` | A desktop notification (skipped on a computer without a desktop). |
-| `wait` | `duration` | Waits. |
-| `wait_until` | `condition` (a predicate), `timeout` (optional) | Waits until the condition holds; fails after `timeout`. |
-| `set_wake` | `when` or `after` | Programs a wake-up (e.g. "wake me up again in 8 h"). |
-| `wake_lan` | `mac`, `broadcast` (`255.255.255.255`), `port` (`9`) | Turns on **another** computer on the local network (Wake-on-LAN): the NAS before the backup, the office PC… Its network card must have it enabled in the BIOS/UEFI. Not sent in test mode. |
+| `power` | `action` (`shutdown`, `reboot`, `suspend`, `hibernate`, `hybrid_sleep`, `lock`, `logout`, `screen_off`), `mode` (`graceful` o `force`) | Una acción de energía, tras la cuenta atrás. Apagar, reiniciar y cerrar sesión deben ser el último paso. |
+| `run` | `cmd` (lista: programa y argumentos), `cwd`, `env`, `shell`, `timeout`, `wait`, `terminal` | Ejecuta un comando o un script. Con `"shell": true`, `cmd` es una sola línea de órdenes. Con `wait` (por defecto) lo espera y falla si devuelve un error; su salida se guarda en el historial. Al cancelar o agotarse el tiempo se le pide que pare y 5 s después se fuerza. Se ejecuta **sin terminal**: un script que pide la contraseña (`sudo`) o hace preguntas (`dialog`, `read`) falla; con `"terminal": true` se abre en una ventana de terminal del escritorio (Konsole en Plasma), donde puedes contestar, la ventana se queda abierta al final y el historial guarda su código de salida. |
+| `launch` | `app` (su id, mira `powerclock apps`), `args`, `recipe`, `window` (`screen`, `desktop`, `state`: `normal`/`maximized`/`fullscreen`/`minimized`, `above`), `keep_open`, `stop_signal` (`TERM`, `INT`, `HUP`), `wait_desktop` (por defecto `2m`) | Abre una aplicación instalada en tu sesión del escritorio, esperando hasta `wait_desktop` a que haya una. Se ejecuta como unidad propia (`app-powerclock-….service`), así ve tu pantalla aunque PowerClock arrancara antes de que entraras. `window` la coloca (KDE Plasma); `keep_open` la vuelve a abrir si se cierra (como mucho 3 veces por hora). |
+| `media` | `command` (`play`, `pause`, `toggle`, `stop`, `next`, `previous`, `open`), `player` (parte de su nombre), `uri` (con `open`) | Controla un reproductor (MPRIS: VLC, Spotify, Elisa, navegadores…): el indicado, si no el que está sonando, si no el primero abierto. |
+| `volume` | `level` (0–150 %), `mute` (`on`/`off`), `fade` | Ajusta el volumen de salida (PipeWire o PulseAudio), poco a poco durante `fade` (un despertador que va subiendo). |
+| `sound` | `file` (una ruta o un sonido del tema, p. ej. `alarm-clock-elapsed`) o `say`, `language` | Reproduce un sonido, o dice un texto en voz alta (speech-dispatcher o espeak-ng) y espera a terminar. |
+| `desktop` | `theme` (`light`, `dark` o un esquema de color), `wallpaper`, `brightness` (%), `power_profile` (`power-saver`, `balanced`, `performance`) | Ajustes del escritorio (KDE Plasma y GNOME). |
+| `network` | `connect`, `disconnect` (una conexión guardada: una VPN…), `wifi` (`on`/`off`) | Conexiones de NetworkManager. |
+| `inhibit` | `screen_on`, `do_not_disturb`, `no_sleep`, `duration` | Durante `duration` mantiene la pantalla encendida, retiene los avisos y/o impide que el equipo se suspenda; los pasos siguientes siguen al momento. |
+| `screenshot` | `file` (por defecto `{data}/screenshots/{rule}-{datetime}.png`) | Guarda una imagen de la pantalla; el historial dice dónde. |
+| `push` | `service` (`ntfy`, `telegram`, `webhook`), `url` (tema de ntfy o webhook), `chat` (Telegram), `title`, `message`, `priority` | Manda un mensaje fuera del equipo: al móvil con [ntfy](https://ntfy.sh) (sin cuenta: suscríbete a tu tema en su app) o con un bot de Telegram (su token va en `powerclock secrets set telegram_token`, nunca en las reglas), o como JSON a cualquier webhook. |
+| `ask` | `title`, `body`, `buttons` (1–3), `go_on`, `repeat`, `timeout` (por defecto `1h`), `if_no_answer` (`stop` o `continue`) | Un aviso con botones que espera respuesta; la regla sigue con `go_on` y se para con cualquier otra. Sin respuesta vuelve a mostrarse cada `repeat`. |
+| `open` | `target` | Abre un archivo o una URL con tu aplicación predeterminada. |
+| `close_app` | `name` y `signal` (`TERM`, `INT` o `HUP`), o `app`; `timeout` (por defecto `30s`) | Pide a tus programas con ese nombre que se cierren, o cierra las copias de `app` que abrió PowerClock; las fuerza pasado `timeout`. |
+| `notify` | `title`, `body` | Una notificación del escritorio (se omite en un equipo sin escritorio). |
+| `wait` | `duration` | Espera. |
+| `wait_until` | `condition` (un predicado), `timeout` (opcional) | Espera hasta que se cumpla la condición; falla pasado `timeout`. |
+| `set_wake` | `when` o `after` | Programa un encendido (p. ej. "vuelve a despertarme dentro de 8 h"). |
+| `wake_lan` | `mac`, `broadcast` (`255.255.255.255`), `port` (`9`) | Enciende **otro** equipo de la red local (Wake-on-LAN): el NAS antes de la copia, el PC de la oficina… Su tarjeta de red tiene que tenerlo activado en la BIOS/UEFI. En modo prueba no se envía. |
 
-**Variables**: in `run` (`cmd`, `cwd`, `env`), `launch` (`args`), `open` and `notify`,
-`{date}` (2026-09-25), `{time}` (07-30), `{datetime}` (2026-09-25_07-30), `{weekday}` (thu),
-`{rule}` (its id), `{home}` and `{data}` (PowerClock's data folder) are replaced when the step
-runs, e.g. `ffmpeg -i URL -t 2h radio-{date}.mp3`. Any other braces stay as they are. `run` also
-gets the variables of your desktop session, so a program with a window finds your screen.
+**Variables**: en `run` (`cmd`, `cwd`, `env`), `launch` (`args`), `open` y `notify`, se
+sustituyen al ejecutarse `{date}` (2026-09-25), `{time}` (07-30), `{datetime}`
+(2026-09-25_07-30), `{weekday}` (thu), `{rule}` (su id), `{home}` y `{data}` (la carpeta de datos de
+PowerClock); p. ej. `ffmpeg -i URL -t 2h radio-{date}.mp3`. Cualquier otra llave queda como está.
+`run` recibe además las variables de tu sesión del escritorio, así un programa con ventana
+encuentra tu pantalla.
 
-**If a step fails** (`"on_failure": [ … ]`): steps that run only then, with `{error}` saying
-what went wrong, e.g. `{"type": "push", "url": "https://ntfy.sh/my-topic", "message": "{rule}:
-{error}"}`. The editor has them under *What it does*.
+**Si un paso falla** (`"on_failure": [ … ]`): pasos que solo se ejecutan entonces, con `{error}`
+diciendo qué salió mal, p. ej. `{"type": "push", "url": "https://ntfy.sh/mi-tema", "message":
+"{rule}: {error}"}`. En el editor están en *Qué hará*.
 
-If a step fails, the rule stops (`"on_error": "stop"`) or goes on with the next one
-(`"continue"`); the history says which step failed and why. The same rule never runs twice at the
-same time, and only one power action (and one countdown) happens at a time.
+Si un paso falla, la regla se detiene (`"on_error": "stop"`) o sigue con el siguiente
+(`"continue"`); el historial dice qué paso falló y por qué. Una misma regla nunca se ejecuta dos
+veces a la vez, y solo ocurre una acción de energía (y una cuenta atrás) al mismo tiempo.
 
-### Options
+### Opciones
 
-| Field | Default | Meaning |
+| Campo | Por defecto | Significado |
 |---|---|---|
-| `warning` | `60s` | Countdown before each power action (`0s` for none). |
-| `wake` | `false` | Turn the computer on for this rule (only with `at`, `countdown` or `cron`). |
-| `log_in` | `null` | With `wake`: log in by itself when that turns the computer on from off, leaving the screen `locked` or `unlocked` (see below). |
-| `on_missed` | `skip` | If its moment passed while the computer was off or asleep (more than 2 minutes late): `skip` or `run_once`. |
-| `on_error` | `stop` | `stop` or `continue` when a step fails. |
-| `one_shot` | `false` | Disable the rule after it fires once. |
-| `dry_run` | `false` | Only log this rule's power actions. |
-| `timezone` | the computer's | IANA name (`Europe/Madrid`) for `cron`, `time_window` and `weekday`. |
+| `warning` | `60s` | Cuenta atrás antes de cada acción de energía (`0s` para ninguna). |
+| `wake` | `false` | Encender el equipo para esta regla (solo con `at`, `countdown` o `cron`). |
+| `log_in` | `null` | Con `wake`: entrar solo en la sesión cuando eso enciende el equipo desde apagado, dejando la pantalla `locked` (bloqueada) o `unlocked` (visible); mira más abajo. |
+| `on_missed` | `skip` | Si su momento pasó con el equipo apagado o suspendido (más de 2 minutos de retraso): `skip` (omitirla) o `run_once` (ejecutarla una vez). |
+| `on_error` | `stop` | `stop` o `continue` cuando falla un paso. |
+| `one_shot` | `false` | Desactivar la regla tras dispararse una vez. |
+| `dry_run` | `false` | Solo anotar las acciones de energía de esta regla. |
+| `timezone` | la del equipo | Nombre IANA (`Europe/Madrid`) para `cron`, `time_window` y `weekday`. |
 
-### The examples
+### Los ejemplos
 
-| File | What it does |
+| Archivo | Qué hace |
 |---|---|
-| [`backup-nocturno.json`](examples/backup-nocturno.json) | Turns on at night, runs a backup if on AC and nobody is watching a video or connected by SSH, waits for the network to calm down, notifies and shuts down. |
-| [`buenos-dias-laborables.json`](examples/buenos-dias-laborables.json) | Turns on at 07:30 on weekdays and opens the calendar; if the computer was off at that time, runs once when it can. |
-| [`suspender-inactivo.json`](examples/suspender-inactivo.json) | Suspends after 20 idle minutes, but not while media plays, someone is connected by SSH or the CPU is busy. |
-| [`apagar-al-terminar-ffmpeg.json`](examples/apagar-al-terminar-ffmpeg.json) | Shuts down when ffmpeg finishes, once. |
-| [`apagar-tras-descarga.json`](examples/apagar-tras-descarga.json) | Shuts down when the download traffic stays below 50 kbit/s for 5 minutes. |
+| [`backup-nocturno.json`](examples/backup-nocturno.json) | Enciende el equipo por la noche, hace una copia de seguridad si está enchufado y nadie ve un vídeo ni está conectado por SSH, espera a que la red se calme, avisa y apaga. |
+| [`buenos-dias-laborables.json`](examples/buenos-dias-laborables.json) | Enciende el equipo a las 07:30 los laborables y abre la agenda; si estaba apagado a esa hora, se ejecuta una vez en cuanto puede. |
+| [`suspender-inactivo.json`](examples/suspender-inactivo.json) | Suspende tras 20 minutos sin uso, pero no mientras se reproduce algo, alguien está conectado por SSH o la CPU está ocupada. |
+| [`apagar-al-terminar-ffmpeg.json`](examples/apagar-al-terminar-ffmpeg.json) | Apaga cuando termina ffmpeg, una sola vez. |
+| [`apagar-tras-descarga.json`](examples/apagar-tras-descarga.json) | Apaga cuando el tráfico de bajada se mantiene por debajo de 50 kbit/s durante 5 minutos. |
 
-## Turning the computer on and waking it up
+## Encender y despertar el equipo
 
-Computers have a hardware clock (RTC) with **one** alarm that can wake them from suspend and, if
-the BIOS/UEFI allows it, power them on from off. PowerClock manages that alarm for you:
+Los ordenadores tienen un reloj de hardware (RTC) con **una** alarma que puede despertarlos de la
+suspensión y, si la BIOS/UEFI lo permite, encenderlos estando apagados. PowerClock gestiona esa alarma
+por ti:
 
-- It works out the next wake-up needed by your rules (`"wake": true`, `--wake`, `powerclock wake`) and
-  programs it **2 minutes early**, so the daemon is ready on time. It reprograms it whenever rules
-  change, after each run and right before the computer suspends or shuts down.
-- It never moves an earlier alarm that is not its own, and it leaves its alarm in place when the
-  daemon stops (it must still turn the computer on).
-- Writing the alarm needs root, so a **tiny helper** does only that: `powerclock helper install` copies it
-  to `/usr/local/libexec/powerclock-helper` with a polkit policy. It asks for your password **once**;
-  after that wake-ups need no password while you are logged in (even with the screen locked). It
-  only accepts "set / clear / read the alarm", validates the time strictly and runs `rtcwake`
-  with an absolute path and a clean environment.
-- **Logging in by itself** (`"log_in": "locked"`, `--log-in`, *and log in* in the Quick tab):
-  programs with a window need a desktop session, and after powering on from off the computer
-  waits at the login screen. PowerClock never turns on automatic log-in for good. Instead, the
-  helper keeps a **one-time ticket** with the alarm's time for **your** user (the one who asked,
-  never another account or root). At boot, before the login screen, `powerclock-boot.service`
-  looks at it: only if this boot is that alarm's (from the alarm to 10 minutes later, and not
-  switched on with the power button when the BIOS tells) does it write the automatic log-in to
-  `/run` (memory), where the display manager's settings point. PowerClock then **locks the
-  screen** at once (unless the rule says `unlocked`, for a kiosk with a user of its own) and
-  removes that setting. Any other start-up asks for your password as usual, and a power cut
-  leaves nothing behind. Works with SDDM (KDE) and LightDM; GDM not yet. The alarm goes 3 minutes
-  early instead of 2. With automatic log-in the KDE wallet does not open: the browser recipes use
-  a profile of their own that does not need it.
-- **Unattended mode** (turn on → run → shut down with nobody logged in):
-  `powerclock helper install --unattended` adds a polkit rule for your user, and
-  `powerclock service install --linger` keeps the daemon running without a login.
+- Calcula el próximo encendido que necesitan tus reglas (`"wake": true`, `--wake`, `powerclock wake`) y
+  lo programa **2 minutos antes**, para que PowerClock esté listo a tiempo. Lo reprograma cada vez
+  que cambian las reglas, después de cada ejecución y justo antes de que el equipo se suspenda o se
+  apague.
+- Nunca mueve una alarma anterior que no sea suya, y deja la suya puesta cuando PowerClock se para
+  (todavía tiene que encender el equipo).
+- Escribir la alarma necesita root, así que lo hace un **programa diminuto** (el *helper*) que solo hace eso:
+  `powerclock helper install` lo copia en `/usr/local/libexec/powerclock-helper` con una política de polkit. Pide
+  tu contraseña **una vez**; a partir de ahí los encendidos no piden contraseña mientras tengas la
+  sesión iniciada (aunque la pantalla esté bloqueada). Solo acepta "poner / quitar / leer la
+  alarma", valida la hora estrictamente y ejecuta `rtcwake` con ruta absoluta y un entorno limpio.
+- **Entrar solo en la sesión** (`"log_in": "locked"`, `--log-in`, *y entrar en la sesión* en
+  Rápido): los programas con ventana necesitan una sesión del escritorio, y tras encender desde
+  apagado el equipo se queda en la pantalla de acceso. PowerClock nunca activa la entrada
+  automática para siempre. En su lugar, el helper guarda un **vale de un solo uso** con la hora
+  de la alarma para **tu** usuario (quien lo pidió; nunca otra cuenta ni root). Al arrancar,
+  antes de la pantalla de acceso, `powerclock-boot.service` lo mira: solo si este arranque es el
+  de esa alarma (de la alarma a 10 minutos después, y sin haber pulsado el botón de encendido
+  cuando la BIOS lo dice) escribe la entrada automática en `/run` (memoria), adonde apuntan los
+  ajustes del gestor de acceso. Después PowerClock **bloquea la pantalla** al momento (salvo que
+  la regla diga `unlocked`, para un quiosco con su propio usuario) y borra ese ajuste. Cualquier
+  otro arranque pide tu contraseña como siempre, y un corte de luz no deja nada. Funciona con
+  SDDM (KDE) y LightDM; con GDM aún no. La alarma se adelanta 3 minutos en vez de 2. Con la
+  entrada automática la cartera de KDE no se abre: las recetas de navegador usan un perfil propio
+  que no la necesita.
+- **Con la sesión cerrada** (encender → ejecutar → apagar sin nadie con la sesión iniciada):
+  `powerclock helper install --unattended` añade una regla de polkit para tu usuario, y
+  `powerclock service install --linger` mantiene PowerClock funcionando sin iniciar sesión.
 
-**Try it**: `powerclock doctor --test-wake 120` (or *Test a wake-up in 2 minutes* in Diagnostics)
-suspends the computer and checks that it wakes up by itself; it also tells you what woke it if it
-was something else. Things learnt on a Dell Latitude 5480:
+**Pruébalo**: `powerclock doctor --test-wake 120` (o *Probar un despertar dentro de 2 minutos* en
+Diagnóstico) suspende el equipo y comprueba que despierta solo; si lo despertó otra cosa, te dice
+qué. Lo aprendido con un Dell Latitude 5480:
 
-- A touchpad or pointing stick can wake a laptop the moment it suspends: keep your hands off
-  during the test (PowerClock gives you 10 seconds).
-- Waking from suspend worked out of the box (2 s after the alarm).
-- Powering on from **off** worked too, on AC power, with the BIOS defaults (the kernel was
-  starting 14 s after the alarm). Many laptops need AC for this, and some BIOSes need
-  *Power Management → Auto On Time* (Dell) or a similar option; `powerclock doctor` gives a hint for
-  your brand.
+- Un touchpad o un pointing stick pueden despertar un portátil en el mismo momento en que se
+  suspende: aparta las manos durante la prueba (PowerClock te da 10 segundos).
+- Despertar de la suspensión funcionó a la primera (2 s después de la alarma).
+- Encender desde **apagado** también funcionó, enchufado a la corriente y con la BIOS de serie (el
+  kernel arrancaba 14 s después de la alarma). Muchos portátiles lo necesitan enchufados, y algunas
+  BIOS necesitan *Power Management → Auto On Time* (Dell) o una opción parecida; `powerclock doctor` da
+  una pista para tu marca.
 
-## Conditions and sensors
+## Condiciones y sensores
 
-PowerClock only reads the sensors your rules use: with no rule watching the CPU, it never reads the CPU.
+PowerClock solo lee los sensores que usan tus reglas: si ninguna regla vigila la CPU, nunca lee la CPU.
 
-- **Idle time** comes from the desktop: on Wayland through `ext-idle-notify` (KDE Plasma, Sway,
-  Hyprland…), on GNOME through Mutter, otherwise from logind, and on X11 with `xprintidle`. On
-  Wayland only the keyboard and the mouse count: a film playing does not keep the computer "in
-  use", so add a `media_playing` guard to idle rules (as the examples do).
-- **CPU and network** are sampled every 5 seconds; `cpu_below` and `net_below` use the **average**
-  of the last `for`, so a 5-second spike does not break a 5-minute average, but real work does.
-  Until PowerClock has measured the whole `for` (e.g. the first 5 minutes after you create the rule), the
-  value is unknown; a gap in the samples (a suspend) starts the measurement again. `net_below`
-  without `interface` adds up the physical interfaces (not `lo`, Docker or virtual bridges); with
-  `direction: both`, download + upload.
-- **Programs** are listed every 3 seconds; **battery and AC** every 5; **SSH sessions** every 10.
-- **Media** comes from MPRIS (any player that shows up in your desktop's media controls) and
-  **Wi-Fi** from NetworkManager.
-- **Use of the computer** comes from idleness: any minute with keyboard or mouse input counts
-  (today's total starts from zero at midnight in the rule's time zone). **Files** and **devices**
-  are checked every 5 seconds (USB, disk labels and Bluetooth through BlueZ); **temperature** every
-  10.
-- `powerclock status` and the window show what each watching rule sees right now.
+- **La inactividad** la da el escritorio: en Wayland con `ext-idle-notify` (KDE Plasma, Sway,
+  Hyprland…), en GNOME con Mutter, si no con logind, y en X11 con `xprintidle`. En Wayland solo
+  cuentan el teclado y el ratón: una película reproduciéndose no hace que el equipo esté "en uso",
+  así que añade una guarda `media_playing` a las reglas de inactividad (como hacen los ejemplos).
+- **La CPU y la red** se miden cada 5 segundos; `cpu_below` y `net_below` usan la **media** de los
+  últimos `for`, así que un pico de 5 segundos no estropea una media de 5 minutos, pero el trabajo
+  de verdad sí. Hasta que PowerClock ha medido todo el `for` (p. ej. los 5 primeros minutos tras crear la
+  regla), el valor es desconocido; un hueco en las medidas (una suspensión) vuelve a empezar la
+  medición. `net_below` sin `interface` suma las interfaces físicas (no `lo`, Docker ni puentes
+  virtuales); con `direction: both`, bajada + subida.
+- **Los programas** se consultan cada 3 segundos; **la batería y la alimentación** cada 5; **las
+  sesiones SSH** cada 10.
+- **La reproducción** llega por MPRIS (cualquier reproductor que aparezca en los controles
+  multimedia de tu escritorio) y **la Wi-Fi** por NetworkManager.
+- **El uso del equipo** sale de la inactividad: cuenta como uso cualquier minuto con teclado o ratón
+  (el total de hoy empieza de cero a medianoche en la zona horaria de la regla). **Los archivos** y
+  **los dispositivos** se miran cada 5 segundos (USB, etiquetas de discos y Bluetooth por BlueZ);
+  **la temperatura** cada 10.
+- `powerclock status` y la ventana muestran lo que ve en ese momento cada regla que vigila.
 
-**The cheap hours of electricity.** PowerClock ships no country's tariff tables: set your own
-hours with the **"Time window"** condition (00:00 to 08:00, say, and it may cross midnight) and,
-if your contract is also cheaper at weekends, add **"Day of the week"** or **"Today is a
-holiday"**. That works for any contract in any country.
+**Las horas baratas de la luz.** PowerClock no trae las tarifas de ningún país: pon tus horas
+con la condición **«Franja horaria»** (por ejemplo, de 00:00 a 08:00, que puede cruzar
+medianoche) y, si tu tarifa abarata también los fines de semana, añade **«Día de la semana»**
+o **«Hoy es festivo»**. Así vale para cualquier contrato y cualquier país.
 
-**Savings (estimated).** PowerClock notes every minute the computer is on; a gap is time off or
-asleep, and if PowerClock shut it down or suspended it just before the gap, that time counts as
-saved. The energy is that time times the computer's consumption when on (minus the 1 W it still
-draws), and the money, times the price of a kWh. Without your figures it uses typical values
-(15 W a laptop, 60 W a desktop, 0.15 €/kWh): set them in Diagnostics → Electricity or with
-`powerclock stats --watts 45 --price 0.18`. The last 30 days are summed up at the top of History.
-It is an estimate: time with PowerClock stopped counts as off.
+**El ahorro (estimado).** PowerClock anota cada minuto que el equipo está encendido; un hueco es
+tiempo apagado o en reposo, y si antes del hueco lo apagó o suspendió PowerClock, ese tiempo cuenta
+como ahorro. La energía es ese tiempo por el consumo del equipo encendido (menos 1 W que sigue
+gastando), y el dinero, por el precio del kWh. Sin tus datos usa valores típicos (15 W un portátil,
+60 W un sobremesa, 0,15 €/kWh): ponlos en Diagnóstico → Electricidad o con `powerclock stats
+--watts 45 --price 0.18`. El resumen de los últimos 30 días sale arriba en Historial. Es una
+estimación: el tiempo con PowerClock parado cuenta como apagado.
 
-## Safety
+## Seguridad
 
-- **Nothing turns off without warning**: every power action has a cancellable countdown (unless
-  you set `warning: 0s`), with buttons in a notification and in a window, plus `powerclock cancel`.
-- **Graceful by default**: on KDE and GNOME, shutting down, restarting and logging out go through
-  the session manager so applications can ask to save. `force` is only used when you ask for it.
-- **Test mode** (*dry run*) everywhere: per quick action (`--dry-run`), per rule (`"dry_run":
-  true`), for the whole daemon (`powerclock service install --dry-run`, `"dry_run": true` in
-  `daemon.json`, or `POWERCLOCK_DRY_RUN=1`). Power actions and alarms are then only noted down; the
-  rest still runs.
-- **Wait while…** (*guards*) prevents acting at a bad moment (a render, a video, an SSH session…).
-- **Least privilege**: the daemon runs as your user. Only the wake helper runs as root, it only
-  touches the RTC alarm, and it is installed by you with the exact commands shown first.
-- **Private API**: it only listens on `127.0.0.1` and needs a token stored in a file only your
-  user can read.
-- `run` executes programs **without a shell** unless you set `"shell": true`.
-- Everything that ran, was skipped or postponed is in the history, with the reason.
+- **Nada se apaga sin avisar**: cada acción de energía tiene una cuenta atrás que se puede cancelar
+  (salvo que pongas `warning: 0s`), con botones en una notificación y en una ventana, además de
+  `powerclock cancel`.
+- **Ordenado por defecto**: en KDE y GNOME, apagar, reiniciar y cerrar sesión pasan por el gestor
+  de sesión para que las aplicaciones puedan pedir guardar. `force` solo se usa si lo pides.
+- **Modo prueba** (*dry run*) en todas partes: por acción rápida (`--dry-run`), por regla
+  (`"dry_run": true`), para todo el servicio (`powerclock service install --dry-run`, `"dry_run": true` en `daemon.json`, o
+  `POWERCLOCK_DRY_RUN=1`). Las acciones de energía y las alarmas solo se anotan; lo demás sí se ejecuta.
+- **Esperar mientras…** evita actuar en mal momento (un render, un vídeo, una sesión SSH…).
+- **Mínimos privilegios**: PowerClock funciona con tu usuario. Solo el pequeño programa que
+  programa la alarma de encendido funciona como root, solo toca la alarma del RTC y lo instalas tú, viendo antes los comandos
+  exactos.
+- **API privado**: solo escucha en `127.0.0.1` y necesita un token guardado en un archivo que solo
+  puede leer tu usuario.
+- `run` ejecuta los programas **sin shell** salvo que pongas `"shell": true`.
+- Todo lo que se ejecutó, se omitió o se pospuso está en el historial, con su motivo.
 
-## Using it on a server
+## Uso en un servidor
 
-On a computer without a desktop (a VPS, a home server):
+En un equipo sin escritorio (un VPS, un servidor en casa):
 
 ```bash
-pipx install powerclock                   # without the window
-powerclock service install --linger       # the daemon keeps running without anyone logged in
+pipx install powerclock                   # sin la ventana
+powerclock service install --linger       # sigue funcionando sin nadie con la sesión iniciada
 powerclock doctor
 ```
 
-Everything works from the command line; notifications are skipped. Examples: restart every Sunday
-at 05:00 with a cron rule, restart when a long job finishes (`powerclock reboot --when-exits
-my-job`), run maintenance scripts on a schedule. Waking up from off is usually not available on
-virtual machines.
+Todo funciona desde la línea de comandos; las notificaciones se omiten. Ejemplos: reiniciar cada
+domingo a las 05:00 con una regla cron, reiniciar cuando termine una tarea larga
+(`powerclock reboot --when-exits mi-tarea`), ejecutar scripts de mantenimiento según un calendario.
+Encender desde apagado no suele estar disponible en máquinas virtuales.
 
-## Files and settings
+## Archivos y ajustes
 
-| File | What it is |
+| Archivo | Qué es |
 |---|---|
-| `~/.config/powerclock/rules.json` | Your rules (`{"version": 1, "rules": [ … ]}`). You can edit it by hand: the daemon reloads it within 2 seconds. If it has an error, the daemon keeps the last good rules, shows the error in `powerclock status` and does not write the file until you fix it, so your edit is never lost. |
-| `~/.config/powerclock/daemon.json` | Daemon settings: `port` (default `47831`), `dry_run` (`false`), `log_level` (`info`), `watts` and `price_kwh` (for the savings; `null`: typical values), `currency` (`€`). |
-| `~/.config/powerclock/api.token` | The API's secret token (readable only by you). |
-| `~/.local/share/powerclock/history.sqlite` | The history of runs. |
-| `~/.config/systemd/user/powerclock.service` | The user service (`powerclock service install`). |
-| `~/.local/share/applications/powerclock.desktop`, `~/.config/autostart/powerclock-gui.desktop` | Menu entry and login start (Diagnostics tab). |
+| `~/.config/powerclock/rules.json` | Tus reglas (`{"version": 1, "rules": [ … ]}`). Puedes editarlo a mano: PowerClock lo vuelve a cargar en menos de 2 segundos. Si tiene un error, PowerClock mantiene las últimas reglas buenas, muestra el error en `powerclock status` y no escribe el archivo hasta que lo arregles, así nunca se pierde tu edición. |
+| `~/.config/powerclock/daemon.json` | Ajustes del servicio: `port` (por defecto `47831`), `dry_run` (`false`), `log_level` (`info`), `watts` y `price_kwh` (para el ahorro; `null`: valores típicos), `currency` (`€`). |
+| `~/.config/powerclock/api.token` | El token secreto del API (solo lo puedes leer tú). |
+| `~/.local/share/powerclock/history.sqlite` | El historial de ejecuciones. |
+| `~/.config/systemd/user/powerclock.service` | El servicio de usuario (`powerclock service install`). |
+| `~/.local/share/applications/powerclock.desktop`, `~/.config/autostart/powerclock-gui.desktop` | Entrada del menú e inicio con la sesión (pestaña Diagnóstico). |
 
-Environment variables: `POWERCLOCK_DRY_RUN=1` (test mode), `POWERCLOCK_HOME=/some/dir` (keep every file in one
-folder, handy to experiment without touching your rules) and `POWERCLOCK_BACKEND=fake` (a simulated
-computer, used by the tests).
+Variables de entorno: `POWERCLOCK_DRY_RUN=1` (modo prueba), `POWERCLOCK_HOME=/una/carpeta` (guarda todos los
+archivos en una carpeta; útil para experimentar sin tocar tus reglas) y `POWERCLOCK_BACKEND=fake` (un
+equipo simulado, lo usan los tests).
 
-Logs: `journalctl --user -u powerclock -f`.
+Registro: `journalctl --user -u powerclock -f`.
 
-## The local API
+## El API local
 
-Other programs can drive PowerClock through its HTTP API on `http://127.0.0.1:47831` with the header
-`Authorization: Bearer <token>` (the token is in `~/.config/powerclock/api.token`).
+Otros programas pueden manejar PowerClock con su API HTTP en `http://127.0.0.1:47831` con la cabecera
+`Authorization: Bearer <token>` (el token está en `~/.config/powerclock/api.token`).
 
 ```bash
 TOKEN=$(cat ~/.config/powerclock/api.token)
@@ -665,104 +691,106 @@ curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
      -d '{"action": "suspend", "in": "30m"}' http://127.0.0.1:47831/quick
 ```
 
-| Method | Path | Use |
+| Método | Ruta | Uso |
 |---|---|---|
-| GET | `/health` | Version, backend, time zone, uptime, rule errors. |
-| GET · POST | `/rules` | List · create. |
-| GET · PUT · DELETE | `/rules/{id}` | Read · replace · delete. |
-| POST | `/rules/{id}/enable` · `/disable` · `/run` · `/cancel` · `/postpone` | Act on one rule. |
-| GET | `/apps` · `/recipes` | The installed applications (with their recipes) · the recipes. |
-| GET | `/stats?days=30` | Hours on, off and off thanks to PowerClock, actions and estimated savings. |
-| GET · PATCH | `/settings` | The settings that change while running: `watts`, `price_kwh`, `currency`. |
-| POST | `/quick` | A quick action: `action`, `command` or `app` (+ `args`), and `in`, `at`, `when_idle`, `when_exits`, `when_cpu_below`, `when_net_below` (+ `for`), `warning`, `mode`, `wake`, `wake_at`, `dry_run`. |
-| POST | `/wake` | `{"at": "07:30"}`: turn the computer on at that time. |
-| GET | `/pending` | What comes next, what is running, what is watched, the wake-up alarm. |
-| GET | `/runs/{id}` | One run. |
-| POST | `/runs/{id}/cancel` · `/cancel` | Cancel a run · the current countdown or next quick action. |
-| POST | `/runs/{id}/postpone` · `/postpone` | Postpone (`{"delay": "10m"}`). |
-| GET | `/history?limit=&offset=&rule_id=` | Past runs. |
-| GET | `/capabilities` | The `powerclock doctor` report. |
-| GET | `/schema/rule` | The JSON Schema of a rule. |
-| WebSocket | `/events` | Live events: `run_started`, `warning_started`, `tick`, `postponed`, `cancelled`, `run_finished`, `rule_changed`, `wake_changed` (the token can also go in `?token=`). |
+| GET | `/health` | Versión, backend, zona horaria, tiempo en marcha, errores de las reglas. |
+| GET · POST | `/rules` | Listar · crear. |
+| GET · PUT · DELETE | `/rules/{id}` | Leer · reemplazar · borrar. |
+| POST | `/rules/{id}/enable` · `/disable` · `/run` · `/cancel` · `/postpone` | Actuar sobre una regla. |
+| GET | `/apps` · `/recipes` | Las aplicaciones instaladas (con sus recetas) · las recetas. |
+| GET | `/stats?days=30` | Horas encendido, apagado y apagado gracias a PowerClock, acciones y ahorro estimado. |
+| GET · PATCH | `/settings` | Los ajustes que se cambian en marcha: `watts`, `price_kwh`, `currency`. |
+| POST | `/quick` | Una acción rápida: `action`, `command` o `app` (+ `args`), y `in`, `at`, `when_idle`, `when_exits`, `when_cpu_below`, `when_net_below` (+ `for`), `warning`, `mode`, `wake`, `wake_at`, `dry_run`. |
+| POST | `/wake` | `{"at": "07:30"}`: encender el equipo a esa hora. |
+| GET | `/pending` | Lo próximo, lo que está en marcha, lo que se vigila y la alarma de encendido. |
+| GET | `/runs/{id}` | Una ejecución. |
+| POST | `/runs/{id}/cancel` · `/cancel` | Cancelar una ejecución · la cuenta atrás actual o la próxima acción rápida. |
+| POST | `/runs/{id}/postpone` · `/postpone` | Posponer (`{"delay": "10m"}`). |
+| GET | `/history?limit=&offset=&rule_id=` | Ejecuciones pasadas. |
+| GET | `/capabilities` | El informe de `powerclock doctor`. |
+| GET | `/schema/rule` | El JSON Schema de una regla. |
+| WebSocket | `/events` | Eventos en vivo: `run_started`, `warning_started`, `tick`, `postponed`, `cancelled`, `run_finished`, `rule_changed`, `wake_changed` (el token también puede ir en `?token=`). |
 
-## Troubleshooting
+## Solución de problemas
 
-- **"PowerClock is not running in the background"** — `powerclock service install` (or `powerclock service status`; logs:
-  `journalctl --user -u powerclock`). To try it in the foreground: `POWERCLOCK_DRY_RUN=1 powerclock-daemon`.
-- **A power action does nothing** — `powerclock doctor`: each `power.*` line says whether your system
-  allows it (e.g. hibernation needs swap and `resume=`). If a rule has `dry_run` or the daemon runs
-  in test mode, `powerclock status` says so.
-- **Applications are not asked to save** — `powerclock doctor` → `power.graceful` shows the method found
-  (KDE's `org.kde.Shutdown`, GNOME's `gnome-session-quit`); without one, logind is used directly.
-- **The computer does not wake up** — run `powerclock doctor --test-wake 120` and read what woke it (or
-  that it did not suspend). Check `wake.helper` and `wake.authorized` in `powerclock doctor`; from off,
-  check the BIOS option and use AC power.
-- **It woke up right after suspending** — a touchpad, pointing stick, mouse or keyboard set as a
-  wake-up device; `powerclock doctor --test-wake` names it.
-- **An idle or CPU rule never fires** — look at `powerclock status` (*Watching*): it shows what the sensor
-  reads and how much of the `for` has been measured. If idle time is "unknown", your desktop does
-  not expose it (see [Conditions and sensors](#conditions-and-sensors)).
-- **`--when-exits` does nothing** — PowerClock waits until it sees the program running (`powerclock status`
-  says "not running yet"). Check the exact process name with `ps -e`.
-- **No tray icon on GNOME** — install/enable the *AppIndicator and KStatusNotifierItem Support*
-  extension, or use the window.
-- **My hand edit of `rules.json` is ignored** — `powerclock status` shows the error; fix it and the
-  daemon loads it within 2 seconds.
+- **"PowerClock no está funcionando en segundo plano"** — `powerclock service install` (o `powerclock service status`;
+  registro: `journalctl --user -u powerclock`). Para probarlo en primer plano: `POWERCLOCK_DRY_RUN=1 powerclock-daemon`.
+- **Una acción de energía no hace nada** — `powerclock doctor`: cada línea `power.*` dice si tu sistema
+  lo permite (p. ej. hibernar necesita swap y `resume=`). Si una regla tiene `dry_run` o el servicio
+  está en modo prueba, `powerclock status` lo dice.
+- **No se pide a las aplicaciones que guarden** — `powerclock doctor` → `power.graceful` muestra el método
+  encontrado (`org.kde.Shutdown` de KDE, `gnome-session-quit` de GNOME); si no hay ninguno, se usa
+  logind directamente.
+- **El equipo no se enciende** — ejecuta `powerclock doctor --test-wake 120` y lee qué lo despertó (o que
+  no llegó a suspenderse). Revisa `wake.helper` y `wake.authorized` en `powerclock doctor`; para encender
+  desde apagado, revisa la opción de la BIOS y déjalo enchufado.
+- **Se despertó nada más suspenderse** — un touchpad, un pointing stick, un ratón o un teclado
+  configurado para despertar el equipo; `powerclock doctor --test-wake` lo nombra.
+- **Una regla de inactividad o de CPU nunca se dispara** — mira `powerclock status` (*Vigilando*): muestra
+  lo que lee el sensor y cuánto del `for` se ha medido. Si la inactividad sale "desconocida", tu
+  escritorio no la ofrece (mira [Condiciones y sensores](#condiciones-y-sensores)).
+- **`--when-exits` no hace nada** — PowerClock espera hasta ver el programa en marcha (`powerclock status` dice
+  "aún no está en marcha"). Comprueba el nombre exacto del proceso con `ps -e`.
+- **No hay icono en la bandeja en GNOME** — instala o activa la extensión *AppIndicator and
+  KStatusNotifierItem Support*, o usa la ventana.
+- **Mi edición a mano de `rules.json` no se aplica** — `powerclock status` muestra el error; arréglalo y
+  PowerClock lo cargará en menos de 2 segundos.
 
-### Native look on KDE
+### Aspecto nativo en KDE
 
-With pipx, PowerClock brings its own copy of Qt, which cannot load KDE's Breeze style, so controls are
-drawn with Qt's *Fusion* style (colours, icons and dark mode still follow Plasma). For the exact
-Breeze look, use your system's Qt:
+Con pipx, PowerClock trae su propia copia de Qt, que no puede cargar el estilo Breeze de KDE, así que los
+controles se dibujan con el estilo *Fusion* de Qt (los colores, los iconos y el modo oscuro siguen
+a Plasma). Para el aspecto Breeze exacto, usa el Qt de tu sistema:
 
 ```bash
 sudo apt install python3-pyside6.qtwidgets python3-pyside6.qtnetwork python3-qasync qt6-svg-plugins
-pipx install --system-site-packages powerclock    # without [gui]
+pipx install --system-site-packages powerclock    # sin [gui]
 ```
 
-## Uninstalling
+## Desinstalar
 
-*Diagnostics → Uninstall PowerClock…*, or:
+*Diagnóstico → Desinstalar PowerClock…*, o:
 
 ```bash
-powerclock uninstall            # service, menu, login start, wake-up helper (password) and the program
-powerclock uninstall --purge    # …and your rules and history too
+powerclock uninstall            # servicio, menú, inicio con la sesión, permiso de encendido (contraseña) y el programa
+powerclock uninstall --purge    # …y también tus reglas y el historial
 ```
 
-Installed with pipx, the last step is `pipx uninstall powerclock`.
+Si lo instalaste con pipx, el último paso es `pipx uninstall powerclock`.
 
-## Development
+## Desarrollo
 
 ```bash
-uv sync --all-extras                     # everything, including the GUI and the dev tools
-uv run pytest                            # tests (never touch the real system)
+uv sync --all-extras                     # todo, incluidas la interfaz y las herramientas
+uv run pytest                            # tests (nunca tocan el sistema real)
 uv run ruff check --fix . && uv run ruff format .
-POWERCLOCK_DRY_RUN=1 uv run powerclock-daemon --foreground    # a daemon that turns nothing off
+POWERCLOCK_DRY_RUN=1 uv run powerclock-daemon --foreground    # un servicio que no apaga nada
 uv run powerclock-gui
-uv run python scripts/i18n.py update     # new texts into the translation catalogues
+uv run python scripts/i18n.py update     # textos nuevos a los catálogos de traducción
 uv run python scripts/i18n.py compile
-uv run python scripts/screenshots.py     # regenerate the README images
+uv run python scripts/screenshots.py     # regenerar las imágenes del README
 ```
 
-The design is described in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and the plan in
-[docs/ROADMAP.md](docs/ROADMAP.md). The code is in `src/powerclock/`: `models.py` (rules; the source of
-truth, also for the JSON Schema), `engine/` (scheduler, watcher of states, evaluator, executor,
-wake planner), `sensors/`, `daemon/` (API, storage), `cli/`, `gui/` and `platform/linux/`
-(everything specific to Linux). Tests run against a simulated computer and a fake clock; the few
-that read the real system are marked `real` and skipped by default.
+El diseño está en [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) y el plan en
+[docs/ROADMAP.md](docs/ROADMAP.md). El código está en `src/powerclock/`: `models.py` (las reglas; la
+fuente de verdad, también del JSON Schema), `engine/` (planificador, vigilancia de estados,
+evaluador, ejecutor, planificador de encendidos), `sensors/`, `daemon/` (API, almacenamiento),
+`cli/`, `gui/` y `platform/linux/` (todo lo específico de Linux). Los tests se ejecutan contra un
+equipo simulado y un reloj falso; los pocos que leen el sistema real están marcados `real` y se
+omiten por defecto.
 
-## Roadmap
+## Hoja de ruta
 
-- **0.1 — Linux** (now): everything above: shutting down, suspending and turning on at a time or
-  on conditions, logging in when it turns the computer on (only that boot, with the screen
-  locked), opening applications with recipes, media players, volume and desktop settings, phone
-  notifications, sunrise and sunset, calendars, holidays, files and devices, Wake-on-LAN,
-  estimated savings and the new design.
-- **1.1 — Windows** and **1.2 — macOS**.
-- **2.0**: remote control (Telegram bot, web interface), several computers, MQTT/Home Assistant,
-  KDE Connect, and describing rules in plain language.
+- **0.1 — Linux** (ahora): todo lo anterior: apagar, suspender y encender a una hora o por
+  condiciones, entrar en la sesión al encender (solo ese arranque, con la pantalla bloqueada),
+  abrir aplicaciones con recetas, reproductores, volumen y ajustes del escritorio, avisos al
+  móvil, amanecer y anochecer, calendario, festivos, ficheros y dispositivos, Wake-on-LAN, el
+  ahorro estimado y el diseño nuevo.
+- **1.1 — Windows** y **1.2 — macOS**.
+- **2.0**: control remoto (bot de Telegram, interfaz web), varios equipos, MQTT/Home Assistant,
+  KDE Connect y describir reglas en lenguaje natural.
 
-## License
+## Licencia
 
-[GPL-3.0-or-later](LICENSE). PowerClock is free software: you can use, study, share and improve it; if
-you distribute a modified version, it must stay free under the same license.
+[GPL-3.0-or-later](LICENSE). PowerClock es software libre: puedes usarlo, estudiarlo, compartirlo y
+mejorarlo; si distribuyes una versión modificada, debe seguir siendo libre con la misma licencia.
