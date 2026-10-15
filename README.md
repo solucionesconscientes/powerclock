@@ -6,8 +6,7 @@
 
 **Español** · [English](README.en.md)  ·  [solucionesconscientes.es/powerclock](https://solucionesconscientes.es/powerclock)
 
-> **Estado:** 1.0, publicada en PyPI. Hoy funciona en Linux (Intel/AMD y ARM); Windows y macOS están
-> previstos. Su pestaña Rápido se inspiró en [KShutdown](https://kshutdown.sourceforge.io/); es un
+> **Estado:** 1.0, publicada en PyPI. Funciona solo en Linux (Intel/AMD y ARM). Su pestaña Rápido se inspiró en [KShutdown](https://kshutdown.sourceforge.io/); es un
 > programa distinto, escrito desde cero y sin relación con él.
 
 **Programa el apagado, el encendido y tus tareas: a una hora exacta o cuando se cumplan las
@@ -154,8 +153,6 @@ vive en tu carpeta personal salvo un pequeño programa que solo puede programar 
 encendido, así que actualizar nunca pide contraseña.
 Para actualizar: *Diagnóstico → Buscar actualizaciones* (o `powerclock update`). Para desinstalar:
 *Diagnóstico → Desinstalar PowerClock…* (o `powerclock uninstall`).
-
-Los instaladores de Windows y macOS funcionarán igual cuando lleguen esas versiones.
 
 ### Con pipx (usuarios técnicos y servidores)
 
@@ -781,12 +778,11 @@ omiten por defecto.
 
 ## Hoja de ruta
 
-- **0.1 — Linux** (ahora): todo lo anterior: apagar, suspender y encender a una hora o por
+- **0.1 — Linux**: todo lo anterior: apagar, suspender y encender a una hora o por
   condiciones, entrar en la sesión al encender (solo ese arranque, con la pantalla bloqueada),
   abrir aplicaciones con recetas, reproductores, volumen y ajustes del escritorio, avisos al
   móvil, amanecer y anochecer, calendario, festivos, ficheros y dispositivos, Wake-on-LAN, el
   ahorro estimado y el diseño nuevo.
-- **1.1 — Windows** y **1.2 — macOS**.
 - **2.0**: control remoto (bot de Telegram, interfaz web), varios equipos, MQTT/Home Assistant,
   KDE Connect y describir reglas en lenguaje natural.
 

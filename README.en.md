@@ -6,8 +6,7 @@
 
 [Español](README.md) · **English**  ·  [solucionesconscientes.es/powerclock](https://solucionesconscientes.es/powerclock)
 
-> **Status:** 1.0, on PyPI. Linux is supported today (Intel/AMD and ARM); Windows and macOS are
-> planned. Its Quick tab was inspired by [KShutdown](https://kshutdown.sourceforge.io/); it is a
+> **Status:** 1.0, on PyPI. It works on Linux only (Intel/AMD and ARM). Its Quick tab was inspired by [KShutdown](https://kshutdown.sourceforge.io/); it is a
 > separate program, written from scratch and not affiliated with it.
 
 **Schedule shutdown, wake-up and your tasks, at an exact time or when the conditions you choose
@@ -145,8 +144,6 @@ That is all: PowerClock is in the tray and in the applications menu, and its ser
 Everything lives in your home folder except a small program that can only program the wake-up
 alarm, so updating never asks for the password. To update: *Diagnostics → Check for updates* (or `powerclock update`). To uninstall:
 *Diagnostics → Uninstall PowerClock…* (or `powerclock uninstall`).
-
-Windows and macOS installers will work the same way when those versions arrive.
 
 ### With pipx (technical users and servers)
 
@@ -753,12 +750,11 @@ that read the real system are marked `real` and skipped by default.
 
 ## Roadmap
 
-- **0.1 — Linux** (now): everything above: shutting down, suspending and turning on at a time or
+- **0.1 — Linux**: everything above: shutting down, suspending and turning on at a time or
   on conditions, logging in when it turns the computer on (only that boot, with the screen
   locked), opening applications with recipes, media players, volume and desktop settings, phone
   notifications, sunrise and sunset, calendars, holidays, files and devices, Wake-on-LAN,
   estimated savings and the new design.
-- **1.1 — Windows** and **1.2 — macOS**.
 - **2.0**: remote control (Telegram bot, web interface), several computers, MQTT/Home Assistant,
   KDE Connect, and describing rules in plain language.
 
